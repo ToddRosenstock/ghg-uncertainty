@@ -1,6 +1,10 @@
 # Estimating Uncertainty in Kenyan Livestock Emission Reductions
 
 # Load data
+# CW Note ####
+# We need this file
+# Also, no need for the whole directory here. 
+# The .Rproj will find the .csv in a relative location (i.e. subfolder)
 ghg_variables<- read.csv("C:/Users/jwafula/Dropbox/UNIQUE_CCAFS/analysis/data/Kenya_baseline_individual_cow_wNotes.csv")
 
 # (a) MC simulation approach using decisionSupport package
