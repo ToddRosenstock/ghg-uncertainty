@@ -1,14 +1,14 @@
 ﻿Description,error,lower,mean,upper,distribution,variable
-Live weight per animal (kg),5.57923,283.57067,289.1499,294.72913,posnorm,live_weight_LW
+Live weight per animal (kg),5.57923,283.57067,289.1499,294.72913,norm,live_weight_LW
 Maintenaince coefficient (Cfi),0.001168241,0.348756359,0.3499246,0.351092841,posnorm,maintenaince_coefficient_Cfi
-Annual average daily milk yield (kg/day),0.1953513,3.3073057,3.502657,3.6980083,posnorm,milk_yield
+Annual average daily milk yield (kg/day),0.1953513,3.3073057,3.502657,3.6980083,norm,milk_yield
 Activity coefficient (Ca),0.001680086,0.017770314,0.0194504,0.021130486,posnorm,activity_coefficient_Ca
 Growth coefficient parameter (C),0.006170712,0.848873788,0.8550445,0.861215212,posnorm,growth_coefficient_C
-Milk fat (Mf),0.08983696,1.99324904,2.083086,2.17292296,posnorm,milk_fat
+Milk fat (Mf),0.08983696,1.99324904,2.083086,2.17292296,norm,milk_fat
 Pregnancy coefficient (Cp),0.00173589,0.03173748,0.03347337,0.03520926,posnorm,pregnancy_coefficient_Cp
-Weight of mature animals (kg),2.094318,365.391382,367.4857,369.580018,posnorm,mature_weight_MW
-Average daily weight gain (kg/day),0.007404802,0.129659398,0.1370642,0.144469002,posnorm,weight_gain_WG
-Digestable energy (De),0.1862642,58.6681058,58.85437,59.0406342,posnorm,dig_energy
+Weight of mature animals (kg),2.094318,365.391382,367.4857,369.580018,norm,mature_weight_MW
+Average daily weight gain (kg/day),0.007404802,0.129659398,0.1370642,0.144469002,norm,weight_gain_WG
+Digestable energy (De),0.1862642,58.6681058,58.85437,59.0406342,norm,dig_energy
 Bo,0.000786073,0.152440927,0.153227,0.154013073,posnorm,bo
 Manure management emissions  (pasture),0.01070374,0.08050558,0.09120932,0.10191306,posnorm,mms_pasture
 Manure management emissions (spread),0.01154413,0.09331307,0.1048572,0.11640133,posnorm,mms_spread
@@ -18,6 +18,6 @@ Manure management emissions (composted),0.01277019,0.10981761,0.1225878,0.135357
 Manure management emissions (liquid),0.004704855,0.021164335,0.02586919,0.030574045,posnorm,mms_liquid
 Manure management emissions (biogas),0.008051364,0.042122726,0.05017409,0.058225454,posnorm,mms_biogas
 Manure management emissions (burn),0.000366119,0.000301537,0.000667656,0.001033774,posnorm,mms_burn
-Feed production,38.93774,795.61996,834.5577,873.49544,posnorm,feed_prod_CO2
-Feed transport,0.8689011,4.3343729,5.203274,6.0721751,posnorm,feed_trans_CO2
-FPCM,72.05905,1219.96295,1292.022,1364.08105,posnorm,kg_FPCM_year
+Feed production,38.93774,795.61996,834.5577,873.49544,norm,feed_prod_CO2
+Feed transport,0.8689011,4.3343729,5.203274,6.0721751,norm,feed_trans_CO2
+FPCM,72.05905,1219.96295,1292.022,1364.08105,norm,kg_FPCM_year

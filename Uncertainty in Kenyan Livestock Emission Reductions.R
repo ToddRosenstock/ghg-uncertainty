@@ -1,7 +1,7 @@
 # Estimating Uncertainty in Kenyan Livestock Emission Reductions
 
 # Load data
-ghg_variables<- read.csv("C:/Users/jwafula/Dropbox/UNIQUE_CCAFS/analysis/data/Kenya_baseline_individual_cow_wNotes.csv")
+ghg_variables<- read.csv("C:/Users/jwafula/ghg-uncertainty/Kenya_baseline_individual_cow_wNotes.csv")
 
 # (a) MC simulation approach using decisionSupport package
 
@@ -56,7 +56,7 @@ fpcm_abs_unc<-z_score*(sd(ghg_variables$kg_FPCM_year)/sqrt(1348))
 
 library(decisionSupport)
 
-input_table <- "C:/Users/jwafula/Dropbox/UNIQUE_CCAFS/analysis/data/livestock_ghg_input_table.csv"
+input_table <- "C:/Users/jwafula/ghg-uncertainty/livestock_ghg_input_table.csv"
 results_folder <- "MC results"
 
 # Generate a function for testing the model function 'line by line' 
@@ -119,22 +119,16 @@ on_farm<-enteric_CH4+enteric_CO2+mm_CO2+mm_CO2_N2O+feed_CO2
 
 # Relationship between greenhouse gas intensity and milk yields. 
 # Fat adjusts
-ann_adj <-kg_FPCM_year*365 
-df <- data.frame(
-  GHGi = on_farm/ann_adj, 
-  FPCM = ann_adj)
-
-# plot
-
-library(ggplot2)
-ggplot(df, aes(x = FPCM, y = GHGi)) +geom_point() + ylim(0,50) 
+ann_adj<-kg_FPCM_year*365 
+GHGi = on_farm/ann_adj 
 
 return(list(enteric_CH4=enteric_CH4,
             enteric_CO2=enteric_CO2,
             mm_CO2=mm_CO2,
             mm_CO2_N2O=mm_CO2_N2O,
             feed_CO2=feed_CO2,
-            on_farm=on_farm))
+            on_farm=on_farm,
+            GHGi=GHGi))
 }
 
 # Run the Monte Carlo using the decisionSupport function ####
