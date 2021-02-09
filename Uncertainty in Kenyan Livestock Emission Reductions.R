@@ -84,6 +84,7 @@ ghg_emissions<-function(x, varnames){
   #CW Note ####
   #in these code sections I am missing the overview. 
   # it is not immediately clear what this is meant to do... 
+  # from a specific publication? 
 nem<-maintenaince_coefficient_Cfi*(live_weight_LW^0.75)
 nea<-activity_coefficient_Ca*nem
 nel<-milk_yield*(1.47+0.4*milk_fat) 
@@ -147,6 +148,9 @@ library(ggplot2)
 ggplot(df, aes(x = FPCM, y = GHGi)) +geom_point() + ylim(0,50) 
 
 return(list(enteric_CH4=enteric_CH4,
+            #CW NOTE ####
+            #working backwards from 'enteric_CO2' I see that 
+            # this is the product of something twice multiplied by 365
             enteric_CO2=enteric_CO2,
             mm_CO2=mm_CO2,
             mm_CO2_N2O=mm_CO2_N2O,
