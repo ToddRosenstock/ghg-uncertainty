@@ -5,11 +5,16 @@
 # We need this file
 # Also, no need for the whole directory here. 
 # The .Rproj will find the .csv in a relative location (i.e. subfolder)
-ghg_variables<- read.csv("C:/Users/jwafula/Dropbox/UNIQUE_CCAFS/analysis/data/Kenya_baseline_individual_cow_wNotes.csv")
-
+# ghg_variables<- read.csv("C:/Users/jwafula/Dropbox/UNIQUE_CCAFS/analysis/data/Kenya_baseline_individual_cow_wNotes.csv")
+ghg_variables<- read.csv("Kenya_baseline_individual_cow_wNotes.csv")
 # (a) MC simulation approach using decisionSupport package
 
 # Calculate mean values for the variables to help generate the MC simulation table
+#CW Note ####
+# Could be useful to have more commentary here about what is happening
+# Cfi is a variable in the Kenya_baseline_individual_cow_wNotes.csv
+# it has some meaning - and - we want to use the mean of that variable 
+# This mean_Cfi variable does not seem to be used anywhere... 
 mean_Cfi<-mean(ghg_variables$Cfi)
 mean_LW<-mean(ghg_variables$live_weight_LW)
 mean_Ca<-mean(ghg_variables$Ca)
@@ -59,20 +64,26 @@ Feed_transport_kgCO2_abs_unc<-z_score*(sd(ghg_variables$feed_transport_kgCO2)/sq
 fpcm_abs_unc<-z_score*(sd(ghg_variables$kg_FPCM_year)/sqrt(1348))
 
 library(decisionSupport)
-
-input_table <- "C:/Users/jwafula/Dropbox/UNIQUE_CCAFS/analysis/data/livestock_ghg_input_table.csv"
+#CW Note ####
+# remove all the 'C:/Users/jwafula/Dropbox/UNIQUE_CCAFS/analysis/data/' business
+# This project will look in relative file paths (i.e. same or lower folders)
+input_table <- "livestock_ghg_input_table.csv"
 results_folder <- "MC results"
 
 # Generate a function for testing the model function 'line by line' 
 # by taking a single random sample of the provided estimates
 make_variables <- function(est,n=1){ x <- random(rho=est, n=n)
 for(i in colnames(x)) assign(i, as.numeric(x[1,i]),envir=.GlobalEnv)}
+# run the function on the input_table
 make_variables(estimate_read_csv(input_table))
 
 # Generate the GHG emissions function 
 ghg_emissions<-function(x, varnames){
 
 # Enteric fermentation emissions ($CH_4$)
+  #CW Note ####
+  #in these code sections I am missing the overview. 
+  # it is not immediately clear what this is meant to do... 
 nem<-maintenaince_coefficient_Cfi*(live_weight_LW^0.75)
 nea<-activity_coefficient_Ca*nem
 nel<-milk_yield*(1.47+0.4*milk_fat) 
@@ -128,6 +139,8 @@ df <- data.frame(
   GHGi = on_farm/ann_adj, 
   FPCM = ann_adj)
 
+#CW Note ####
+# Not clear what this part does
 # plot
 
 library(ggplot2)
@@ -145,7 +158,7 @@ return(list(enteric_CH4=enteric_CH4,
 decisionSupport(inputFilePath = input_table, #input file with estimates
                 outputPath = results_folder, #output folder
                 welfareFunction = ghg_emissions, #the function created above
-                numberOfModelRuns = 10000,
+                numberOfModelRuns = 100, #make 100 for now
                 functionSyntax = "plainNames", 
                 write_table = TRUE,)
 
