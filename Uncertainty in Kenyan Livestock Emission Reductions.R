@@ -5,63 +5,6 @@
 # We need this file
 # Also, no need for the whole directory here. 
 # The .Rproj will find the .csv in a relative location (i.e. subfolder)
-# ghg_variables<- read.csv("C:/Users/jwafula/Dropbox/UNIQUE_CCAFS/analysis/data/Kenya_baseline_individual_cow_wNotes.csv")
-ghg_variables<- read.csv("Kenya_baseline_individual_cow_wNotes.csv")
-# (a) MC simulation approach using decisionSupport package
-
-# Calculate mean values for the variables to help generate the MC simulation table
-#CW Note ####
-# Could be useful to have more commentary here about what is happening
-# Cfi is a variable in the Kenya_baseline_individual_cow_wNotes.csv
-# it has some meaning - and - we want to use the mean of that variable 
-# This mean_Cfi variable does not seem to be used anywhere... 
-mean_Cfi<-mean(ghg_variables$Cfi)
-mean_LW<-mean(ghg_variables$live_weight_LW)
-mean_Ca<-mean(ghg_variables$Ca)
-mean_C<-mean(ghg_variables$C)
-mean_milk_yield<-mean(ghg_variables$milk_yield)
-mean_milk_fat<-mean(ghg_variables$milk_fat)
-mean_Cp<-mean(ghg_variables$Cp)
-mean_MW<-mean(ghg_variables$mature_weight_MW)
-mean_WG<-mean(ghg_variables$weight_gain_WG)
-mean_dig_energy<-mean(ghg_variables$dig_energy)
-mean_bo<-mean(ghg_variables$bo)
-mean_mms_pasture<-mean(ghg_variables$mms_pasture)
-mean_mms_spread<-mean(ghg_variables$mms_spread)
-mean_mms_drylot<-mean(ghg_variables$mms_drylot)
-mean_mms_solidstore<-mean(ghg_variables$mms_solidstore)
-mean_mms_composted<-mean(ghg_variables$mms_composted)
-mean_mms_liquid<-mean(ghg_variables$mms_liquid)
-mean_mms_biogas<-mean(ghg_variables$mms_biogas)
-mean_mms_burn<-mean(ghg_variables$mms_burn)
-mean_feed_kgCO2<-mean(ghg_variables$feed_kgCO2)
-mean_feed_transport_kgCO2<-mean(ghg_variables$feed_transport_kgCO2)
-mean_fpcm<-mean(ghg_variables$kg_FPCM_year)
-  
-# Calculate absolute uncertainty to help get upper and lower bounds of variables in the MC input table
-z_score<-1.65 # desired confidence level is 90% 
-Cfi_abs_unc<-z_score*(sd(ghg_variables$Cfi)/sqrt(1348))
-LW_abs_unc<-z_score*(sd(ghg_variables$live_weight_LW)/sqrt(1348))
-Ca_abs_unc<-z_score*(sd(ghg_variables$Ca)/sqrt(1348))
-C_abs_unc<-z_score*(sd(ghg_variables$C)/sqrt(1348))
-Milk_yield_abs_unc<-z_score*(sd(ghg_variables$milk_yield)/sqrt(1348))
-Milk_fat_abs_unc<-z_score*(sd(ghg_variables$milk_fat)/sqrt(1348))
-Cp_abs_unc<-z_score*(sd(ghg_variables$Cp)/sqrt(1348))
-MW_abs_unc<-z_score*(sd(ghg_variables$mature_weight_MW)/sqrt(1348))
-WG_abs_unc<-z_score*(sd(ghg_variables$weight_gain_WG)/sqrt(1348))
-Dig_energy_abs_unc<-z_score*(sd(ghg_variables$dig_energy)/sqrt(1348))
-Bo_abs_unc<-z_score*(sd(ghg_variables$bo)/sqrt(1348))
-Mms_pasture_abs_unc<-z_score*(sd(ghg_variables$mms_pasture)/sqrt(1348))
-Mms_spread_abs_unc<-z_score*(sd(ghg_variables$mms_spread)/sqrt(1348))
-Mms_drylot_abs_unc<-z_score*(sd(ghg_variables$mms_drylot)/sqrt(1348))
-Mms_solidstore_abs_unc<-z_score*(sd(ghg_variables$mms_solidstore)/sqrt(1348))
-Mms_composted_abs_unc<-z_score*(sd(ghg_variables$mms_composted)/sqrt(1348))
-Mms_liquid_abs_unc<-z_score*(sd(ghg_variables$mms_liquid)/sqrt(1348))
-Mms_biogas_abs_unc<-z_score*(sd(ghg_variables$mms_biogas)/sqrt(1348))
-Mms_burn_abs_unc<-z_score*(sd(ghg_variables$mms_burn)/sqrt(1348))
-Feed_kgCO2_abs_unc<-z_score*(sd(ghg_variables$feed_kgCO2)/sqrt(1348))
-Feed_transport_kgCO2_abs_unc<-z_score*(sd(ghg_variables$feed_transport_kgCO2)/sqrt(1348))
-fpcm_abs_unc<-z_score*(sd(ghg_variables$kg_FPCM_year)/sqrt(1348))
 
 library(decisionSupport)
 #CW Note ####
