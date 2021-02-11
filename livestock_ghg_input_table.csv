@@ -9,7 +9,6 @@ Pregnancy coefficient (Cp),0.00173589,0.03173748,0.03347337,0.03520926,posnorm,p
 Weight of mature animals (kg),2.094318,365.391382,367.4857,369.580018,posnorm,mature_weight_MW
 Average daily weight gain (kg/day),0.007404802,0.129659398,0.1370642,0.144469002,posnorm,weight_gain_WG
 Digestable energy (De),0.1862642,58.6681058,58.85437,59.0406342,posnorm,dig_energy
-Bo,0.000786073,0.152440927,0.153227,0.154013073,posnorm,bo
 Manure management emissions  (pasture),0.01070374,0.08050558,0.09120932,0.10191306,posnorm,mms_pasture
 Manure management emissions (spread),0.01154413,0.09331307,0.1048572,0.11640133,posnorm,mms_spread
 Manure management emissions (drylot),0.006523685,0.029322755,0.03584644,0.042370125,posnorm,mms_drylot

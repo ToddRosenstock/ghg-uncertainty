@@ -76,6 +76,9 @@ feed_CO2<-feed_prod_CO2*feed_trans_CO2
 # Total emissions
 on_farm<-enteric_CH4+enteric_CO2+mm_CO2+mm_CO2_N2O+feed_CO2
 
+#CW Note ####
+# Not clear what this part does (through to the ggplot)
+
 # Relationship between greenhouse gas intensity and milk yields. 
 # Fat adjusts
 ann_adj <-kg_FPCM_year*365 
@@ -83,8 +86,6 @@ df <- data.frame(
   GHGi = on_farm/ann_adj, 
   FPCM = ann_adj)
 
-#CW Note ####
-# Not clear what this part does
 # plot
 
 library(ggplot2)
