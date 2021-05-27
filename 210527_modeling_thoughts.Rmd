@@ -1,0 +1,36 @@
+---
+title: "Model building thoughts"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# kernel modeling
+
+Basically ready to be supplied with real data. Currently, the file chill-yield-vignette.Rmd contains the code. Text needs to be adjusted - reflects the chill-yield problem still.
+
+# Model updating
+
+## Problem description
+
+The first version of the model assumed certain factors as constant and others as variable. We questioned this selection and decided to update (right?). The MC simulation can account for all kinds of uncertainties, and we should make full use of this capability. Having said this, we also want to stick closely to the *official* equation that Joshua's first model was based on.
+
+The original input table for Joshua's model is contained in the livestock_ghg_input_table.csv file.
+
+Todd has already made a more comprehensive list of all the possible variables (based on the official equation) - livestock-uncertainty-codebook.csv. We now need to decide which ones we want to assume constant, and which ones should be considered as uncertain variables.
+
+
+## Tasks ahead
+
+1. Decision which variables we want uncertainty for
+2. Take a look at current rationale for deciding on precise values
+3. Add uncertainty ranges to all these and clearly define as inputs to the model
+4. Run simulation
+5. Identify most important factors that determine GHG emissions (VIP analysis)
+6. Based on outputs, produce a "chill-kernel" prediction model for GHG emissions
+
+
+
+
