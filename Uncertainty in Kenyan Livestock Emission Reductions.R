@@ -88,8 +88,8 @@ df <- data.frame(
 
 # plot
 
-library(ggplot2)
-ggplot(df, aes(x = FPCM, y = GHGi)) +geom_point() + ylim(0,50) 
+#library(ggplot2)
+#ggplot(df, aes(x = FPCM, y = GHGi)) +geom_point() + ylim(0,50) 
 
 return(list(enteric_CH4=enteric_CH4,
             #CW NOTE ####
@@ -103,10 +103,10 @@ return(list(enteric_CH4=enteric_CH4,
 }
 
 # Run the Monte Carlo using the decisionSupport function ####
-decisionSupport(inputFilePath = input_table, #input file with estimates
+mcResults<-decisionSupport(inputFilePath = input_table, #input file with estimates
                 outputPath = results_folder, #output folder
                 welfareFunction = ghg_emissions, #the function created above
                 numberOfModelRuns = 100, #make 100 for now
                 functionSyntax = "plainNames", 
                 write_table = TRUE,)
-
+plot(mcResults)

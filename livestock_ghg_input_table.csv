@@ -1,12 +1,14 @@
-﻿Description,lower,mean,upper,distribution,variable
+Description,lower,mean,upper,distribution,variable
 Something called 'bo',1,,100,posnorm,bo
 Live weight per animal (kg),283.57067,289.1499,294.72913,posnorm,live_weight_LW
 Maintenaince coefficient (Cfi),0.348756359,0.3499246,0.351092841,posnorm,maintenaince_coefficient_Cfi
 Annual average daily milk yield (kg/day),3.3073057,3.502657,3.6980083,posnorm,milk_yield
-Activity coefficient (Ca),0.017770314,0.0194504,0.021130486,posnorm,activity_coefficient_Ca
+Activity coefficient (Ca),0.017770314,0.0194504,0.021130486,posnorm,C_activity
+Shrunk weight gain (kg/day),0.01,,2,posnorm,SWG
+Final Shrunk Body Weight (kg/day),0.01,,2,posnorm,FSBW
+Methane conversion rate (%),0.04,,0.07,posnorm,Y_m
 Growth coefficient parameter (C),0.848873788,0.8550445,0.861215212,posnorm,growth_coefficient_C
-Milk fat (Mf),1.99324904,2.083086,2.17292296,posnorm,milk_fat
-Pregnancy coefficient (Cp),0.03173748,0.03347337,0.03520926,posnorm,pregnancy_coefficient_Cp
+Milk fat (%),1.99324904,2.083086,2.17292296,posnorm,milk_fat
 Weight of mature animals (kg),365.391382,367.4857,369.580018,posnorm,mature_weight_MW
 Average daily weight gain (kg/day),0.129659398,0.1370642,0.144469002,posnorm,weight_gain_WG
 Digestable energy (De),58.6681058,58.85437,59.0406342,posnorm,dig_energy
