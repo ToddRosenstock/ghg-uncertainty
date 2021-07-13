@@ -31,23 +31,27 @@ knitr::write_bib(c(.packages(),
 
 We're looking at the equation put together by Joshua Wafula to check if this can easily be used by decisionSupport [@R-decisionSupport], and to possibly optimize the model.
 
-The formulas come from Chapter 10 of the 2006 IPCC Guidelines for National Greenhouse Gas Inventories [@dong_ipcc_2006]. The document can be found on [the IPCC website](https://www.ipcc-nggip.iges.or.jp/public/2006gl/pdf/4_Volume4/V4_10_Ch10_Livestock.pdf).  Many variables are based on the work done in 'Variation in the carbon footprint of milk production on smallholder dairy farms in central Kenya' [@wilkes_variation_2020] and in 'Methods and guidance to support MRV of livestock emissions' [@wilkes_methods_2019].
+The formulas come from Chapter 10 of the *2006 IPCC Guidelines for National Greenhouse Gas Inventories* [@dong_ipcc_2006]. The document can be found on [the IPCC website](https://www.ipcc-nggip.iges.or.jp/public/2006gl/pdf/4_Volume4/V4_10_Ch10_Livestock.pdf). The chapter is part of the book *Good Practice Guidance and Uncertainty Management in National Greenhouse Gas Inventories* [@ipcc_good_2021] , also on the [the IPCC website](https://www.ipcc-nggip.iges.or.jp/public/gp/english/). Many variables are based on the work done in *Variation in the carbon footprint of milk production on smallholder dairy farms in central Kenya* [@wilkes_variation_2020] and in *Methods and guidance to support MRV of livestock emissions* [@wilkes_methods_2019].
 
-*Here are our changes and additions to the original model:*
+**Here are our changes and additions to the original model:**
 
 ```{r load_data}
 
 library(decisionSupport)
 ###CW Note ####
-# remove all the 'C:/Users/jwafula/Dropbox/UNIQUE_CCAFS/analysis/data/' business
+# #### remove all the 'C:/Users/jwafula/Dropbox/UNIQUE_CCAFS/analysis/data/' folder locations throughout - 
+#### these are not useful with RMD and RStudio / Git integrations
 ###CW Note ####
 ### # This project will be stored in relative file paths (i.e. same or lower folders)
 input_table <- "data/livestock_ghg_input_table.csv"
 ```
 
+Here we generate a `make_variables` function for testing the model function 'line by line'. We use it to take a single random sample of the provided estimates.
+
 ```{r make_variables}
-# Generate a function for testing the model function 'line by line' 
-# by taking a single random sample of the provided estimates
+###CW Note ####
+### We will need to clean up the warnings later
+### Reasonable ranges still missing for many variables
 make_variables <- function(est,n=1){ x <- random(rho=est, n=n)
 for(i in colnames(x)) assign(i, as.numeric(x[1,i]),envir=.GlobalEnv)}
 
