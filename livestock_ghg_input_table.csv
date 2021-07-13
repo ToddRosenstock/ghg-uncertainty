@@ -1,25 +1,68 @@
-Description,lower,mean,upper,distribution,variable
-Something called 'bo',1,,100,posnorm,bo
-Live weight per animal (kg),283.57067,289.1499,294.72913,posnorm,live_weight_LW
-Maintenaince coefficient (Cfi),0.348756359,0.3499246,0.351092841,posnorm,maintenaince_coefficient_Cfi
-Annual average daily milk yield (kg/day),3.3073057,3.502657,3.6980083,posnorm,milk_yield
-Activity coefficient (Ca),0.017770314,0.0194504,0.021130486,posnorm,C_activity
-Shrunk weight gain (kg/day),0.01,,2,posnorm,SWG
-Final Shrunk Body Weight (kg/day),0.01,,2,posnorm,FSBW
-Methane conversion rate (%),0.04,,0.07,posnorm,Y_m
-Growth coefficient parameter (C),0.848873788,0.8550445,0.861215212,posnorm,growth_coefficient_C
-Milk fat (%),1.99324904,2.083086,2.17292296,posnorm,milk_fat
-Weight of mature animals (kg),365.391382,367.4857,369.580018,posnorm,mature_weight_MW
-Average daily weight gain (kg/day),0.129659398,0.1370642,0.144469002,posnorm,weight_gain_WG
-Digestable energy (De),58.6681058,58.85437,59.0406342,posnorm,dig_energy
-Manure management emissions  (pasture),0.08050558,0.09120932,0.10191306,posnorm,mms_pasture
-Manure management emissions (spread),0.09331307,0.1048572,0.11640133,posnorm,mms_spread
-Manure management emissions (drylot),0.029322755,0.03584644,0.042370125,posnorm,mms_drylot
-Manure management emisions (solidstore),0.53322128,0.5530965,0.57297172,posnorm,mms_solidstore
-Manure management emissions (composted),0.10981761,0.1225878,0.13535799,posnorm,mms_composted
-Manure management emissions (liquid),0.021164335,0.02586919,0.030574045,posnorm,mms_liquid
-Manure management emissions (biogas),0.042122726,0.05017409,0.058225454,posnorm,mms_biogas
-Manure management emissions (burn),0.000301537,0.000667656,0.001033774,posnorm,mms_burn
-Feed production,795.61996,834.5577,873.49544,posnorm,feed_prod_CO2
-Feed transport,4.3343729,5.203274,6.0721751,posnorm,feed_trans_CO2
-FPCM,1219.96295,1292.022,1364.08105,posnorm,kg_FPCM_year
+Description,lower,mean,upper,distribution,variable,source
+Animal type,1,,1,const,animal_type,
+Live weight per animal (kg),283.57067,289.1499,294.72913,posnorm,live_weight_LW,
+Maintenaince coefficient (Cfi),0.348756359,0.3499246,0.351092841,posnorm,maintenaince_coefficient_Cfi,
+Annual average daily milk yield (kg/day),3.3073057,3.502657,3.6980083,posnorm,milk_yield,
+Activity coefficient (Ca),0.017770314,0.0194504,0.021130486,posnorm,C_activity,
+Shrunk weight gain (kg/day),0.01,,2,posnorm,SWG,
+Final Shrunk Body Weight (kg/day),0.01,,2,posnorm,FSBW,
+Methane conversion rate (%),0.04,,0.07,posnorm,Y_m,
+Growth coefficient parameter (C),0.848873788,0.8550445,0.861215212,posnorm,growth_coefficient_C,
+Milk fat (%),1.99324904,2.083086,2.17292296,posnorm,milk_fat,
+Weight of mature animals (kg),365.391382,367.4857,369.580018,posnorm,mature_weight_MW,
+Average daily weight gain (kg/day),0.129659398,0.1370642,0.144469002,posnorm,weight_gain_WG,
+Digestable energy (De),58.6681058,58.85437,59.0406342,posnorm,dig_energy,
+Manure management emissions  (pasture),0.08050558,0.09120932,0.10191306,posnorm,mms_pasture,
+Manure management emissions (spread),0.09331307,0.1048572,0.11640133,posnorm,mms_spread,
+Manure management emissions (drylot),0.029322755,0.03584644,0.042370125,posnorm,mms_drylot,
+Manure management emisions (solidstore),0.53322128,0.5530965,0.57297172,posnorm,mms_solidstore,
+Manure management emissions (composted),0.10981761,0.1225878,0.13535799,posnorm,mms_composted,
+Manure management emissions (liquid),0.021164335,0.02586919,0.030574045,posnorm,mms_liquid,
+Manure management emissions (biogas),0.042122726,0.05017409,0.058225454,posnorm,mms_biogas,
+Manure management emissions (burn),0.000301537,0.000667656,0.001033774,posnorm,mms_burn,
+Manure management emissions (sold),0,0,0,const,mms_sold,
+Feed production,795.61996,834.5577,873.49544,posnorm,feed_prod_CO2,
+Feed transport,4.3343729,5.203274,6.0721751,posnorm,feed_trans_CO2,
+FPCM,1219.96295,1292.022,1364.08105,posnorm,kg_FPCM_year,
+,,,,,,
+Chance that cattle leaves manure on pasture,,,,,,
+Percentage manure left on pasture,,,,,,
+Chance that farmers spread collected manure on pasture,,,,,,
+Percentage collected manure spread on pasture,,,,,,
+Chance that manure remains in dry lots,,,,,,
+Percentage of (non-pasture) manure that remains in dry lots,,,,,,
+Chance that farmers store manure in solid form,,,,,,
+Chance that famers sell manure,,,,,,
+Percentage of manure sold (by manure-sellers),,,,,,
+Chance that farmers separate solid and liquid manure,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+##Constants from IPCC or other sources,,,,,,
+Maximum methane producing capacity of the manure (animal type 1),0.17,,0.17,const,Bo_animaltype_1,2006 IPCC Guidelines for National Greenhouse Gas Inventories
+Maximum methane producing capacity of the manure (animal type 2),0.17,,0.17,const,Bo_animaltype_2,2006 IPCC Guidelines for National Greenhouse Gas Inventories
+Maximum methane producing capacity of the manure (animal type 3),0.17,,0.17,const,Bo_animaltype_3,2006 IPCC Guidelines for National Greenhouse Gas Inventories
+Maximum methane producing capacity of the manure (animal type 4),0.135,,0.135,const,Bo_animaltype_4,2006 IPCC Guidelines for National Greenhouse Gas Inventories
+Maximum methane producing capacity of the manure (animal type 5),0.135,,0.135,const,Bo_animaltype_5,2006 IPCC Guidelines for National Greenhouse Gas Inventories
+Maximum methane producing capacity of the manure (animal type 6),0.135,,0.135,const,Bo_animaltype_6,2006 IPCC Guidelines for National Greenhouse Gas Inventories
+Maximum methane producing capacity of the manure (animal type 7),0.17,,0.17,const,Bo_animaltype_7,2006 IPCC Guidelines for National Greenhouse Gas Inventories
+Maximum methane producing capacity of the manure (animal type 8),0.17,,0.17,const,Bo_animaltype_8,2006 IPCC Guidelines for National Greenhouse Gas Inventories
+Maximum methane producing capacity of the manure (animal type 9),0.17,,0.17,const,Bo_animaltype_9,2006 IPCC Guidelines for National Greenhouse Gas Inventories
+Maximum methane producing capacity of the manure (animal type 10),0.17,,0.17,const,Bo_animaltype_10,2006 IPCC Guidelines for National Greenhouse Gas Inventories
+Maximum methane producing capacity of the manure (animal type 11),0.17,,0.17,const,Bo_animaltype_11,2006 IPCC Guidelines for National Greenhouse Gas Inventories
+Maximum methane producing capacity of the manure (animal type 12),0.17,,0.17,const,Bo_animaltype_12,2006 IPCC Guidelines for National Greenhouse Gas Inventories
+urinary energy expressed as fraction of Gross Energy intake,0.04,,0.04,const,urinary_energy,2006 IPCC Guidelines for National Greenhouse Gas Inventories (10.42)
+the ash content of manure calculated as a fraction of the dry matter feed intake,0.08,,0.08,const,ash_content,2006 IPCC Guidelines for National Greenhouse Gas Inventories (10.42)
+,,,,,,
+,,,,,,
+Methane conversion factor - pasture,0.015,0.015,0.015,const,MCFpasture,unknown
+Methane conversion factor - spreading,0.005,0.005,0.005,const,MCFspread,unknown
+Methane conversion factor - drylot,0.015,0.015,0.015,const,MCFdrylot,unknown
+Methane conversion factor - solid storage,0.04,0.04,0.04,const,MCFsolidstore,unknown
+Methane conversion factor - composted,0.005,0.005,0.005,const,MCFcomposted,unknown
+Methane conversion factor - liquid,0.2,0.2,0.2,const,MCFliquid,unknown
+Methane conversion factor - biogas,0.1,0.1,0.1,const,MCFbiogas,unknown
+Methane conversion factor - burning,0.1,0.1,0.1,const,MCFburn,unknown
+Methane conversion factor - sold,0,0,0,const,MCFsold,unknown
