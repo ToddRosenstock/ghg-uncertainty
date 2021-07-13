@@ -280,7 +280,7 @@ plot_distributions(mcSimulation_object = GHG_simulation,
 
 Here we apply a collection of functions for use in assessing uncertainty from the `uncertainty` package. Install using `devtools::install_github("CWWhitney/uncertainty")`. 
 
-Here we use the `varscatter()` function to create a scatter plot of an influence variable of interest {in_var} (x) and an outcome variable {out_var} (y) with associated and estimated densities with loess smooth linear fits density curves. Plot made with the scatter.hist() function in the plyr() package [@R-plyr] in R [@R-base]. 
+Here we use the `varscatter()` function to create a scatter plot of an influence variable of interest `in_var` (x) and an outcome variable `out_var` (y) with associated and estimated densities with loess smooth linear fits density curves. Plot made with the scatter.hist() function in the plyr() package [@R-plyr] in R [@R-base]. 
 
 Check the `milk_yield` effect on `enteric_CH4`.
 
@@ -288,9 +288,9 @@ Check the `milk_yield` effect on `enteric_CH4`.
 uncertainty::varscatter(in_var = GHG_simulation$x$milk_yield, out_var = GHG_simulation$y$enteric_CH4)
 ```
 
-Use `varkernel()` for another type of graphical representation of the same relationship. `varkernel()` performs a two-dimensional kernel density estimation for the expected value of the outcome variable {out_var} and the influence variable of interest {in_var} using the `kde2d()` function in the `MASS()` package (Venables and Ripley 2002). The function produces a matrix of the estimated density (z) of the expected value of the outcome variable {out_var} (y) and the influence variable of interest {in_var} (x). It looks slightly different than the scatter plot estimates above because the density function restricts the shape of the kernel to a bivariate normal kernel.
+Use `varkernel()` for another type of graphical representation of the same relationship. `varkernel()` performs a two-dimensional kernel density estimation for the expected value of the outcome variable `out_var` and the influence variable of interest `in_var` using the `kde2d()` function in the `MASS()` package (Venables and Ripley 2002). The function produces a matrix of the estimated density (z) of the expected value of the outcome variable `out_var` (y) and the influence variable of interest `in_var` (x). It looks slightly different than the scatter plot estimates above because the density function restricts the shape of the kernel to a bivariate normal kernel.
 
-Check the effect of {in_var} `milk_yield` on the {out_var} `enteric_CH4`.
+Check the effect of `in_var` `milk_yield` on the `out_var` `enteric_CH4`.
 
 ```{r name_in_out_vars}
 in_var  <- GHG_simulation$x$milk_yield
@@ -301,23 +301,23 @@ out_var <- GHG_simulation$y$enteric_CH4
 uncertainty::varkernel(in_var = in_var, out_var = out_var)
 ```
 
-`varkernel()` shows a density surface plot of a given influence variable of interest {in_var} (x) and the outcome variable {out_var} (y). The legend shows the value for the estimated density (z). The plot is made with the `filled.contour()` function of the `graphics()` package.
+`varkernel()` shows a density surface plot of a given influence variable of interest `in_var` (x) and the outcome variable `out_var` (y). The legend shows the value for the estimated density (z). The plot is made with the `filled.contour()` function of the `graphics()` package.
 
-In `varkernel()` the density (z) over the entire plot integrates to one, and therefore represents the relative probability of an observation (the outcome variable {out_var} along y-axis) given a specific value for a given influence variable of interest {in_var} (along x-axis). 
+In `varkernel()` the density (z) over the entire plot integrates to one, and therefore represents the relative probability of an observation (the outcome variable `out_var` along y-axis) given a specific value for a given influence variable of interest `in_var` (along x-axis). 
 
-## Estimated outcome variable {out_var} given the expected variable
+## Estimated outcome variable `out_var` given the expected variable
 
-`varkernelslice()` calculates the estimated outcome variable {out_var} given the expected value of the influence variable of interest {in_var}, based on a slice of 'z' from the Kernel density calculated with `varkernel()`. The `expectedvariable` parameter is set to 30.
+`varkernelslice()` calculates the estimated outcome variable `out_var` given the expected value of the influence variable of interest `in_var`, based on a slice of 'z' from the Kernel density calculated with `varkernel()`. The `expectedvariable` parameter is set to 30.
 
 ```{r varkernelslice}
 uncertainty::varkernelslice(in_var = in_var, out_var = out_var, expectedin_var = 30)
 ```
 
-`varkernelslice()` plots the probabilities (shown along the y-axis) for the expected value of the outcome variable {out_var} (shown along the x-axis). Since this is a cut through the density kernel `varkernel()`, which integrates to 1, the probability values are relative, not absolute measures.
+`varkernelslice()` plots the probabilities (shown along the y-axis) for the expected value of the outcome variable `out_var` (shown along the x-axis). Since this is a cut through the density kernel `varkernel()`, which integrates to 1, the probability values are relative, not absolute measures.
 
 ## Influencing variable intervals
 
-`varviolin()` determines different possible influencing variable intervals {in_var} by calculating the optimal interval width for the given variable values. This is done using the `IQR()` function in the `stats()` package, after the Freedman-Diaconis rule (IQR = interquartile range).
+`varviolin()` determines different possible influencing variable intervals `in_var` by calculating the optimal interval width for the given variable values. This is done using the `IQR()` function in the `stats()` package, after the Freedman-Diaconis rule (IQR = interquartile range).
 
 $Os = 2 * IQRs / (obs_IQRs)^{(1/3)}$
 
@@ -327,18 +327,18 @@ Where $Os$ is The optimal interval width for our sample, $IQRs$ is the interquar
 uncertainty::varviolin(in_var = in_var, out_var = out_var)
 ```
 
-`varviolin()` shows violin plots of influencing variable {in_var} values (x) and outcome variable {out_var} (y) values, with six different intervals of influencing variable {in_var} values. Plot made with `ggplot2()` [@R-ggplot2].
+`varviolin()` shows violin plots of influencing variable `in_var` values (x) and outcome variable `out_var` (y) values, with six different intervals of influencing variable `in_var` values. Plot made with `ggplot2()` [@R-ggplot2].
 
 ## Probability of outcome variable given variable
 
-`varkernelslicerange()` shows the influencing variable {in_var} value intervals, optimized interquartile ranges shown in `varviolin()` can be used to select a range to slice from the density kernel `varkernel()` as was done for a single variable value in `varkernelslice()`. Here we set the maximum variable value to 4 and the minimum to 1.
+`varkernelslicerange()` shows the influencing variable `in_var` value intervals, optimized interquartile ranges shown in `varviolin()` can be used to select a range to slice from the density kernel `varkernel()` as was done for a single variable value in `varkernelslice()`. Here we set the maximum expected value for `in_var` to 4 and the minimum expected value to 1.
 
 ```{r varkernelslicerange}
 uncertainty::varkernelslicerange(in_var = in_var, out_var = out_var, 
                                  min_in_var = 1, max_in_var = 4)
 ```
 
-`varkernelslicerange()` plots the probabilities (shown along the y-axis) for the expected value of the outcome variable {out_var} (shown along the x-axis). As with `varkernelslice()` the probability values shown are relative, not absolute measures. They are the result of cuts through the density kernel `varkernel()`, which integrates to 1. 
+`varkernelslicerange()` plots the probabilities (shown along the y-axis) for the expected value of the outcome variable `out_var` (shown along the x-axis). As with `varkernelslice()` the probability values shown are relative, not absolute measures. They are the result of cuts through the density kernel `varkernel()`, which integrates to 1. 
 
 This document was generated using R Markdown [@R-rmarkdown].
 
