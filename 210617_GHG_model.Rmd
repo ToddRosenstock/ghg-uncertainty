@@ -1,7 +1,9 @@
 ---
-title: "GHG model"
+title: "Greenhouse gas emissions model"
 author: "Cory and Eike"
-date: "6/17/2021"
+bibliography:
+ - references/packages.bib
+ - references/papers.bib
 output: html_document
 ---
 
@@ -9,20 +11,34 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Retracing the equations of the GHG emissions model
+```{r, warning = F, include = F}
+#install and load packages
+library(decisionSupport)
+library(rmarkdown)
 
-We're looking at the equation put together by Joshua Wafula to check if this can easily be used by decisionSupport, and to possibly optimize the model.
+#Automatically write R package citation entries to a .bib file
+knitr::write_bib(c(.packages(), 
+                   'decisionSupport'), 'references/packages.bib')
 
-Here's the original model
+```
+
+
+## Generating the GHG emissions model
+
+We're looking at the equation put together by Joshua Wafula to check if this can easily be used by decisionSupport [@R-decisionSupport], and to possibly optimize the model.
+
+The formulas come from Chapter 10 of the 2006 IPCC Guidelines for National Greenhouse Gas Inventories [@dong_ipcc_2006]. The document can be found on [the IPCC website](https://www.ipcc-nggip.iges.or.jp/public/2006gl/pdf/4_Volume4/V4_10_Ch10_Livestock.pdf).  Many variables are based on the work done in 'Variation in the carbon footprint of milk production on smallholder dairy farms in central Kenya' [@wilkes_variation_2020] and in 'Methods and guidance to support MRV of livestock emissions' [@wilkes_methods_2019].
+
+*Here are our changes and additions to the original model:*
 
 ```{r}
 
 library(decisionSupport)
-#CW Note ####
+###CW Note ####
 # remove all the 'C:/Users/jwafula/Dropbox/UNIQUE_CCAFS/analysis/data/' business
-# This project will look in relative file paths (i.e. same or lower folders)
+###CW Note ####
+### # This project will be stored in relative file paths (i.e. same or lower folders)
 input_table <- "livestock_ghg_input_table.csv"
-results_folder <- "MC results"
 
 # Generate a function for testing the model function 'line by line' 
 # by taking a single random sample of the provided estimates
@@ -35,14 +51,14 @@ make_variables(estimate_read_csv(input_table))
 ghg_emissions<-function(x, varnames){
 
 # Enteric fermentation emissions ($CH_4$)
-  #CW Note ####
+  ####CW Note ####
   #in these code sections I am missing the overview. 
   # it is not immediately clear what this is meant to do... 
   # from a specific publication? 
   
 # This equation is documented in "Good Practice Guidance and Uncertainty Management in National Greenhouse Gas Inventories" p. 313
-# We note that these equations are full of formatting mistakes that don't exactly instill confidence that all the numbers are correct.  
-  
+#####EL CW Note ####
+## We note that these equations are full of formatting mistakes that don't exactly instill confidence that all the numbers are correct.  
   
 # We start with the net energy for maintenance (NE_m; in MJ/day)
 # This includes a maintenance coefficient, for which different values are recommended depending on animal type
@@ -58,11 +74,15 @@ NE_growth<-4.18*((0.0635*478/(C*FSBW))^0.75*(0.96*SWG)^1.097)
 
 # here, C is an animal type coefficient
 # FSBW: final shrunk body weight in kg - this is the actual final body weight multiplied by 0.96 (to subtract the last meal)
+
+##### EL CW Note ####
 # SWG is the "Shrunk Weight Gain" in kg per day - we're not sure what exactly this means.
 
+##### EL CW Note #### 
 #This used to be the following equation, which we didn't find a source for:
 #NE_growth<-22.02*(((live_weight_LW/(growth_coefficient_C*mature_weight_MW))^0.75)*(weight_gain_WG^1.097))
 
+##### EL CW Note #### 
 #The code doesn't include net energy mobilization by animals that lose weight (p. 314)
 
 #Net energy for lactation
@@ -78,10 +98,12 @@ NE_lactation<-milk_yield*(1.47+0.40*milk_fat)
 #Energy need during pregnancy 
 NE_pregnancy<-0.10*NE_m
 
+##### EL CW Note #### 
 #in Joshua's equation the 0.10 was a variable called pregnancy_coefficient_Cp with a value around 0.03. We're not sure where this came from.
 
 #We've now covered all equations up to eq 10 (p. 315)
 
+##### EL CW Note #### 
 #Equation 11 contains calculation of the metabolizable energy, but that doesn't seem to be used anywhere
 
 #Now we calculate the ratio between net energy consumed and the digestible energy consumed, for maintenance (NE_DE) and growth (NEg_DE) (eqs. 12 and 13)
@@ -90,6 +112,7 @@ NE_DE<-(1.123-(4.092*(10^-3)*dig_energy)+(1.126*(10^-5)*(dig_energy^2))-(25.4/di
 
 NEg_DE<-(1.164-(5.160*(10^-3)*dig_energy)+(1.308*(10^-5)*(dig_energy^2))-(37.4/dig_energy))
 
+##### EL CW Note #### 
 #the following equation usually contains the energy mobilized by animals losing weight. This wasn't calculated, so we set this to 0
 NE_mobilized<-0
 #same for extra energy spent by working animals
@@ -99,10 +122,12 @@ gross_energy_intake<-(((NE_m+NE_mobilized+NE_activity+NE_lactation+NE_w+NE_pregn
 
 enteric_CH4<-(gross_energy_intake*Y_m*365)/55.65 
 
+##### EL CW Note #### 
 #Y_m here is the methane conversion rate - Joshua used the IPCC default value of 6.5%. Full story is on page 302 (a bit more complicated, with differentiation by animal type)
 
 # Compute the CO2 equation for enteric methane
-#This equation originally included multiplication by 365 - this seems to have been erroneous (already done in the previous line)
+##### EL CW Note #### 
+##### #This equation originally included multiplication by 365 - this seems to have been erroneous (already done in the previous line)
 #This converts methane emissions to their Global Warming Potential (CO2-equivalent of CH4 is 25)
 enteric_CO2=enteric_CH4*25
 
@@ -118,7 +143,8 @@ volsol<-(gross_energy_intake*
 
 # The maximum methane emission from manure (Bo) depends on the animal type. In the input table, we
 # treat these as constants for each animal type. The following line assigns the corresponding Bo value
-# to the Bo variable. In the dataset we're using for Kenya, only two values for Bo are given: 0.17 for
+##### EL CW Note #### 
+##### # to the Bo variable. In the dataset we're using for Kenya, only two values for Bo are given: 0.17 for
 # animal types 4-6 and 0.135 for animal types 1-3 and 7-12.
 
 Bo<-eval(parse(text=paste0("Bo_animaltype_",animal_type)))
@@ -138,6 +164,7 @@ mm_ch4<-(volsol*365)*
             (mms_sold*MCFsold)))
 
 # Estimate CO2eq for manure methane
+### ##### EL CW Note #### 
 ### this one also contained a multiplication by 365 that seemed erroneous
 mm_CO2<-mm_ch4*25
 
@@ -200,22 +227,6 @@ return(list(enteric_CH4=enteric_CH4,
 
 ```
 
+This document was generated using R Markdown [@R-rmarkdown].
 
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
-```
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+# References
