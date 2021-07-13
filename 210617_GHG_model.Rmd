@@ -14,7 +14,11 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r, warning = F, include = F}
 #install and load packages
 library(decisionSupport)
+library(ggplot2)
+library(plyr)
 library(rmarkdown)
+# devtools::install_github("CWWhitney/uncertainty")
+library(uncertainty)
 
 #Automatically write R package citation entries to a .bib file
 knitr::write_bib(c(.packages(), 
@@ -31,30 +35,35 @@ The formulas come from Chapter 10 of the 2006 IPCC Guidelines for National Green
 
 *Here are our changes and additions to the original model:*
 
-```{r}
+```{r load_data}
 
 library(decisionSupport)
 ###CW Note ####
 # remove all the 'C:/Users/jwafula/Dropbox/UNIQUE_CCAFS/analysis/data/' business
 ###CW Note ####
 ### # This project will be stored in relative file paths (i.e. same or lower folders)
-input_table <- "livestock_ghg_input_table.csv"
+input_table <- "data/livestock_ghg_input_table.csv"
+```
 
+```{r make_variables}
 # Generate a function for testing the model function 'line by line' 
 # by taking a single random sample of the provided estimates
 make_variables <- function(est,n=1){ x <- random(rho=est, n=n)
 for(i in colnames(x)) assign(i, as.numeric(x[1,i]),envir=.GlobalEnv)}
+
 # run the function on the input_table
 make_variables(estimate_read_csv(input_table))
+```
 
+```{r ghg_emissions_function}
 # Generate the GHG emissions function 
 ghg_emissions<-function(x, varnames){
 
 # Enteric fermentation emissions ($CH_4$)
   ####CW Note ####
-  #in these code sections I am missing the overview. 
-  # it is not immediately clear what this is meant to do... 
-  # from a specific publication? 
+  #####in these code sections I am missing the overview. 
+  ##### it is not immediately clear what this is meant to do... 
+  ##### from a specific publication? 
   
 # This equation is documented in "Good Practice Guidance and Uncertainty Management in National Greenhouse Gas Inventories" p. 313
 #####EL CW Note ####
@@ -69,10 +78,13 @@ NE_m<-maintenaince_coefficient_Cfi*(live_weight_LW^0.75)
 NE_activity<-C_activity*NE_m
 
 #Net energy for growth (NE_growth; MJ/day):
-
-NE_growth<-4.18*((0.0635*478/(C*FSBW))^0.75*(0.96*SWG)^1.097)
-
 # here, C is an animal type coefficient
+# ### CW Note #### Assuming 'C' is C_activity or should it have been animal_type
+C <- C_activity
+# C <- animal_type
+NE_growth<-4.18*((0.0635*478/(C*FSBW))^0.75*
+                   (0.96*SWG)^1.097)
+
 # FSBW: final shrunk body weight in kg - this is the actual final body weight multiplied by 0.96 (to subtract the last meal)
 
 ##### EL CW Note ####
@@ -108,9 +120,13 @@ NE_pregnancy<-0.10*NE_m
 
 #Now we calculate the ratio between net energy consumed and the digestible energy consumed, for maintenance (NE_DE) and growth (NEg_DE) (eqs. 12 and 13)
 
-NE_DE<-(1.123-(4.092*(10^-3)*dig_energy)+(1.126*(10^-5)*(dig_energy^2))-(25.4/dig_energy))
+NE_DE<-(1.123-(4.092*(10^-3)*dig_energy)+
+            (1.126*(10^-5)*(dig_energy^2))-
+              (25.4/dig_energy))
 
-NEg_DE<-(1.164-(5.160*(10^-3)*dig_energy)+(1.308*(10^-5)*(dig_energy^2))-(37.4/dig_energy))
+NEg_DE<-(1.164-(5.160*(10^-3)*dig_energy)+
+            (1.308*(10^-5)*(dig_energy^2))-
+              (37.4/dig_energy))
 
 ##### EL CW Note #### 
 #the following equation usually contains the energy mobilized by animals losing weight. This wasn't calculated, so we set this to 0
@@ -118,18 +134,20 @@ NE_mobilized<-0
 #same for extra energy spent by working animals
 NE_w<-0
 
-gross_energy_intake<-(((NE_m+NE_mobilized+NE_activity+NE_lactation+NE_w+NE_pregnancy)/NE_DE)+(NE_growth/NEg_DE))/(dig_energy/100)
+gross_energy_intake<-(((NE_m+NE_mobilized+NE_activity+NE_lactation+NE_w+NE_pregnancy)/NE_DE)+
+                          (NE_growth/NEg_DE))/(dig_energy/100)
 
 enteric_CH4<-(gross_energy_intake*Y_m*365)/55.65 
 
 ##### EL CW Note #### 
-#Y_m here is the methane conversion rate - Joshua used the IPCC default value of 6.5%. Full story is on page 302 (a bit more complicated, with differentiation by animal type)
+######Y_m  here is the methane conversion rate -
+###### Joshua used the IPCC default value of 6.5%. Full story is on page 302 (a bit more complicated, with differentiation by animal type)
 
 # Compute the CO2 equation for enteric methane
 ##### EL CW Note #### 
 ##### #This equation originally included multiplication by 365 - this seems to have been erroneous (already done in the previous line)
 #This converts methane emissions to their Global Warming Potential (CO2-equivalent of CH4 is 25)
-enteric_CO2=enteric_CH4*25
+enteric_CO2<-enteric_CH4*25
 
 # Manure management methane ($CH_4$) and nitrous oxide ($N_2O$)
 # daily volatile solid excreted (page 10.42 of 2006 IPCC Guidelines for National Greenhouse Gas Inventories)
@@ -138,8 +156,6 @@ volsol<-(gross_energy_intake*
            (1-(dig_energy/100))+
            (urinary_energy*gross_energy_intake))*
              ((1-ash_content)/18.45) 
-
-
 
 # The maximum methane emission from manure (Bo) depends on the animal type. In the input table, we
 # treat these as constants for each animal type. The following line assigns the corresponding Bo value
@@ -168,11 +184,18 @@ mm_ch4<-(volsol*365)*
 ### this one also contained a multiplication by 365 that seemed erroneous
 mm_CO2<-mm_ch4*25
 
-
+##### #####
+##### 
 ##### WE STOPPED HERE
-
+#####
+##### #####
 
 # Calculate Nitrous oxide emissions from manure and urine on pasture
+# ### ##### CW Note #### 
+# ### ##### To get this to run I am assuming a temp 10% pregnancy_coefficient_Cp
+pregnancy_coefficient_Cp <- 0.1
+### #####
+### ####
 n_intake<-(gross_energy_intake/18.45)*((pregnancy_coefficient_Cp/100)/6.25)
 n_retension<-((milk_yield*(3.3/100))/6.38)
 n_excretion<-n_intake*(1-n_retension)*365
@@ -209,6 +232,8 @@ df <- data.frame(
   GHGi = on_farm/ann_adj, 
   FPCM = ann_adj)
 
+# ### ##### CW Note
+# Removing this plot
 # plot
 
 #library(ggplot2)
@@ -216,8 +241,9 @@ df <- data.frame(
 
 return(list(enteric_CH4=enteric_CH4,
             #CW NOTE ####
-            #working backwards from 'enteric_CO2' I see that 
-            # this is the product of something twice multiplied by 365
+            # ####working backwards from 'enteric_CO2' I see that 
+            # #### this is the product of something twice multiplied by 365
+            # ####### 
             enteric_CO2=enteric_CO2,
             mm_CO2=mm_CO2,
             mm_CO2_N2O=mm_CO2_N2O,
@@ -226,6 +252,93 @@ return(list(enteric_CH4=enteric_CH4,
 }
 
 ```
+
+Apply the `decisionSupport` tools for running the Monte Carlo [@R-decisionSupport]. See the vignette guides on *applying the mcSimulation function* [@fernandez_applying_2021] and *simulating the cost effectiveness of controlled burning* [@whitney_simulating_2017] for examples.
+
+```{r monte_carlo_simulation}
+
+GHG_simulation <- mcSimulation(
+  estimate = estimate_read_csv("data/livestock_ghg_input_table.csv"),
+  model_function = ghg_emissions,
+  numberOfModelRuns = 1e2, #100 for now
+  functionSyntax = "plainNames"
+)
+
+```
+
+```{r plot_distributions}
+
+plot_distributions(mcSimulation_object = GHG_simulation,
+                   vars = "enteric_CH4",
+                   method = "boxplot_density",
+                   old_names = "enteric_CH4",
+                   new_names = "Methane Emissions from Enteric Fermentation")
+
+```
+
+# uncertainty
+
+Here we apply a collection of functions for use in assessing uncertainty from the `uncertainty` package. Install using `devtools::install_github("CWWhitney/uncertainty")`. 
+
+Here we use the `varscatter()` function to create a scatter plot of an influence variable of interest {in_var} (x) and an outcome variable {out_var} (y) with associated and estimated densities with loess smooth linear fits density curves. Plot made with the scatter.hist() function in the plyr() package [@R-plyr] in R [@R-base]. 
+
+Check the `milk_yield` effect on `enteric_CH4`.
+
+```{r uncertainty_package}
+uncertainty::varscatter(in_var = GHG_simulation$x$milk_yield, out_var = GHG_simulation$y$enteric_CH4)
+```
+
+Use `varkernel()` for another type of graphical representation of the same relationship. `varkernel()` performs a two-dimensional kernel density estimation for the expected value of the outcome variable {out_var} and the influence variable of interest {in_var} using the `kde2d()` function in the `MASS()` package (Venables and Ripley 2002). The function produces a matrix of the estimated density (z) of the expected value of the outcome variable {out_var} (y) and the influence variable of interest {in_var} (x). It looks slightly different than the scatter plot estimates above because the density function restricts the shape of the kernel to a bivariate normal kernel.
+
+Check the effect of {in_var} `milk_yield` on the {out_var} `enteric_CH4`.
+
+```{r name_in_out_vars}
+in_var  <- GHG_simulation$x$milk_yield
+out_var <- GHG_simulation$y$enteric_CH4
+```
+
+```{r varkernel}
+uncertainty::varkernel(in_var = in_var, out_var = out_var)
+```
+
+`varkernel()` shows a density surface plot of a given influence variable of interest {in_var} (x) and the outcome variable {out_var} (y). The legend shows the value for the estimated density (z). The plot is made with the `filled.contour()` function of the `graphics()` package.
+
+In `varkernel()` the density (z) over the entire plot integrates to one, and therefore represents the relative probability of an observation (the outcome variable {out_var} along y-axis) given a specific value for a given influence variable of interest {in_var} (along x-axis). 
+
+## Estimated outcome variable {out_var} given the expected variable
+
+`varkernelslice()` calculates the estimated outcome variable {out_var} given the expected value of the influence variable of interest {in_var}, based on a slice of 'z' from the Kernel density calculated with `varkernel()`. The `expectedvariable` parameter is set to 30.
+
+```{r varkernelslice}
+uncertainty::varkernelslice(in_var = in_var, out_var = out_var, expectedin_var = 30)
+```
+
+`varkernelslice()` plots the probabilities (shown along the y-axis) for the expected value of the outcome variable {out_var} (shown along the x-axis). Since this is a cut through the density kernel `varkernel()`, which integrates to 1, the probability values are relative, not absolute measures.
+
+## Influencing variable intervals
+
+`varviolin()` determines different possible influencing variable intervals {in_var} by calculating the optimal interval width for the given variable values. This is done using the `IQR()` function in the `stats()` package, after the Freedman-Diaconis rule (IQR = interquartile range).
+
+$Os = 2 * IQRs / (obs_IQRs)^{(1/3)}$
+
+Where $Os$ is The optimal interval width for our sample, $IQRs$ is the interquartile range for our sample and $obs_IQRs$ is the total number of observations for the interquartile range for our sample.
+
+```{r varviolin}
+uncertainty::varviolin(in_var = in_var, out_var = out_var)
+```
+
+`varviolin()` shows violin plots of influencing variable {in_var} values (x) and outcome variable {out_var} (y) values, with six different intervals of influencing variable {in_var} values. Plot made with `ggplot2()` [@R-ggplot2].
+
+## Probability of outcome variable given variable
+
+`varkernelslicerange()` shows the influencing variable {in_var} value intervals, optimized interquartile ranges shown in `varviolin()` can be used to select a range to slice from the density kernel `varkernel()` as was done for a single variable value in `varkernelslice()`. Here we set the maximum variable value to 4 and the minimum to 1.
+
+```{r varkernelslicerange}
+uncertainty::varkernelslicerange(in_var = in_var, out_var = out_var, 
+                                 min_in_var = 1, max_in_var = 4)
+```
+
+`varkernelslicerange()` plots the probabilities (shown along the y-axis) for the expected value of the outcome variable {out_var} (shown along the x-axis). As with `varkernelslice()` the probability values shown are relative, not absolute measures. They are the result of cuts through the density kernel `varkernel()`, which integrates to 1. 
 
 This document was generated using R Markdown [@R-rmarkdown].
 
