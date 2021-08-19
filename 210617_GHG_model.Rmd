@@ -169,6 +169,36 @@ volsol<-(gross_energy_intake*
 
 Bo<-eval(parse(text=paste0("Bo_animaltype_",animal_type)))
 
+# decisions on manure management
+# the management options we're considering here are the ones from the Excel table. The IPCC guidelines
+# list more and partly different ones.
+
+# We're deciding on manure management according to a decision tree (Cory will build a figure):
+
+# question 1: how much of the manure is centrally collected? share_centrally
+# question 2: of manure that's not centrally collected, how much is burned? share_central_burn
+mms_burn<-(1-share_centrally)*share_central_burn
+mms_pasture<-(1-share_centrally)*(1-share_central_burn)
+
+# question 3: of centrally collected manure, how much is spread daily on cropland or pasture? share_spread
+mms_spread<-share_centrally*share_spread
+not_spread<-share_centrally*(1-share_spread)
+# question 4: how much of the manure that's not spread is sold? share_sold
+mms_sold<-not_spread*share_sold
+not_sold<-not_spread*(1-share_sold)
+# question 5: how much of the stored manure that's not sold is stored in liquid form? share_liquid
+liquid<-not_sold*share_liquid
+solid<-not_sold*(1-share_liquid)
+# question 6: how much of the liquid manure is converted to biogas? share_biogas
+mms_biogas<-liquid*share_biogas
+mms_liquid_slurry<-liquid*(1-share_biogas)
+# question 7: how much of the solid manure is composted? share_compost
+mms_composted<-solid*share_compost
+remain_solid<-solid*(1-share_compost)
+# question 8: how much of the solid manure is stored in dry lots? share_drylot
+mms_drylot<-remain_solid*share_drylot
+mms_solidstore<-remain_solid*(1-share_drylot)
+
 # the following is page 10.41 of the 2006 IPCC Guidelines for National Greenhouse Gas Inventories
 mm_ch4<-(volsol*365)*
         (Bo*0.67*
@@ -177,7 +207,7 @@ mm_ch4<-(volsol*365)*
             (mms_drylot*MCFdrylot)+
             (mms_solidstore*MCFsolidstore)+
             (mms_composted*MCFcomposted)+
-            (mms_liquid*MCFliquid)+
+            (mms_liquid_slurry*MCFliquid)+
             (mms_biogas*MCFbiogas)+
             (mms_burn*MCFburn)+
               # the original code was lacking the 'sold' fraction - we added this for completeness
@@ -188,39 +218,59 @@ mm_ch4<-(volsol*365)*
 ### this one also contained a multiplication by 365 that seemed erroneous
 mm_CO2<-mm_ch4*25
 
-##### #####
-##### 
-##### WE STOPPED HERE
-#####
-##### #####
-
 # Calculate Nitrous oxide emissions from manure and urine on pasture
-# ### ##### CW Note #### 
-# ### ##### To get this to run I am assuming a temp 10% pregnancy_coefficient_Cp
-pregnancy_coefficient_Cp <- 0.1
-### #####
+
 ### ####
-n_intake<-(gross_energy_intake/18.45)*((pregnancy_coefficient_Cp/100)/6.25)
-n_retension<-((milk_yield*(3.3/100))/6.38)
-n_excretion<-n_intake*(1-n_retension)*365
-mm_direct_n2o<-n_excretion*((mms_pasture*0.02)+(mms_spread*0.005)+(mms_drylot*0.02)+(mms_solidstore*0.005)+
-               (mms_composted*0.006)+(mms_liquid*0.005)+(mms_biogas*0)+(mms_burn*0))*0.01*(44/28)
+n_intake<-(gross_energy_intake/18.45)*((perc_crude_protein_diet/100)/6.25) # equation 10.32
 
-# Nitrous oxide (N2O) from volatization 
-mm_vol_n2o<-(n_excretion*((mms_pasture*0.02)+(mms_spread*0.07)+(mms_drylot*0.2)+(mms_solidstore*0.3)+
-            (mms_composted*0.3)+(mms_liquid*0.4)+(mms_biogas*0)+(mms_burn*0))*0.01*(44/28))
+# There was some code here on N retention in milk. That's apparently from equation 10.33, but it only had the first part of the equation, missing the part on weight gain. We decided to go with the alternative way of estimating N retention (figures given in Table 10.20)
+# n_retention<-((milk_yield*(3.3/100))/6.38)
 
-# Nitrous oxide (N2O) from leaching 
-mm_leach_n2o<-n_excretion*((mms_pasture*0.3)+(mms_spread*0.3)+(mms_drylot*0.3)+(mms_solidstore*0.3)+
-              (mms_composted*0.3)+(mms_liquid*0.3)+(mms_biogas*0)+(mms_burn*0))*0.0075*(44/28)
+# Table 10.20 contains N retention coefficients:
+# Dairy cows: 0.20 N_retention_dairy_cow
+# Other cattle: 0.07 N_retention_other_cattle
+
+animal_type_dairy_cow=1 ###ASSUMPTION
+
+if(animal_type==animal_type_dairy_cow)
+  n_excretion<-n_intake*(1-N_retention_dairy_cow)*365 else
+    n_excretion<-n_intake*(1-N_retention_other_cattle)*365 #equation 10.31
+
+# Direct nitrous oxide emissions (Eq 10.25 from IPCC guidelines)
+mm_direct_n2o<-n_excretion*((mms_pasture*mndec_pasture)+
+                           (mms_spread*mndec_spread)+
+                           (mms_drylot*mndec_drylot)+
+                           (mms_solidstore*mndec_solidstore)+
+                           (mms_composted*mndec_composted)+
+                           (mms_liquid*mndec_liquid)+
+                           (mms_biogas*mndec_biogas)+
+                           (mms_burn*mndec_burn)+
+                           (mms_sold*mndec_sold))*(44/28)
+
+# Nitrous oxide (N2O) from volatization (Eq 10.26 from IPCC guidelines)
+mm_vol_n2o<-n_excretion*((mms_pasture*mnvc_pasture)+
+                           (mms_spread*mnvc_spread)+
+                           (mms_drylot*mnvc_drylot)+
+                           (mms_solidstore*mnvc_solidstore)+
+                           (mms_composted*mnvc_composted)+
+                           (mms_liquid*mnvc_liquid)+
+                           (mms_biogas*mnvc_biogas)+
+                           (mms_burn*mnvc_burn)+
+                           (mms_sold*mnvc_sold))*(44/28)
+
+# Nitrous oxide (N2O) from leaching
+# comment: this is probably wrong, since leached nitrogen doesn't emit (much) nitrous oxide
+#mm_leach_n2o<-n_excretion*((mms_pasture*0.3)+(mms_spread*0.3)+(mms_drylot*0.3)+(mms_solidstore*0.3)+
+#              (mms_composted*0.3)+(mms_liquid*0.3)+(mms_biogas*0)+(mms_burn*0))*0.0075*(44/28)
 
 # Estimate CO2eq for manure nitrous
-mm_CO2_N2Od<-mm_direct_n2o*298*365
+mm_CO2_N2Od<-mm_direct_n2o*298*365 # (298 is the CO2-equivalent of N2O)
 mm_CO2_N2Ovol<-mm_vol_n2o*298*365
-mm_CO2_N2Oleach<-mm_leach_n2o*298*365
-mm_CO2_N2O<-mm_CO2_N2Od+mm_CO2_N2Ovol+mm_CO2_N2Oleach
+# mm_CO2_N2Oleach<-mm_leach_n2o*298*365
+mm_CO2_N2O<-mm_CO2_N2Od+mm_CO2_N2Ovol #+mm_CO2_N2Oleach
 
 # Emissions from feed production and transport. 
+# comment: the numbers in the table seem spuriously precise.
 feed_CO2<-feed_prod_CO2*feed_trans_CO2
 
 # Total emissions
@@ -231,10 +281,10 @@ on_farm<-enteric_CH4+enteric_CO2+mm_CO2+mm_CO2_N2O+feed_CO2
 
 # Relationship between greenhouse gas intensity and milk yields. 
 # Fat adjusts
-ann_adj <-kg_FPCM_year*365 
-df <- data.frame(
-  GHGi = on_farm/ann_adj, 
-  FPCM = ann_adj)
+#ann_adj <-kg_FPCM_year*365 
+#df <- data.frame(
+#  GHGi = on_farm/ann_adj, 
+#  FPCM = ann_adj)
 
 # ### ##### CW Note
 # Removing this plot
@@ -248,6 +298,7 @@ return(list(enteric_CH4=enteric_CH4,
             # ####working backwards from 'enteric_CO2' I see that 
             # #### this is the product of something twice multiplied by 365
             # ####### 
+            milk_yield=milk_yield,
             enteric_CO2=enteric_CO2,
             mm_CO2=mm_CO2,
             mm_CO2_N2O=mm_CO2_N2O,

@@ -25,21 +25,6 @@ Feed production,795.61996,834.5577,873.49544,posnorm,feed_prod_CO2,
 Feed transport,4.3343729,5.203274,6.0721751,posnorm,feed_trans_CO2,
 FPCM,1219.96295,1292.022,1364.08105,posnorm,kg_FPCM_year,
 ,,,,,,
-Chance that cattle leaves manure on pasture,,,,,,
-Percentage manure left on pasture,,,,,,
-Chance that farmers spread collected manure on pasture,,,,,,
-Percentage collected manure spread on pasture,,,,,,
-Chance that manure remains in dry lots,,,,,,
-Percentage of (non-pasture) manure that remains in dry lots,,,,,,
-Chance that farmers store manure in solid form,,,,,,
-Chance that famers sell manure,,,,,,
-Percentage of manure sold (by manure-sellers),,,,,,
-Chance that farmers separate solid and liquid manure,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
 ##Constants from IPCC or other sources,,,,,,
 Maximum methane producing capacity of the manure (animal type 1),0.17,,0.17,const,Bo_animaltype_1,2006 IPCC Guidelines for National Greenhouse Gas Inventories
 Maximum methane producing capacity of the manure (animal type 2),0.17,,0.17,const,Bo_animaltype_2,2006 IPCC Guidelines for National Greenhouse Gas Inventories
@@ -57,12 +42,50 @@ urinary energy expressed as fraction of Gross Energy intake,0.04,,0.04,const,uri
 the ash content of manure calculated as a fraction of the dry matter feed intake,0.08,,0.08,const,ash_content,2006 IPCC Guidelines for National Greenhouse Gas Inventories (10.42)
 ,,,,,,
 ,,,,,,
-Methane conversion factor - pasture,0.015,0.015,0.015,const,MCFpasture,unknown
-Methane conversion factor - spreading,0.005,0.005,0.005,const,MCFspread,unknown
-Methane conversion factor - drylot,0.015,0.015,0.015,const,MCFdrylot,unknown
-Methane conversion factor - solid storage,0.04,0.04,0.04,const,MCFsolidstore,unknown
-Methane conversion factor - composted,0.005,0.005,0.005,const,MCFcomposted,unknown
-Methane conversion factor - liquid,0.2,0.2,0.2,const,MCFliquid,unknown
-Methane conversion factor - biogas,0.1,0.1,0.1,const,MCFbiogas,unknown
-Methane conversion factor - burning,0.1,0.1,0.1,const,MCFburn,unknown
-Methane conversion factor - sold,0,0,0,const,MCFsold,unknown
+Methane conversion factor - pasture,0.015,,0.015,const,MCFpasture,unknown
+Methane conversion factor - spreading,0.005,,0.005,const,MCFspread,unknown
+Methane conversion factor - drylot,0.015,,0.015,const,MCFdrylot,unknown
+Methane conversion factor - solid storage,0.04,,0.04,const,MCFsolidstore,unknown
+Methane conversion factor - composted,0.005,,0.005,const,MCFcomposted,unknown
+Methane conversion factor - liquid,0.2,,0.2,const,MCFliquid,unknown
+Methane conversion factor - biogas,0.1,,0.1,const,MCFbiogas,unknown
+Methane conversion factor - burning,0.1,,0.1,const,MCFburn,unknown
+Methane conversion factor - sold,0,,0,const,MCFsold,unknown
+,,,,,,
+Decision tree,,,,,,
+question 1: how much of the manure is centrally collected?,0.1,,0.9,tnorm_0_1,share_centrally,
+"question 2: of manure that's not centrally collected, how much is burned?",0.1,,0.9,tnorm_0_1,share_central_burn,
+"question 3: of centrally collected manure, how much is spread daily on cropland or pasture?",0.1,,0.9,tnorm_0_1,share_spread,
+question 4: how much of the manure that's not spread is sold?,0.1,,0.9,tnorm_0_1,share_sold,
+question 5: how much of the stored manure that's not sold is stored in liquid form?,0.1,,0.9,tnorm_0_1,share_liquid,
+question 6: how much of the liquid manure is converted to biogas?,0.1,,0.9,tnorm_0_1,share_biogas,
+question 7: how much of the solid manure is composted?,0.1,,0.9,tnorm_0_1,share_compost,
+question 8: how much of the solid manure is stored in dry lots?,0.1,,0.9,tnorm_0_1,share_drylot,
+,,,,,,
+Manure nitrogen direct emission coefficients (Table 10.21 from the IPCC guidelines),,,,,,
+,0.02,,0.02,const,mndec_pasture,
+,0,,0,const,mndec_spread,
+,0.02,,0.02,const,mndec_drylot,
+,0.005,,0.005,const,mndec_solidstore,
+,0.006,,0.006,const,mndec_composted,
+,0.005,,0.005,const,mndec_liquid,
+,0,,0,const,mndec_biogas,
+,0,,0,const,mndec_burn,
+,0,,0,const,mndec_sold,
+,,,,,,
+Manure nitrogen direct emission coefficients (Table 10.22 from the IPCC guidelines),,,,,,
+,0.02,,0.02,const,mnvc_pasture,
+,0.07,,0.07,const,mnvc_spread,
+,0.2,,0.2,const,mnvc_drylot,
+,0.3,,0.3,const,mnvc_solidstore,
+,0.3,,0.3,const,mnvc_composted,
+,0.4,,0.4,const,mnvc_liquid,
+,0,,0,const,mnvc_biogas,
+,0,,0,const,mnvc_burn,
+,0,,0,const,mnvc_sold,
+,,,,,,
+N retention rates of cows,,,,,,
+,0.2,,0.2,const,N_retention_dairy_cow,
+,0.07,,0.07,const,N_retention_other_cattle,
+,,,,,,
+,5,,15,posnorm,perc_crude_protein_diet,estimated based on https://www.thebeefsite.com/articles/1542/protein-in-beef-cattle-diets/
