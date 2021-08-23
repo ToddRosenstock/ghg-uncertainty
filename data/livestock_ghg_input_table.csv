@@ -1,26 +1,70 @@
 Description,lower,mean,upper,distribution,variable,source
 Animal type,1,,1,const,animal_type,
-Live weight per animal (kg),283.57067,289.1499,294.72913,posnorm,live_weight_LW,
-Maintenaince coefficient (Cfi),0.348756359,0.3499246,0.351092841,posnorm,maintenaince_coefficient_Cfi,
-Annual average daily milk yield (kg/day),3.3073057,3.502657,3.6980083,posnorm,milk_yield,
-Activity coefficient (Ca),0.017770314,0.0194504,0.021130486,posnorm,C_activity,
-Shrunk weight gain (kg/day),0.01,,2,posnorm,SWG,
-Final Shrunk Body Weight (kg/day),0.01,,2,posnorm,FSBW,
-Methane conversion rate (%),0.04,,0.07,posnorm,Y_m,
-Growth coefficient parameter (C),0.848873788,0.8550445,0.861215212,posnorm,growth_coefficient_C,
+Feeding system (1 Stall - 2 Pasture - 3 Grazing large area),1,,1,const,feeding_system,
+,,,,,,
+Acticity coefficient Ca - Stall feeding,0,,0,const,Ca_stall,Table 10.5
+Acticity coefficient Ca -Pasture feeding,0.17,,0.17,const,Ca_pasture,Table 10.5
+Acticity coefficient Ca - Grazing large area,0.36,,0.36,const,Ca_large_grazing,Table 10.5
+,,,,,,
+Sex-specific coefficient - intact males,1.2,,1.2,const,C_intact_males,"Page 10.17, below Eq. 10.6"
+Sex-specific coefficient - castrates,1,,1,const,C_castrates,"Page 10.17, below Eq. 10.6"
+Sex-specific coefficient - females,0.8,,0.8,const,C_females,"Page 10.17, below Eq. 10.6"
+,,,,,,
+"Maintenance coefficient (Cfi) - Cattle/Buffalo (non-lactating cows, steers
+and juveniles)",0.322,,0.322,const,maintenance_coefficient_Cfi_other,Table 10.4
+Maintenance coefficient (Cfi) - Cattle/Buffalo (lactating cows),0.386,,0.386,const,maintenance_coefficient_Cfi_lact_cow,Table 10.4
+Maintenance coefficient (Cfi) - Cattle/Buffalo (bulls),0.37,,0.37,const,maintenance_coefficient_Cfi_bulls,Table 10.4
+,,,,,,
+Mean live weight of animal type 1,283.57067,289.1499,294.72913,posnorm,live_weight_LW_1,
+Mean live weight of animal type 2,283.57067,289.1499,294.72913,posnorm,live_weight_LW_2,
+Mean live weight of animal type 3,283.57067,289.1499,294.72913,posnorm,live_weight_LW_3,
+Mean live weight of animal type 4,283.57067,289.1499,294.72913,posnorm,live_weight_LW_4,
+Mean live weight of animal type 5,283.57067,289.1499,294.72913,posnorm,live_weight_LW_5,
+Mean live weight of animal type 6,283.57067,289.1499,294.72913,posnorm,live_weight_LW_6,
+Mean live weight of animal type 7,283.57067,289.1499,294.72913,posnorm,live_weight_LW_7,
+Mean live weight of animal type 8,283.57067,289.1499,294.72913,posnorm,live_weight_LW_8,
+Mean live weight of animal type 9,283.57067,289.1499,294.72913,posnorm,live_weight_LW_9,
+Mean live weight of animal type 10,283.57067,289.1499,294.72913,posnorm,live_weight_LW_10,
+Mean live weight of animal type 11,283.57067,289.1499,294.72913,posnorm,live_weight_LW_11,
+Mean live weight of animal type 12,283.57067,289.1499,294.72913,posnorm,live_weight_LW_12,
+,,,,,,
+Average daily weight gain (kg/day) of animal type 1,0.129659398,0.1370642,0.144469002,posnorm,weight_gain_WG_1,
+Average daily weight gain (kg/day) of animal type 2,0.129659398,0.1370642,0.144469002,posnorm,weight_gain_WG_2,
+Average daily weight gain (kg/day) of animal type 3,0.129659398,0.1370642,0.144469002,posnorm,weight_gain_WG_3,
+Average daily weight gain (kg/day) of animal type 4,0.129659398,0.1370642,0.144469002,posnorm,weight_gain_WG_4,
+Average daily weight gain (kg/day) of animal type 5,0.129659398,0.1370642,0.144469002,posnorm,weight_gain_WG_5,
+Average daily weight gain (kg/day) of animal type 6,0.129659398,0.1370642,0.144469002,posnorm,weight_gain_WG_6,
+Average daily weight gain (kg/day) of animal type 7,0.129659398,0.1370642,0.144469002,posnorm,weight_gain_WG_7,
+Average daily weight gain (kg/day) of animal type 8,0.129659398,0.1370642,0.144469002,posnorm,weight_gain_WG_8,
+Average daily weight gain (kg/day) of animal type 9,0.129659398,0.1370642,0.144469002,posnorm,weight_gain_WG_9,
+Average daily weight gain (kg/day) of animal type 10,0.129659398,0.1370642,0.144469002,posnorm,weight_gain_WG_10,
+Average daily weight gain (kg/day) of animal type 11,0.129659398,0.1370642,0.144469002,posnorm,weight_gain_WG_11,
+Average daily weight gain (kg/day) of animal type 12,0.129659398,0.1370642,0.144469002,posnorm,weight_gain_WG_12,
+,,,,,,
+Mature body weight females,250,,350,posnorm,mature_weight_MW_female,
+Mature body weight males,300,,500,posnorm,mature_weight_MW_male,
+,,,,,,
+Average milk yield (kg/day) of animal type 4,3.3073057,3.502657,3.6980083,posnorm,milk_yield_4,
+Average milk yield (kg/day) of animal type 5,3.3073057,3.502657,3.6980083,posnorm,milk_yield_5,
+Average milk yield (kg/day) of animal type 6,3.3073057,3.502657,3.6980083,posnorm,milk_yield_6,
+,,,,,,
+Maximum pregnancy coefficient Cp (scaled to year),0.1,,0.1,const,Cp_0,
+Pregnancy coefficient for animal type 4 (share of full coefficient),0.1,,0.8,posnorm,Cp_rate_4,
+Pregnancy coefficient for animal type 5 (share of full coefficient),0.1,,0.8,posnorm,Cp_rate_5,
+Pregnancy coefficient for animal type 6 (share of full coefficient),0.1,,0.8,posnorm,Cp_rate_6,
+,,,,,,
+Digestible energy expressed as a percentage of gross energyy (De),58.6681058,58.85437,59.0406342,posnorm,DE_perc,
+,,,,,,
+Methane conversion rate (0-1),0.065,,0.065,const,Y_m,
+,,,,,,
 Milk fat (%),1.99324904,2.083086,2.17292296,posnorm,milk_fat,
-Weight of mature animals (kg),365.391382,367.4857,369.580018,posnorm,mature_weight_MW,
-Average daily weight gain (kg/day),0.129659398,0.1370642,0.144469002,posnorm,weight_gain_WG,
-Digestable energy (De),58.6681058,58.85437,59.0406342,posnorm,dig_energy,
-Manure management emissions  (pasture),0.08050558,0.09120932,0.10191306,posnorm,mms_pasture,
-Manure management emissions (spread),0.09331307,0.1048572,0.11640133,posnorm,mms_spread,
-Manure management emissions (drylot),0.029322755,0.03584644,0.042370125,posnorm,mms_drylot,
-Manure management emisions (solidstore),0.53322128,0.5530965,0.57297172,posnorm,mms_solidstore,
-Manure management emissions (composted),0.10981761,0.1225878,0.13535799,posnorm,mms_composted,
-Manure management emissions (liquid),0.021164335,0.02586919,0.030574045,posnorm,mms_liquid,
-Manure management emissions (biogas),0.042122726,0.05017409,0.058225454,posnorm,mms_biogas,
-Manure management emissions (burn),0.000301537,0.000667656,0.001033774,posnorm,mms_burn,
-Manure management emissions (sold),0,0,0,const,mms_sold,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
 Feed production,795.61996,834.5577,873.49544,posnorm,feed_prod_CO2,
 Feed transport,4.3343729,5.203274,6.0721751,posnorm,feed_trans_CO2,
 FPCM,1219.96295,1292.022,1364.08105,posnorm,kg_FPCM_year,
@@ -63,29 +107,41 @@ question 7: how much of the solid manure is composted?,0.1,,0.9,tnorm_0_1,share_
 question 8: how much of the solid manure is stored in dry lots?,0.1,,0.9,tnorm_0_1,share_drylot,
 ,,,,,,
 Manure nitrogen direct emission coefficients (Table 10.21 from the IPCC guidelines),,,,,,
-,0.02,,0.02,const,mndec_pasture,
-,0,,0,const,mndec_spread,
-,0.02,,0.02,const,mndec_drylot,
-,0.005,,0.005,const,mndec_solidstore,
-,0.006,,0.006,const,mndec_composted,
-,0.005,,0.005,const,mndec_liquid,
-,0,,0,const,mndec_biogas,
-,0,,0,const,mndec_burn,
-,0,,0,const,mndec_sold,
+,0.02,,0.02,const,mndec_pasture,Table 10.21 from the IPCC guidelines
+,0,,0,const,mndec_spread,Table 10.21 from the IPCC guidelines
+,0.02,,0.02,const,mndec_drylot,Table 10.21 from the IPCC guidelines
+,0.005,,0.005,const,mndec_solidstore,Table 10.21 from the IPCC guidelines
+,0.006,,0.006,const,mndec_composted,Table 10.21 from the IPCC guidelines
+,0.005,,0.005,const,mndec_liquid,Table 10.21 from the IPCC guidelines
+,0,,0,const,mndec_biogas,Table 10.21 from the IPCC guidelines
+,0,,0,const,mndec_burn,Table 10.21 from the IPCC guidelines
+,0,,0,const,mndec_sold,Table 10.21 from the IPCC guidelines
 ,,,,,,
-Manure nitrogen direct emission coefficients (Table 10.22 from the IPCC guidelines),,,,,,
-,0.02,,0.02,const,mnvc_pasture,
-,0.07,,0.07,const,mnvc_spread,
-,0.2,,0.2,const,mnvc_drylot,
-,0.3,,0.3,const,mnvc_solidstore,
-,0.3,,0.3,const,mnvc_composted,
-,0.4,,0.4,const,mnvc_liquid,
-,0,,0,const,mnvc_biogas,
-,0,,0,const,mnvc_burn,
-,0,,0,const,mnvc_sold,
+Manure nitrogen volatilization emission coefficients (Table 10.22 from the IPCC guidelines),,,,,,
+,0.02,,0.02,const,mnvc_pasture,Table 10.22 from the IPCC guidelines
+,0.07,,0.07,const,mnvc_spread,Table 10.22 from the IPCC guidelines
+,0.2,,0.2,const,mnvc_drylot,Table 10.22 from the IPCC guidelines
+,0.3,,0.3,const,mnvc_solidstore,Table 10.22 from the IPCC guidelines
+,0.3,,0.3,const,mnvc_composted,Table 10.22 from the IPCC guidelines
+,0.4,,0.4,const,mnvc_liquid,Table 10.22 from the IPCC guidelines
+,0,,0,const,mnvc_biogas,Table 10.22 from the IPCC guidelines
+,0,,0,const,mnvc_burn,Table 10.22 from the IPCC guidelines
+,0,,0,const,mnvc_sold,Table 10.22 from the IPCC guidelines
 ,,,,,,
-N retention rates of cows,,,,,,
-,0.2,,0.2,const,N_retention_dairy_cow,
-,0.07,,0.07,const,N_retention_other_cattle,
+Fraction of managed manure nitrogen losses for livestock category T due to runoff and leaching during solid and liquid storage of manure (typical range 0.01-0.20),,,,,,
+,0.3,,0.3,const,frac_leach_pasture,source unclear
+,0.3,,0.3,const,frac_leach_spread,source unclear
+,0.3,,0.3,const,frac_leach_drylot,source unclear
+,0.3,,0.3,const,frac_leach_solidstore,source unclear
+,0.3,,0.3,const,frac_leach_composted,source unclear
+,0.3,,0.3,const,frac_leach_liquid,source unclear
+,0,,0,const,frac_leach_biogas,source unclear
+,0,,0,const,frac_leach_burn,source unclear
+,0,,0,const,frac_leach_sold,source unclear
 ,,,,,,
-,5,,15,posnorm,perc_crude_protein_diet,estimated based on https://www.thebeefsite.com/articles/1542/protein-in-beef-cattle-diets/
+,,,,,,
+Percent crude protein in diet,5,,15,posnorm,perc_crude_protein_diet,estimated based on https://www.thebeefsite.com/articles/1542/protein-in-beef-cattle-diets/
+,,,,,,
+"emission factor for N2O emissions from nitrogen leaching and runoff, kg N2O-N/kg N leached and runoff",0.0075,,0.0075,const,EF5,Equation 10.29
+emission factor for N2O emissions from atmospheric deposition of nitrogen on soils and water,0.01,,0.01,const,EF4,Equation 10.27
+surfaces,,,,,,
