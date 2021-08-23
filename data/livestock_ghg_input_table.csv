@@ -2,6 +2,20 @@ Description,lower,mean,upper,distribution,variable,source
 Animal type,1,,1,const,animal_type,
 Feeding system (1 Stall - 2 Pasture - 3 Grazing large area),1,,1,const,feeding_system,
 ,,,,,,
+Herd composition,,,,,,
+Number of 'intact' mature bulls (>36 months) (animal type 1),5,,5,const,N_animal_type_1,
+Number of mature castrates (>36 months) (animal type 2),2,,2,const,N_animal_type_2,
+Number of males 12-36 months (animal type 3),4,,4,const,N_animal_type_3,
+Number of lactating cows (animal type 4),5,,5,const,N_animal_type_4,
+Number of lactating cows (animal type 5),3,,3,const,N_animal_type_5,
+Number of lactating cows (animal type 6),2,,2,const,N_animal_type_6,
+Number of weaned young females <=12 (animal type 7),4,,4,const,N_animal_type_7,
+Number of weaned young males <=12 (animal type 8),3,,3,const,N_animal_type_8,
+Number of females 12-36 months (animal type 9),5,,5,const,N_animal_type_9,
+Number of pre-weaned female calves (animal type 10),6,,6,const,N_animal_type_10,
+Number of pre-weaned male calves (animal type 10),4,,4,const,N_animal_type_11,
+Number of first-time pregnant cows (animal type 12),3,,3,const,N_animal_type_12,
+,,,,,,
 Acticity coefficient Ca - Stall feeding,0,,0,const,Ca_stall,Table 10.5
 Acticity coefficient Ca -Pasture feeding,0.17,,0.17,const,Ca_pasture,Table 10.5
 Acticity coefficient Ca - Grazing large area,0.36,,0.36,const,Ca_large_grazing,Table 10.5

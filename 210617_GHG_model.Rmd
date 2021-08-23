@@ -49,8 +49,6 @@ input_table <- "data/livestock_ghg_input_table.csv"
 Here we generate a `make_variables` function for testing the model function 'line by line'. We use it to take a single random sample of the provided estimates.
 
 ```{r make_variables}
-###CW Note ####
-### We will need to clean up the warnings later
 ### Reasonable ranges still missing for many variables
 make_variables <- function(est,n=1){ x <- random(rho=est, n=n)
 for(i in colnames(x)) assign(i, as.numeric(x[1,i]),envir=.GlobalEnv)}
@@ -64,36 +62,36 @@ make_variables(estimate_read_csv(input_table))
 ghg_emissions<-function(x, varnames){
 
 # Enteric fermentation emissions ($CH_4$)
-  ####CW Note ####
-  #####in these code sections I am missing the overview. 
-  ##### it is not immediately clear what this is meant to do... 
-  ##### from a specific publication? 
-  
-# This equation is documented in "Good Practice Guidance and Uncertainty Management in National Greenhouse Gas Inventories" p. 313
-#####EL CW Note ####
-## We note that these equations are full of formatting mistakes that don't exactly instill confidence that all the numbers are correct.  
-  
+
+# The main source of all this is Chapter 10 of the *2006 IPCC Guidelines for National Greenhouse Gas Inventories* [@dong_ipcc_2006] (Volume 4 - Agriculture, Forestry and Other Land Use). The document can be found on [the IPCC website](https://www.ipcc-nggip.iges.or.jp/public/2006gl/pdf/4_Volume4/V4_10_Ch10_Livestock.pdf).
+
 # We start with the net energy for maintenance (NE_m; in MJ/day)
 # This includes a maintenance coefficient, for which different values are recommended depending on animal type
 
-# We're not sure what the animal types stand for, but this is important for calculating emissions.
-# We need to know, which types are dairy cattle, which ones are lactating cows, which ones are bulls, and which ones are 'others'. We have 12 animal types.
+# We're not sure what the animal types stand for, but we inferred some information from the numbers in the sample dataset. We further looked for guidance in the "Good Practice Guidance and Uncertainty Management in National Greenhouse Gas Inventories" (https://www.ipcc-nggip.iges.or.jp/public/gp/bgp/4_1_CH4_Enteric_Fermentation.pdf)
   
-animal_types_lact_cow<-c(4,5,6) # lactating cows - important to note here that the original data table appears to have worked with the actual number of months that cows were pregnant. This resulted in a weighted mean of the various maintenance coefficients. I'm not sure where we could get such data.
-
 # animal type 1 - 'intact' grown-up males >=36 months
 # animal type 2 - castrated grown-up males >=36 months
 # animal type 3 - males 12-36 months
-# animal type 4 - cows
-# animal type 5 - cows
-# animal type 6 - cows
-# animal type 7 - females <= 12 months
-# animal type 8 - males <= 12 months
+# animal type 4 - lactating cows
+# animal type 5 - lactating cows
+# animal type 6 - lactating cows
+# animal type 7 - weaned young females <= 12 months
+# animal type 8 - weaned young males <= 12 months
 # animal type 9 - females 12-36 months
-# animal type 10 - female calves (<12 months)
-# animal type 11 - male calves (<12 months)
+# animal type 10 - pre-weaned female calves (<12 months)
+# animal type 11 - pre-weaned male calves (<12 months)
 # animal type 12 - first-time pregnant cows
+  
+# animal types 4, 5 and 6 are all lactating cows - important to note here that the original data table appears to have worked with the actual number of months that cows were pregnant. This resulted in a weighted mean of the various maintenance coefficients. We're not sure where we could get such data.
 
+  mm_N2O_CO2eq<-c()
+  mm_CH4_CO2eq<-c()
+  enteric_CH4_CO2eq<-c()
+  total_milk<-c()
+  
+for (animal_type in 1:12)
+{
 # define C and Cfi based on sex (Page 10.17, below Equation 10.6)
 if(animal_type %in% c(1,3,8,11)) growth_coefficient_C<-C_intact_males # males (1.2)
 if(animal_type %in% c(2)) growth_coefficient_C<-C_castrates # castrates (1.0)
@@ -118,12 +116,14 @@ if(animal_type==5) Cp<-Cp_0*Cp_rate_5
 if(animal_type==6) Cp<-Cp_0*Cp_rate_6
 if(animal_type %in% c(1,2,3,7,8,9,10,11)) Cp<-0
 
+N_animal_type<-eval(parse(text=paste0("N_animal_type_",animal_type)))
+
 # define activity coefficient Ca (Table 10.5)
 # Stall 0.00 - Animals are confined to a small area (i.e., tethered, pen, barn) with the result that they expend very little or no energy to acquire feed.
 # Pasture 0.17 - Animals are confined in areas with sufficient forage requiring modest energy expense to acquire feed.
 # Grazing large areas 0.36 - Animals graze in open range land or hilly terrain and expend significant energy to acquire feed.
 
-# I don't quite understand how Ca was assigned in the original data table. There are many 0s for 'System 1' (Stall?), but also lots of values between 0 and 0.17 or 0.36. I can only imagine that these are weighted averages or reflect additional information about the feeding system, but this information doesn't seem to be given in the table.
+# We don't quite understand how Ca was assigned in the original data table. There are many 0s for 'System 1' (Stall?), but also lots of values between 0 and 0.17 or 0.36. We can only imagine that these are weighted averages or reflect additional information about the feeding system, but this information doesn't seem to be given in the table. For now, we're restricting these Ca values to only those that are given as 'pure' categories in the IPCC guidelines (Table 10.5).
 
 if(feeding_system==1) C_activity<-Ca_stall # Stall (0.0)
 if(feeding_system==2) C_activity<-Ca_pasture # Stall (0.17)
@@ -153,7 +153,6 @@ NE_growth<-22.02*
 
 NE_lactation<-milk_yield*(1.47+0.40*milk_fat)
 
-#variables:
 #milk_yield (kg milk per day)
 #milk_fat (percent)
 
@@ -168,7 +167,7 @@ NE_pregnancy<-Cp*NE_m
 # Ratio of net energy available in a diet for maintenance to digestible energy consumed (Equation 10.14)
 REM<-1.123-(4.092/1000*DE_perc)+(1.126/100000*DE_perc^2)-(25.4/DE_perc)
 
-# Ratio of net energy available for growth in a diet to digestable energy consumed (Equation 10.15)
+# Ratio of net energy available for growth in a diet to digestible energy consumed (Equation 10.15)
 REG<-1.164-(5.160/1000*DE_perc)+(1.308/100000*DE_perc^2)-(37.4/DE_perc)
 
 # Gross Energy (GE) MJ/day
@@ -182,7 +181,7 @@ enteric_CH4<-(GE*Y_m*365)/55.65 # kg CH4 per animal per year
 
 # Compute the CO2-equivalent of methane emissions for enteric methane
 #This converts methane emissions to their Global Warming Potential (CO2-equivalent of CH4 is 25)
-enteric_CH4_CO2eq<-enteric_CH4*25
+enteric_CH4_CO2eq[animal_type]<-N_animal_type*enteric_CH4*25
 
 # Manure management methane ($CH_4$) and nitrous oxide ($N_2O$)
 # daily volatile solid excreted (Equation 10.24)
@@ -245,7 +244,7 @@ mm_ch4<-(volsol*365)*
             (mms_sold*MCFsold)))
 
 # Estimate CO2eq for manure methane
-mm_CH4_CO2eq<-mm_ch4*25
+mm_CH4_CO2eq[animal_type]<-N_animal_type*mm_ch4*25
 
 # Calculate Nitrous oxide emissions from manure and urine on pasture
 
@@ -303,7 +302,13 @@ mm_leach_n2o<-mm_leach_n*EF5*(44/28)
 #              (mms_composted*0.3)+(mms_liquid*0.3)+(mms_biogas*0)+(mms_burn*0))*0.0075*(44/28)
 
 # Estimate CO2eq for manure nitrous
-mm_N2O_CO2eq<-(mm_direct_n2o+mm_vol_n2o+mm_leach_n2o)*298 # (298 is the CO2-equivalent of N2O)
+mm_N2O_CO2eq[animal_type]<-N_animal_type*(mm_direct_n2o+mm_vol_n2o+mm_leach_n2o)*298 # (298 is the CO2-equivalent of N2O)
+
+total_milk[animal_type]<-N_animal_type*milk_yield*365
+
+}
+
+  
 
 
 # Emissions from feed production and transport. 
@@ -335,12 +340,12 @@ return(list(enteric_CH4=enteric_CH4,
             # ####working backwards from 'enteric_CO2' I see that 
             # #### this is the product of something twice multiplied by 365
             # ####### 
-            milk_yield=milk_yield,
-            enteric_CH4_CO2eq=enteric_CH4_CO2eq,
-            mm_CH4_CO2eq=mm_CH4_CO2eq,
-            mm_N2O_CO2eq=mm_N2O_CO2eq,
+            milk_yield=sum(total_milk),
+            enteric_CH4_CO2eq=sum(enteric_CH4_CO2eq),
+            mm_CH4_CO2eq=sum(mm_CH4_CO2eq),
+            mm_N2O_CO2eq=sum(mm_N2O_CO2eq),
             feed_CO2=feed_CO2,
-            on_farm=on_farm))
+            on_farm=sum(on_farm)))
 }
 
 ```
@@ -352,7 +357,7 @@ Apply the `decisionSupport` tools for running the Monte Carlo [@R-decisionSuppor
 GHG_simulation <- mcSimulation(
   estimate = estimate_read_csv("data/livestock_ghg_input_table.csv"),
   model_function = ghg_emissions,
-  numberOfModelRuns = 1e2, #100 for now
+  numberOfModelRuns = 1e3, #1000 for now
   functionSyntax = "plainNames"
 )
 
@@ -361,9 +366,9 @@ GHG_simulation <- mcSimulation(
 ```{r plot_distributions}
 
 plot_distributions(mcSimulation_object = GHG_simulation,
-                   vars = "enteric_CH4",
+                   vars = "enteric_CH4_CO2eq",
                    method = "boxplot_density",
-                   old_names = "enteric_CH4",
+                   old_names = "enteric_CH4_CO2eq",
                    new_names = "Methane Emissions from Enteric Fermentation")
 
 ```
@@ -377,16 +382,17 @@ Here we use the `varscatter()` function to create a scatter plot of an influence
 Check the `milk_yield` effect on `enteric_CH4`.
 
 ```{r uncertainty_package}
-uncertainty::varscatter(in_var = GHG_simulation$x$milk_yield, out_var = GHG_simulation$y$enteric_CH4_CO2eq)
+uncertainty::varscatter(in_var = GHG_simulation$y$milk_yield,
+                        out_var = GHG_simulation$y$enteric_CH4_CO2eq)
 ```
 
 Use `varkernel()` for another type of graphical representation of the same relationship. `varkernel()` performs a two-dimensional kernel density estimation for the expected value of the outcome variable `out_var` and the influence variable of interest `in_var` using the `kde2d()` function in the `MASS()` package (Venables and Ripley 2002). The function produces a matrix of the estimated density (z) of the expected value of the outcome variable `out_var` (y) and the influence variable of interest `in_var` (x). It looks slightly different than the scatter plot estimates above because the density function restricts the shape of the kernel to a bivariate normal kernel.
 
-Check the effect of `in_var` `milk_yield` on the `out_var` `enteric_CH4`.
+Check the effect of `in_var` `milk_yield` on the `out_var` `enteric_CH4_CO2eq`.
 
 ```{r name_in_out_vars}
-in_var  <- GHG_simulation$x$milk_yield
-out_var <- GHG_simulation$y$enteric_CH4
+in_var  <- GHG_simulation$y$milk_yield
+out_var <- GHG_simulation$y$enteric_CH4_CO2eq
 ```
 
 ```{r varkernel}
@@ -427,7 +433,8 @@ uncertainty::varviolin(in_var = in_var, out_var = out_var)
 
 ```{r varkernelslicerange}
 uncertainty::varkernelslicerange(in_var = in_var, out_var = out_var, 
-                                 min_in_var = 1, max_in_var = 4)
+                                 min_in_var = round(min(in_var)+(max(in_var)-min(in_var))/4),
+                                 max_in_var = round(min(in_var)+(max(in_var)-min(in_var))/4*3))
 ```
 
 `varkernelslicerange()` plots the probabilities (shown along the y-axis) for the expected value of the outcome variable `out_var` (shown along the x-axis). As with `varkernelslice()` the probability values shown are relative, not absolute measures. They are the result of cuts through the density kernel `varkernel()`, which integrates to 1. 
