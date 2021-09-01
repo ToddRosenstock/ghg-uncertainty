@@ -35,7 +35,7 @@ options(scipen=999)
 
 The formulas come from Chapter 10 of the *2006 IPCC Guidelines for National Greenhouse Gas Inventories* [@dong_ipcc_2006] (Volume 4 - Agriculture, Forestry and Other Land Use). The document can be found on [the IPCC website](https://www.ipcc-nggip.iges.or.jp/public/2006gl/pdf/4_Volume4/V4_10_Ch10_Livestock.pdf). The chapter is part of the book *Good Practice Guidance and Uncertainty Management in National Greenhouse Gas Inventories* [@ipcc_good_2021], also on the [the IPCC website](https://www.ipcc-nggip.iges.or.jp/public/gp/english/). Many variables are based on the work done in *Variation in the carbon footprint of milk production on smallholder dairy farms in central Kenya* [@wilkes_variation_2020] and in *Methods and guidance to support MRV of livestock emissions* [@wilkes_methods_2019]. We run the model with the decisionSupport package [@R-decisionSupport].
 
-We load the library and the data. The data contains ranges of possible values for the simulation. Each variable is represented with a confidence interval range and a specification of the distribution shape. 
+We load the library and the data. The data contains ranges of possible values for the simulation. Each variable is represented with a confidence interval range and a specification of the distribution shape.
 
 ```{r load_data}
 library(DiagrammeR)
@@ -43,13 +43,21 @@ library(decisionSupport)
 library(tidyverse)
 ### # This project will be stored in relative file paths (i.e. same or lower folders)
 input_table <- "data/livestock_ghg_input_table.csv"
+
+options(knitr.kable.NA = '')
+read.csv(input_table)[,c(1:2,4:6)] %>%
+  kableExtra::kbl(digits =2) %>%
+  kableExtra::kable_classic_2(full_width = F)
+
 ```
 
 The manure management is based on a decision tree. 
 
-## Decision tree
+## Decision tree for manure management
 
-Decision tree describing the options for manure management. Each step in the decision tree (each node) represents a share of manure that is managed according to the name of the node. Green arrows indicate 'Yes' and red arrows 'No'. The descriptions for the uses can be found in the IPCC report on manure management chapter 10 [@dong_ipcc_2006].   
+It is difficult to know with precision how much manure is managed according to each of the management categories. Capturing the corresponding uncertainty is difficult, because estimating each fraction separately is unlikely to add up to 100%. We address this problem with a decision tree.
+
+Each step in the decision tree (each node) represents a share of manure that is managed according to the name of the node. Green arrows indicate 'Yes' and red arrows 'No'. The descriptions for the uses can be found in the IPCC report on manure management chapter 10 [@dong_ipcc_2006].   
 
 ```{r graph-mermaid-manure, echo=FALSE, fig.width=10, fig.height=1}
 mermaid("
@@ -67,7 +75,9 @@ mermaid("
         ")
 ```
 
-Here we generate a `make_variables` function for testing the model function 'line by line'. We use it to take a single random sample of the provided estimates.
+## Making variables for model development
+
+Here we generate a `make_variables` function for testing the model function 'line by line'. We use it to take a single random sample of the provided estimates (this isn't required for running the model later, but it helps when developing the code).
 
 ```{r make_variables}
 
@@ -77,6 +87,11 @@ for(i in colnames(x)) assign(i, as.numeric(x[1,i]),envir=.GlobalEnv)}
 # run the function on the input_table
 make_variables(estimate_read_csv(input_table))
 ```
+
+## The model
+
+The following is our draft of the emissions model, with explanations of all steps (we can format this better once we agree on the final model).
+
 
 ```{r ghg_emissions_function}
 # Generate the GHG emissions function 
@@ -89,7 +104,7 @@ ghg_emissions<-function(x, varnames){
 # We start with the net energy for maintenance (NE_m; in MJ/day)
 # This includes a maintenance coefficient, for which different values are recommended depending on animal type
 
-# We're not sure what the animal types stand for, but we inferred some information from the numbers in the sample dataset. We further looked for guidance in the "Good Practice Guidance and Uncertainty Management in National Greenhouse Gas Inventories" (https://www.ipcc-nggip.iges.or.jp/public/gp/bgp/4_1_CH4_Enteric_Fermentation.pdf)
+# The following animal types were used in the example:
   
 # animal type 1 - 'intact' grown-up males >=36 months
 # animal type 2 - castrated grown-up males >=36 months
@@ -104,13 +119,16 @@ ghg_emissions<-function(x, varnames){
 # animal type 11 - pre-weaned male calves (<12 months)
 # animal type 12 - first-time pregnant cows
   
-# animal types 4, 5 and 6 are all lactating cows - important to note here that the original data table appears to have worked with the actual number of months that cows were pregnant. This resulted in a weighted mean of the various maintenance coefficients. We're not sure where we could get such data.
+# animal types 4, 5 and 6 are all lactating cows - important to note here that the original data table appears to have worked with the actual number of months that cows were pregnant. This resulted in a weighted mean of the various maintenance coefficients. We're not sure where we could get such data. In the original dataset, types 4, 5 and 6 referred to different pregnancy/lactation states, but it doesn't seem like this scheme was rigorously followed.
 
-  mm_N2O_CO2eq<-c()
-  mm_CH4_CO2eq<-c()
-  enteric_CH4_CO2eq<-c()
-  total_milk<-c()
+# We make placeholder vectors to collect emissions data for all animal types
+mm_N2O_CO2eq<-c()
+mm_CH4_CO2eq<-c()
+enteric_CH4_CO2eq<-c()
+total_milk<-c()
   
+# Now we start a long loop, where emissions are calculated for each animal type
+
 for (animal_type in 1:12)
 {
 # define C and Cfi based on sex (Page 10.17, below Equation 10.6)
@@ -170,20 +188,17 @@ NE_growth<-22.02*
   ((live_weight_LW/(growth_coefficient_C*mature_weight_MW))^0.75)*
   (weight_gain_WG^1.097)
 
-#Net energy for lactation
+# Net energy for lactation
 
 NE_lactation<-milk_yield*(1.47+0.40*milk_fat)
 
-#milk_yield (kg milk per day)
-#milk_fat (percent)
-
-#Draft animal services are not accounted for
-#NE_work <- 0.1 * NE_m * hours_per_day
+# Draft animal services are not accounted for
+# NE_work <- 0.1 * NE_m * hours_per_day
 
 #Energy need during pregnancy (Equation 10.13)
 NE_pregnancy<-Cp*NE_m
 
-# the Cp coefficient given in Equation 10.13 is 0.1, but in the sample this is only applied for animal type 12 (first-time pregnant). For all other lactating cows, this is reduced - not clear how this was done.
+# The Cp coefficient given in Equation 10.13 is 0.1, but in the sample this is only applied for animal type 12 (first-time pregnant). For all other lactating cows, this is reduced - not clear how this was done.
 
 # Ratio of net energy available in a diet for maintenance to digestible energy consumed (Equation 10.14)
 REM<-1.123-(4.092/1000*DE_perc)+(1.126/100000*DE_perc^2)-(25.4/DE_perc)
@@ -198,7 +213,6 @@ GE<-(((NE_m+NE_activity+NE_lactation+NE_work+NE_pregnancy)/REM)+(NE_growth/REG))
 # CH4 emission factors for enteric fermentation from a livestock category (Equation 10.21)
 
 enteric_CH4<-(GE*Y_m*365)/55.65 # kg CH4 per animal per year
-
 
 # Compute the CO2-equivalent of methane emissions for enteric methane
 #This converts methane emissions to their Global Warming Potential (CO2-equivalent of CH4 is 25)
@@ -224,7 +238,7 @@ Bo<-eval(parse(text=paste0("Bo_animaltype_",animal_type)))
 # the management options we're considering here are the ones from the Excel table. The IPCC guidelines
 # list more and partly different ones.
 
-# We're deciding on manure management according to a decision tree (Cory will build a figure):
+# We're deciding on manure management according to a decision tree (see figure above):
 
 # question 1: how much of the manure is centrally collected? share_centrally
 # question 2: of manure that's not centrally collected, how much is burned? share_central_burn
@@ -351,7 +365,9 @@ return(list(enteric_CH4=enteric_CH4,
 }
 ```
 
-Apply the `decisionSupport` tools for running the Monte Carlo [@R-decisionSupport]. See the vignette guides on *applying the mcSimulation function* [@fernandez_applying_2021] and *simulating the cost effectiveness of controlled burning* [@whitney_simulating_2017] for examples.
+## Running the model
+
+We apply the `decisionSupport` tools for running the Monte Carlo simulation [@R-decisionSupport]. See the vignette guides on *applying the mcSimulation function* [@fernandez_applying_2021] and *simulating the cost effectiveness of controlled burning* [@whitney_simulating_2017] for examples.
 
 ```{r monte_carlo_simulation}
 GHG_simulation <- mcSimulation(
@@ -429,7 +445,6 @@ on_farm_dist_plot <- plot_distributions(mcSimulation_object = GHG_simulation,
 library(patchwork)
 # remove the axis marks from the two lefthand-most plots and the x-axis title from the left and right plots
 
-
 # plot with patchwork
 layout <- "
            AAABBB
@@ -445,7 +460,7 @@ enteric_CH4_dist_plot + milk_yield_dist_plot +
 plot_layout(guides = "collect", design = layout) 
 ```
 
-# Model sensitivity
+## Model sensitivity
 
 #### Perform a Partial Least Squares Regression (PLSR) of Monte Carlo simulation results
 
@@ -469,7 +484,7 @@ plot_pls(pls_result, input_table = input_table, threshold = 0)
 
 # Uncertainty
 
-In the following sections we apply a collection of functions for use in assessing uncertainty from the `uncertainty` package. Install using `devtools::install_github("CWWhitney/uncertainty")`. We apply the following uncertainty function on the `milk_yield` and `on_farm` variables from the `r nrow(GHG_simulation$y)` of `GHG_simulation` model results. 
+In the following sections we apply a collection of functions for use in assessing uncertainty from the `uncertainty` package. Install using `devtools::install_github("CWWhitney/uncertainty")`. We apply the following uncertainty function on the `milk_yield` and `on_farm` variables from the `r nrow(GHG_simulation$y)` `GHG_simulation` model results. 
 
 
 ```{r name_in_out_vars}
@@ -479,7 +494,7 @@ out_var <- GHG_simulation$y$on_farm
 
 Here we use the `varscatter()` function to create a scatter plot of an influence variable of interest `in_var` (x) and an outcome variable `out_var` (y) with associated and estimated densities with loess smooth linear fits density curves. Plot made with the scatter.hist() function in the `plyr()` package [@R-plyr] in R [@R-base]. 
 
-Check the `milk_yield` effect on `enteric_CH4`.
+Check the `milk_yield` (x-axis) effect on `on_farm` emissions (y-axis).
 
 ```{r uncertainty_package}
 uncertainty::varscatter(in_var = in_var,
@@ -523,14 +538,14 @@ uncertainty::varviolin(in_var = in_var, out_var = out_var, legend.position = "le
 
 `varviolin()` shows violin plots of influencing variable `in_var` values (x) and outcome variable `out_var` (y) values, with six different intervals of influencing variable `in_var` values. Plot made with `ggplot2()` [@R-ggplot2].
 
-## Probability of outcome variable given variable
+## Probability of outcome variable for a given range of the input variable
 
 `varkernelslicerange()` shows the influencing variable `in_var` value intervals, optimized interquartile ranges shown in `varviolin()` can be used to select a range to slice from the density kernel `varkernel()` as was done for a single variable value in `varkernelslice()`. Here we set the maximum expected value for `in_var` to `r round(max(in_var), digits = 0)` and the minimum expected value to `r round(min(in_var), digits = 0)`.
 
 ```{r varkernelslicerange}
 uncertainty::varkernelslicerange(in_var = in_var, out_var = out_var, 
-                                 min_in_var = min(in_var),
-                                 max_in_var = max(in_var))
+                                 min_in_var = round(min(in_var)),
+                                 max_in_var = round(max(in_var)))
 ```
 
 `varkernelslicerange()` plots the probabilities (shown along the y-axis) for the expected value of the outcome variable `out_var` (shown along the x-axis). As with `varkernelslice()` the probability values shown are relative, not absolute measures. They are the result of cuts through the density kernel `varkernel()`, which integrates to 1. 
