@@ -1,6 +1,6 @@
 ---
 title: "Greenhouse gas emissions model"
-author: "Cory and Eike"
+author: "Cory Whitney and Eike Luedeling"
 bibliography:
  - references/packages.bib
  - references/papers.bib
@@ -25,6 +25,9 @@ knitr::write_bib(c(.packages(),
                    'DiagrammeR',
                    'decisionSupport',
                    'MASS'), 'references/packages.bib')
+#resolves an issue with the scientific style of numbers,answer from @Paul Hiemstra: https://stackoverflow.com/a/25947542/4061993 
+#from the documentation of ?options:
+options(scipen=999)
 ```
 
 
@@ -446,7 +449,7 @@ plot_layout(guides = "collect", design = layout)
 
 #### Perform a Partial Least Squares Regression (PLSR) of Monte Carlo simulation results
 
-We apply a post-hoc analysis to the `mcSimulation()` outputs with `plsr.mcSimulation()` to determine the Variable Importance in the Projection (VIP) score and coefficients of a Projection to Latent Structures (PLS) regression model. This function uses the outputs of the `mcSimulation()` selecting all the input variables from the decision analysis function in the parameter `object` and then runs a PLS regression with an outcome variable defined in the parameter `resultName`. We use the code `names(GHG_simulation$y)[7]` to select the outcome variable `r names(GHG_simulation$y)[7]`, which is an element of the list `y` in our `GHG_simulation` outputs (this must be a character element). 
+Below we apply a post-hoc analysis to the `mcSimulation()` outputs with the `plsr.mcSimulation()` function in the `decisoonSupport` package. We use the function to determine the Variable Importance in the Projection (VIP) score and coefficients of a Projection to Latent Structures (PLS) regression model. This function uses the outputs of the `mcSimulation()` selecting all the input variables from the `GHG_simulation` decision analysis function in the parameter `object` and then runs a PLS regression with an outcome variable defined in the parameter `resultName`. We use the code `names(GHG_simulation$y)[7]` to select the outcome variable `r names(GHG_simulation$y)[7]`, which is an element of the list `y` in our `GHG_simulation` outputs. 
 
 ```{r}
 pls_result <- plsr.mcSimulation(object = GHG_simulation,
@@ -455,7 +458,7 @@ pls_result <- plsr.mcSimulation(object = GHG_simulation,
 
 We run the `plot_pls()` on the results from `plsr.mcSimulation()` with a number of standard settings. The length of the bars is equal to VIP with a vertical line at '1' on the x-axis indicating a standard cut-off for VIP used for variable selection [@Whitney2017]. The overall plot only shows those variables with a VIP > 0.8, which is the common threshold for variable selection [@Lanzanova2019, @Luedeling2016]. The colors of the bars represent the positive or negative coefficient of the given input variable with the output variable.
 
-Here we import the input table again to replace the labels for the variables on the y-axis. The input table can include a 'label' and 'variable' column. The standard labels (from the 'variable' column) are usually computer readable and not very nice for a plot. The `plot_pls()` function uses the text in the 'label' column as replacement for the default text in the 'variable' column.  
+Here we import the input table again (the same table we used for the Monte Carlo model) to replace the labels for the variables on the y-axis. The input table can include a 'label' and 'variable' column. The standard labels (from the 'variable' column) are usually computer readable and not very nice for a plot. The `plot_pls()` function uses the text in the 'label' column as replacement for the default text in the 'variable' column.  
 
 ```{r}
 input_table <- read.csv("data/livestock_ghg_input_table.csv")
@@ -466,25 +469,27 @@ plot_pls(pls_result, input_table = input_table, threshold = 0)
 
 # Uncertainty
 
-In the following sections we apply a collection of functions for use in assessing uncertainty from the `uncertainty` package. Install using `devtools::install_github("CWWhitney/uncertainty")`. 
+In the following sections we apply a collection of functions for use in assessing uncertainty from the `uncertainty` package. Install using `devtools::install_github("CWWhitney/uncertainty")`. We apply the following uncertainty function on the `milk_yield` and `on_farm` variables from the `r nrow(GHG_simulation$y)` of `GHG_simulation` model results. 
 
-Here we use the `varscatter()` function to create a scatter plot of an influence variable of interest `in_var` (x) and an outcome variable `out_var` (y) with associated and estimated densities with loess smooth linear fits density curves. Plot made with the scatter.hist() function in the plyr() package [@R-plyr] in R [@R-base]. 
+
+```{r name_in_out_vars}
+in_var  <- GHG_simulation$y$milk_yield
+out_var <- GHG_simulation$y$on_farm
+```
+
+Here we use the `varscatter()` function to create a scatter plot of an influence variable of interest `in_var` (x) and an outcome variable `out_var` (y) with associated and estimated densities with loess smooth linear fits density curves. Plot made with the scatter.hist() function in the `plyr()` package [@R-plyr] in R [@R-base]. 
 
 Check the `milk_yield` effect on `enteric_CH4`.
 
 ```{r uncertainty_package}
-uncertainty::varscatter(in_var = GHG_simulation$y$milk_yield,
-                        out_var = GHG_simulation$y$on_farm)
+uncertainty::varscatter(in_var = in_var,
+                        out_var = out_var)
 ```
 
 Use `varkernel()` for another type of graphical representation of the same relationship. `varkernel()` performs a two-dimensional kernel density estimation for the expected value of the outcome variable `out_var` and the influence variable of interest `in_var` using the `kde2d()` function in the `MASS()` package [@R-MASS]. The function produces a matrix of the estimated density (z) of the expected value of the outcome variable `out_var` (y) and the influence variable of interest `in_var` (x). It looks slightly different than the scatter plot estimates above because the density function restricts the shape of the kernel to a bivariate normal kernel.
 
 Check the effect of `in_var` `milk_yield` on the `out_var` `on_farm`.
 
-```{r name_in_out_vars}
-in_var  <- GHG_simulation$y$milk_yield
-out_var <- GHG_simulation$y$on_farm
-```
 
 ```{r varkernel}
 uncertainty::varkernel(in_var = in_var, out_var = out_var)
@@ -513,19 +518,19 @@ $Os = 2 * IQRs / (obs_IQRs)^{(1/3)}$
 Where $Os$ is The optimal interval width for our sample, $IQRs$ is the interquartile range for our sample and $obs_IQRs$ is the total number of observations for the interquartile range for our sample.
 
 ```{r varviolin, fig.width=17, fig.height=7}
-uncertainty::varviolin(in_var = in_var, out_var = out_var)
+uncertainty::varviolin(in_var = in_var, out_var = out_var, legend.position = "left")
 ```
 
 `varviolin()` shows violin plots of influencing variable `in_var` values (x) and outcome variable `out_var` (y) values, with six different intervals of influencing variable `in_var` values. Plot made with `ggplot2()` [@R-ggplot2].
 
 ## Probability of outcome variable given variable
 
-`varkernelslicerange()` shows the influencing variable `in_var` value intervals, optimized interquartile ranges shown in `varviolin()` can be used to select a range to slice from the density kernel `varkernel()` as was done for a single variable value in `varkernelslice()`. Here we set the maximum expected value for `in_var` to `r (min(in_var)+(max(in_var)-min(in_var))/4*3)` and the minimum expected value to `r (min(in_var)+(max(in_var)-min(in_var))/4)`.
+`varkernelslicerange()` shows the influencing variable `in_var` value intervals, optimized interquartile ranges shown in `varviolin()` can be used to select a range to slice from the density kernel `varkernel()` as was done for a single variable value in `varkernelslice()`. Here we set the maximum expected value for `in_var` to `r round(max(in_var), digits = 0)` and the minimum expected value to `r round(min(in_var), digits = 0)`.
 
 ```{r varkernelslicerange}
 uncertainty::varkernelslicerange(in_var = in_var, out_var = out_var, 
-                                 min_in_var = round(min(in_var)+(max(in_var)-min(in_var))/4),
-                                 max_in_var = round(min(in_var)+(max(in_var)-min(in_var))/4*3))
+                                 min_in_var = min(in_var),
+                                 max_in_var = max(in_var))
 ```
 
 `varkernelslicerange()` plots the probabilities (shown along the y-axis) for the expected value of the outcome variable `out_var` (shown along the x-axis). As with `varkernelslice()` the probability values shown are relative, not absolute measures. They are the result of cuts through the density kernel `varkernel()`, which integrates to 1. 
