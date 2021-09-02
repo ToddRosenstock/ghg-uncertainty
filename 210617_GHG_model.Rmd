@@ -13,6 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r, warning = F, include = F}
 #install and load packages
+library(DiagrammeR)
 library(decisionSupport)
 library(ggplot2)
 library(plyr)
@@ -40,14 +41,17 @@ We load the library and the data. The data contains ranges of possible values fo
 ```{r load_data}
 library(DiagrammeR)
 library(decisionSupport)
-library(tidyverse)
+library(plyr)
+library(magrittr)
+library(kableExtra)
 ### # This project will be stored in relative file paths (i.e. same or lower folders)
-input_table <- "data/livestock_ghg_input_table.csv"
 
-options(knitr.kable.NA = '')
-read.csv(input_table)[,c(1:2,4:6)] %>%
-  kableExtra::kbl(digits =2) %>%
-  kableExtra::kable_classic_2(full_width = F)
+ input_table <- "data/livestock_ghg_input_table.csv"
+
+options(knitr.kable.NA = '', encoding = "Windows-1252")
+ read.csv(input_table)[,c(1:2,4:6)]   %>%
+    kableExtra::kbl(digits = 2)  %>%
+    kableExtra::kable_classic_2(full_width = F)
 
 ```
 
@@ -473,7 +477,7 @@ pls_result <- plsr.mcSimulation(object = GHG_simulation,
 
 We run the `plot_pls()` on the results from `plsr.mcSimulation()` with a number of standard settings. The length of the bars is equal to VIP with a vertical line at '1' on the x-axis indicating a standard cut-off for VIP used for variable selection [@Whitney2017]. The overall plot only shows those variables with a VIP > 0.8, which is the common threshold for variable selection [@Lanzanova2019, @Luedeling2016]. The colors of the bars represent the positive or negative coefficient of the given input variable with the output variable.
 
-Here we import the input table again (the same table we used for the Monte Carlo model) to replace the labels for the variables on the y-axis. The input table can include a 'label' and 'variable' column. The standard labels (from the 'variable' column) are usually computer readable and not very nice for a plot. The `plot_pls()` function uses the text in the 'label' column as replacement for the default text in the 'variable' column.  
+Here we import the input table again (the same table we used for the Monte Carlo model) to replace the labels for the variables on the y-axis. The input table includes a 'label' and 'variable' column. The standard labels (from the 'variable' column) are usually computer readable and not very nice for a plot. The `plot_pls()` function uses the text in the 'label' column as replacement for the default text in the 'variable' column.  
 
 ```{r}
 input_table <- read.csv("data/livestock_ghg_input_table.csv")
@@ -484,49 +488,35 @@ plot_pls(pls_result, input_table = input_table, threshold = 0)
 
 # Uncertainty
 
-In the following sections we apply a collection of functions for use in assessing uncertainty from the `uncertainty` package. Install using `devtools::install_github("CWWhitney/uncertainty")`. We apply the following uncertainty function on the `milk_yield` and `on_farm` variables from the `r nrow(GHG_simulation$y)` `GHG_simulation` model results. 
+We apply a collection of functions for use in assessing uncertainty in the relationship between GHG emissions and milk yields in livestock production. We use functions from the `uncertainty` package. Install the package using `devtools::install_github("CWWhitney/uncertainty")`. 
 
+We apply the uncertainty functions on the `milk_yield` and `on_farm` variables. These come from the model results (`r nrow(GHG_simulation$y)`) of the `GHG_simulation` model results to the `in_var` (x) and an outcome variable `out_var` (y). in the model we defined `on_farm` as the sum of Carbon Dioxide Equivalent Enteric Methane Emissions from Livestock (`enteric_CH4_CO2eq`), Carbon Dioxide Equivalent Methane Emissions from Livestock Manure (`mm_CH4_CO2eq`), Carbon Dioxide Equivalent Nitrous Oxide Emissions from Livestock Manure (`mm_N2O_CO2eq`) and Carbon Dioxide Emissions from Livestock Feed Production and Transport (`feed_CO2`).
 
 ```{r name_in_out_vars}
 in_var  <- GHG_simulation$y$milk_yield
 out_var <- GHG_simulation$y$on_farm
 ```
 
-Here we use the `varscatter()` function to create a scatter plot of an influence variable of interest `in_var` (x) and an outcome variable `out_var` (y) with associated and estimated densities with loess smooth linear fits density curves. Plot made with the scatter.hist() function in the `plyr()` package [@R-plyr] in R [@R-base]. 
+## Milk_yield (x-axis) effect on on farm GHG emissions (y-axis)
 
-Check the `milk_yield` (x-axis) effect on `on_farm` emissions (y-axis).
+Here we use the `varscatter()` function to create a scatter plot of milk yields `in_var` (x) and GHG emissions `out_var` (y) with associated and estimated densities with loess smooth linear fits density curves. Plot made with the scatter.hist() function in the `plyr()` package [@R-plyr] in R [@R-base]. The result is a scatter plot with associated and estimated densities (using a loess smooth) given by the red dot (mean) and red ellipses (1 and 2 sigma from mean). The red line going across the plot shows the linear fit. Histograms are shown with smooth lines (loess smooth linear fits) density curves. The numeric value in the upper right gives the Spearman correlation coefficient between the influencing variable and the outcome variable.
 
 ```{r uncertainty_package}
 uncertainty::varscatter(in_var = in_var,
                         out_var = out_var)
 ```
 
-Use `varkernel()` for another type of graphical representation of the same relationship. `varkernel()` performs a two-dimensional kernel density estimation for the expected value of the outcome variable `out_var` and the influence variable of interest `in_var` using the `kde2d()` function in the `MASS()` package [@R-MASS]. The function produces a matrix of the estimated density (z) of the expected value of the outcome variable `out_var` (y) and the influence variable of interest `in_var` (x). It looks slightly different than the scatter plot estimates above because the density function restricts the shape of the kernel to a bivariate normal kernel.
-
-Check the effect of `in_var` `milk_yield` on the `out_var` `on_farm`.
-
+To verify the finding we use the `varkernel()` function for another type of graphical representation of the same relationship. We use the `varkernel()` function to perform a two-dimensional kernel density estimation for the expected value of GHG emissions and milk yield. The core of the process involves kernel density estimation. This is a nonparametric technique for estimating probability density functions (similar to histogram density estimation but with more dimensions). We apply this with the `kde2d()` function in the `MASS()` package [@R-MASS]. The function produces a matrix of the estimated density (z) of the expected value of the GHG emissions and milk yield. It looks slightly different than the scatter plot estimates above because the density function restricts the shape of the kernel to a normal distribution (a bivariate normal kernel).
 
 ```{r varkernel}
 uncertainty::varkernel(in_var = in_var, out_var = out_var)
 ```
 
-`varkernel()` shows a density surface plot of a given influence variable of interest `in_var` (x) and the outcome variable `out_var` (y). The legend shows the value for the estimated density (z). The plot is made with the `filled.contour()` function of the `graphics()` package.
-
-In `varkernel()` the density (z) over the entire plot integrates to one, and therefore represents the relative probability of an observation (the outcome variable `out_var` along y-axis) given a specific value for a given influence variable of interest `in_var` (along x-axis). 
-
-## Estimated outcome variable `out_var` given the expected variable
-
-`varkernelslice()` calculates the estimated outcome variable `out_var` given the expected value of the influence variable of interest `in_var`, based on a slice of 'z' from the Kernel density calculated with `varkernel()`. The `expectedvariable` parameter is set to 30.
-
-```{r varkernelslice}
-uncertainty::varkernelslice(in_var = in_var, out_var = out_var, expectedin_var = 30)
-```
-
-`varkernelslice()` plots the probabilities (shown along the y-axis) for the expected value of the outcome variable `out_var` (shown along the x-axis). Since this is a cut through the density kernel `varkernel()`, which integrates to 1, the probability values are relative, not absolute measures.
+The result of the `varkernel()` function shows a density surface plot of GHG emissions `in_var` (x) and milk yield `out_var` (y). In these `varkernel()` the density (z) over the entire plot integrates to one, and therefore represents the relative probability of an observation (the GHG emissions `out_var` along the y-axis) given a specific value for milk yield `in_var` (along the x-axis). The legend shows the value for the estimated density (z). The plot is made with the `filled.contour()` function of the `graphics()` package [@R-base]. 
 
 ## Influencing variable intervals
 
-`varviolin()` determines different possible influencing variable intervals `in_var` by calculating the optimal interval width for the given variable values. This is done using the `IQR()` function in the `stats()` package, after the Freedman-Diaconis rule (IQR = interquartile range).
+Here we use the `varviolin()` function to determine different milk yield variable intervals by calculating the optimal interval width. This is done using the interquartile range `IQR()` function in the `stats()` package. We follow the Freedman-Diaconis rule to select the width of the bins.
 
 $Os = 2 * IQRs / (obs_IQRs)^{(1/3)}$
 
@@ -536,7 +526,7 @@ Where $Os$ is The optimal interval width for our sample, $IQRs$ is the interquar
 uncertainty::varviolin(in_var = in_var, out_var = out_var, legend.position = "left")
 ```
 
-`varviolin()` shows violin plots of influencing variable `in_var` values (x) and outcome variable `out_var` (y) values, with six different intervals of influencing variable `in_var` values. Plot made with `ggplot2()` [@R-ggplot2].
+The result of the `varviolin()` function shows violin plots of milk yield `in_var` values (x) and our outcome variable GHG emissions `out_var` (y) values. The plot was made with `ggplot2()` [@R-ggplot2].
 
 ## Probability of outcome variable for a given range of the input variable
 
