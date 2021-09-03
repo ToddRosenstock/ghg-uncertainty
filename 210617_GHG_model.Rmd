@@ -514,23 +514,9 @@ uncertainty::varkernel(in_var = in_var, out_var = out_var)
 
 The result of the `varkernel()` function shows a density surface plot of GHG emissions `in_var` (x) and milk yield `out_var` (y). In these `varkernel()` the density (z) over the entire plot integrates to one, and therefore represents the relative probability of an observation (the GHG emissions `out_var` along the y-axis) given a specific value for milk yield `in_var` (along the x-axis). The legend shows the value for the estimated density (z). The plot is made with the `filled.contour()` function of the `graphics()` package [@R-base]. 
 
-## Influencing variable intervals
+## Probability of GHG emissions for a given range of milk yield
 
-Here we use the `varviolin()` function to determine different milk yield variable intervals by calculating the optimal interval width. This is done using the interquartile range `IQR()` function in the `stats()` package. We follow the Freedman-Diaconis rule to select the width of the bins.
-
-$Os = 2 * IQRs / (obs_IQRs)^{(1/3)}$
-
-Where $Os$ is The optimal interval width for our sample, $IQRs$ is the interquartile range for our sample and $obs_IQRs$ is the total number of observations for the interquartile range for our sample.
-
-```{r varviolin, fig.width=17, fig.height=7}
-uncertainty::varviolin(in_var = in_var, out_var = out_var, legend.position = "left")
-```
-
-The result of the `varviolin()` function shows violin plots of milk yield `in_var` values (x) and our outcome variable GHG emissions `out_var` (y) values. The plot was made with `ggplot2()` [@R-ggplot2].
-
-## Probability of outcome variable for a given range of the input variable
-
-`varkernelslicerange()` shows the influencing variable `in_var` value intervals, optimized interquartile ranges shown in `varviolin()` can be used to select a range to slice from the density kernel `varkernel()` as was done for a single variable value in `varkernelslice()`. Here we set the maximum expected value for `in_var` to `r round(max(in_var), digits = 0)` and the minimum expected value to `r round(min(in_var), digits = 0)`.
+We use the `varkernelslicerange()` function to show the milk yield (influencing variable `in_var` value) intervals. Here we choose a very wide distribution (the whole range of milk yields from the Monte Carlo simulation). Here we set the maximum expected value for milk yield `in_var` to `r round(max(in_var), digits = 0)` and the minimum expected value to `r round(min(in_var), digits = 0)`.
 
 ```{r varkernelslicerange}
 uncertainty::varkernelslicerange(in_var = in_var, out_var = out_var, 
@@ -539,6 +525,16 @@ uncertainty::varkernelslicerange(in_var = in_var, out_var = out_var,
 ```
 
 `varkernelslicerange()` plots the probabilities (shown along the y-axis) for the expected value of the outcome variable `out_var` (shown along the x-axis). As with `varkernelslice()` the probability values shown are relative, not absolute measures. They are the result of cuts through the density kernel `varkernel()`, which integrates to 1. 
+
+## Influencing variable intervals
+
+For a more specific estimate we can choose from those optimized interquartile ranges to select a range to slice from the density kernel `varkernel()`. we do that here using the `varviolin()` function to determine meaningful milk yield variable intervals and how they interact with the outcome variable GHG emissions. We do this by calculating an 'optimal' interval width using the interquartile range `IQR()` function in the `stats()` package. 
+
+```{r varviolin, fig.width=17, fig.height=7}
+uncertainty::varviolin(in_var = in_var, out_var = out_var, legend.position = "left")
+```
+
+The result of the `varviolin()` function shows violin plots of milk yield `in_var` values (x) and our outcome variable GHG emissions `out_var` (y) values. The plot was made with `ggplot2()` [@R-ggplot2]. These offer a possible selection of milk yields and show the resulting expected GHG emissions.
 
 This document was generated using R Markdown [@R-rmarkdown].
 
