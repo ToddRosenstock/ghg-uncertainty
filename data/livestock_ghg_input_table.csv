@@ -1,80 +1,80 @@
 Description,lower,mean,upper,distribution,variable,source
 Feeding system and corresponding activity coefficients,,,,,,
-Feeding system (1 Stall - 2 Pasture - 3 Grazing large area),1,,1,const,feeding_system,
-Acticity coefficient Ca - Stall feeding,0,,0,const,Ca_stall,Table 10.5
+Feeding system (1 Stall - 2 Pasture - 3 Grazing large area),1.00,,1.00,const,feeding_system,
+Acticity coefficient Ca - Stall feeding,0.00,,0.00,const,Ca_stall,Table 10.5
 Acticity coefficient Ca -Pasture feeding,0.17,,0.17,const,Ca_pasture,Table 10.5
 Acticity coefficient Ca - Grazing large area,0.36,,0.36,const,Ca_large_grazing,Table 10.5
 ,,,,,,
 Herd composition,,,,,,
-Number of 'intact' mature bulls (>36 months) (animal type 1),5,,5,const,N_animal_type_1,
-Number of mature castrates (>36 months) (animal type 2),2,,2,const,N_animal_type_2,
-Number of males 12-36 months (animal type 3),4,,4,const,N_animal_type_3,
-Number of lactating cows (animal type 4),5,,5,const,N_animal_type_4,
-Number of lactating cows (animal type 5),3,,3,const,N_animal_type_5,
-Number of lactating cows (animal type 6),2,,2,const,N_animal_type_6,
-Number of weaned young females <=12 (animal type 7),4,,4,const,N_animal_type_7,
-Number of weaned young males <=12 (animal type 8),3,,3,const,N_animal_type_8,
-Number of females 12-36 months (animal type 9),5,,5,const,N_animal_type_9,
-Number of pre-weaned female calves (animal type 10),6,,6,const,N_animal_type_10,
-Number of pre-weaned male calves (animal type 10),4,,4,const,N_animal_type_11,
-Number of first-time pregnant cows (animal type 12),3,,3,const,N_animal_type_12,
+Number of 'intact' mature bulls (>36 months) (animal type 1),5.00,,5.00,const,N_animal_type_1,
+Number of mature castrates (>36 months) (animal type 2),2.00,,2.00,const,N_animal_type_2,
+Number of males 12-36 months (animal type 3),4.00,,4.00,const,N_animal_type_3,
+Number of lactating cows (animal type 4),5.00,,5.00,const,N_animal_type_4,
+Number of lactating cows (animal type 5),3.00,,3.00,const,N_animal_type_5,
+Number of lactating cows (animal type 6),2.00,,2.00,const,N_animal_type_6,
+Number of weaned young females <=12 (animal type 7),4.00,,4.00,const,N_animal_type_7,
+Number of weaned young males <=12 (animal type 8),3.00,,3.00,const,N_animal_type_8,
+Number of females 12-36 months (animal type 9),5.00,,5.00,const,N_animal_type_9,
+Number of pre-weaned female calves (animal type 10),6.00,,6.00,const,N_animal_type_10,
+Number of pre-weaned male calves (animal type 10),4.00,,4.00,const,N_animal_type_11,
+Number of first-time pregnant cows (animal type 12),3.00,,3.00,const,N_animal_type_12,
 ,,,,,,
 Sex-specific and (maintenance) coefficients,,,,,,
-Sex-specific coefficient - intact males,1.2,,1.2,const,C_intact_males,"Page 10.17, below Eq. 10.6"
-Sex-specific coefficient - castrates,1,,1,const,C_castrates,"Page 10.17, below Eq. 10.6"
-Sex-specific coefficient - females,0.8,,0.8,const,C_females,"Page 10.17, below Eq. 10.6"
+Sex-specific coefficient - intact males,1.20,,1.20,const,C_intact_males,"Page 10.17, below Eq. 10.6"
+Sex-specific coefficient - castrates,1.00,,1.00,const,C_castrates,"Page 10.17, below Eq. 10.6"
+Sex-specific coefficient - females,0.80,,0.80,const,C_females,"Page 10.17, below Eq. 10.6"
 "Maintenance coefficient (Cfi) - Cattle/Buffalo (non-lactating cows, steers
-and juveniles)",0.322,,0.322,const,maintenance_coefficient_Cfi_other,Table 10.4
-Maintenance coefficient (Cfi) - Cattle/Buffalo (lactating cows),0.386,,0.386,const,maintenance_coefficient_Cfi_lact_cow,Table 10.4
+and juveniles)",0.32,,0.32,const,maintenance_coefficient_Cfi_other,Table 10.4
+Maintenance coefficient (Cfi) - Cattle/Buffalo (lactating cows),0.39,,0.39,const,maintenance_coefficient_Cfi_lact_cow,Table 10.4
 Maintenance coefficient (Cfi) - Cattle/Buffalo (bulls),0.37,,0.37,const,maintenance_coefficient_Cfi_bulls,Table 10.4
-Mature body weight females,250,,350,posnorm,mature_weight_MW_female,
-Mature body weight males,300,,500,posnorm,mature_weight_MW_male,
+Mature body weight females,250.00,,350.00,posnorm,mature_weight_MW_female,
+Mature body weight males,300.00,,500.00,posnorm,mature_weight_MW_male,
 ,,,,,,
 Weight (gain) data by animal type,,,,,,
-Mean live weight of animal type 1,283.57067,289.1499,294.72913,posnorm,live_weight_LW_1,
-Mean live weight of animal type 2,283.57067,289.1499,294.72913,posnorm,live_weight_LW_2,
-Mean live weight of animal type 3,283.57067,289.1499,294.72913,posnorm,live_weight_LW_3,
-Mean live weight of animal type 4,283.57067,289.1499,294.72913,posnorm,live_weight_LW_4,
-Mean live weight of animal type 5,283.57067,289.1499,294.72913,posnorm,live_weight_LW_5,
-Mean live weight of animal type 6,283.57067,289.1499,294.72913,posnorm,live_weight_LW_6,
-Mean live weight of animal type 7,283.57067,289.1499,294.72913,posnorm,live_weight_LW_7,
-Mean live weight of animal type 8,283.57067,289.1499,294.72913,posnorm,live_weight_LW_8,
-Mean live weight of animal type 9,283.57067,289.1499,294.72913,posnorm,live_weight_LW_9,
-Mean live weight of animal type 10,283.57067,289.1499,294.72913,posnorm,live_weight_LW_10,
-Mean live weight of animal type 11,283.57067,289.1499,294.72913,posnorm,live_weight_LW_11,
-Mean live weight of animal type 12,283.57067,289.1499,294.72913,posnorm,live_weight_LW_12,
-Average daily weight gain (kg/day) of animal type 1,0.129659398,0.1370642,0.144469002,posnorm,weight_gain_WG_1,
-Average daily weight gain (kg/day) of animal type 2,0.129659398,0.1370642,0.144469002,posnorm,weight_gain_WG_2,
-Average daily weight gain (kg/day) of animal type 3,0.129659398,0.1370642,0.144469002,posnorm,weight_gain_WG_3,
-Average daily weight gain (kg/day) of animal type 4,0.129659398,0.1370642,0.144469002,posnorm,weight_gain_WG_4,
-Average daily weight gain (kg/day) of animal type 5,0.129659398,0.1370642,0.144469002,posnorm,weight_gain_WG_5,
-Average daily weight gain (kg/day) of animal type 6,0.129659398,0.1370642,0.144469002,posnorm,weight_gain_WG_6,
-Average daily weight gain (kg/day) of animal type 7,0.129659398,0.1370642,0.144469002,posnorm,weight_gain_WG_7,
-Average daily weight gain (kg/day) of animal type 8,0.129659398,0.1370642,0.144469002,posnorm,weight_gain_WG_8,
-Average daily weight gain (kg/day) of animal type 9,0.129659398,0.1370642,0.144469002,posnorm,weight_gain_WG_9,
-Average daily weight gain (kg/day) of animal type 10,0.129659398,0.1370642,0.144469002,posnorm,weight_gain_WG_10,
-Average daily weight gain (kg/day) of animal type 11,0.129659398,0.1370642,0.144469002,posnorm,weight_gain_WG_11,
-Average daily weight gain (kg/day) of animal type 12,0.129659398,0.1370642,0.144469002,posnorm,weight_gain_WG_12,
+Mean live weight of animal type 1,283.57,289.15,294.73,posnorm,live_weight_LW_1,
+Mean live weight of animal type 2,283.57,289.15,294.73,posnorm,live_weight_LW_2,
+Mean live weight of animal type 3,283.57,289.15,294.73,posnorm,live_weight_LW_3,
+Mean live weight of animal type 4,283.57,289.15,294.73,posnorm,live_weight_LW_4,
+Mean live weight of animal type 5,283.57,289.15,294.73,posnorm,live_weight_LW_5,
+Mean live weight of animal type 6,283.57,289.15,294.73,posnorm,live_weight_LW_6,
+Mean live weight of animal type 7,283.57,289.15,294.73,posnorm,live_weight_LW_7,
+Mean live weight of animal type 8,283.57,289.15,294.73,posnorm,live_weight_LW_8,
+Mean live weight of animal type 9,283.57,289.15,294.73,posnorm,live_weight_LW_9,
+Mean live weight of animal type 10,283.57,289.15,294.73,posnorm,live_weight_LW_10,
+Mean live weight of animal type 11,283.57,289.15,294.73,posnorm,live_weight_LW_11,
+Mean live weight of animal type 12,283.57,289.15,294.73,posnorm,live_weight_LW_12,
+Average daily weight gain (kg/day) of animal type 1,0.13,0.14,0.14,posnorm,weight_gain_WG_1,
+Average daily weight gain (kg/day) of animal type 2,0.13,0.14,0.14,posnorm,weight_gain_WG_2,
+Average daily weight gain (kg/day) of animal type 3,0.13,0.14,0.14,posnorm,weight_gain_WG_3,
+Average daily weight gain (kg/day) of animal type 4,0.13,0.14,0.14,posnorm,weight_gain_WG_4,
+Average daily weight gain (kg/day) of animal type 5,0.13,0.14,0.14,posnorm,weight_gain_WG_5,
+Average daily weight gain (kg/day) of animal type 6,0.13,0.14,0.14,posnorm,weight_gain_WG_6,
+Average daily weight gain (kg/day) of animal type 7,0.13,0.14,0.14,posnorm,weight_gain_WG_7,
+Average daily weight gain (kg/day) of animal type 8,0.13,0.14,0.14,posnorm,weight_gain_WG_8,
+Average daily weight gain (kg/day) of animal type 9,0.13,0.14,0.14,posnorm,weight_gain_WG_9,
+Average daily weight gain (kg/day) of animal type 10,0.13,0.14,0.14,posnorm,weight_gain_WG_10,
+Average daily weight gain (kg/day) of animal type 11,0.13,0.14,0.14,posnorm,weight_gain_WG_11,
+Average daily weight gain (kg/day) of animal type 12,0.13,0.14,0.14,posnorm,weight_gain_WG_12,
 ,,,,,,
 Milk yield; fat content; pregnancy coefficients,,,,,,
-Average milk yield (kg/day) of animal type 4,3.3073057,3.502657,3.6980083,posnorm,milk_yield_4,
-Average milk yield (kg/day) of animal type 5,3.3073057,3.502657,3.6980083,posnorm,milk_yield_5,
-Average milk yield (kg/day) of animal type 6,3.3073057,3.502657,3.6980083,posnorm,milk_yield_6,
-Milk fat (%),1.99324904,2.083086,2.17292296,posnorm,milk_fat,
-Maximum pregnancy coefficient Cp (scaled to year),0.1,,0.1,const,Cp_0,
-Pregnancy coefficient for animal type 4 (share of full coefficient),0.1,,0.8,posnorm,Cp_rate_4,
-Pregnancy coefficient for animal type 5 (share of full coefficient),0.1,,0.8,posnorm,Cp_rate_5,
-Pregnancy coefficient for animal type 6 (share of full coefficient),0.1,,0.8,posnorm,Cp_rate_6,
+Average milk yield (kg/day) of animal type 4,3.31,3.50,3.70,posnorm,milk_yield_4,
+Average milk yield (kg/day) of animal type 5,3.31,3.50,3.70,posnorm,milk_yield_5,
+Average milk yield (kg/day) of animal type 6,3.31,3.50,3.70,posnorm,milk_yield_6,
+Milk fat (%),1.99,2.08,2.17,posnorm,milk_fat,
+Maximum pregnancy coefficient Cp (scaled to year),0.10,,0.10,const,Cp_0,
+Pregnancy coefficient for animal type 4 (share of full coefficient),0.10,,0.80,posnorm,Cp_rate_4,
+Pregnancy coefficient for animal type 5 (share of full coefficient),0.10,,0.80,posnorm,Cp_rate_5,
+Pregnancy coefficient for animal type 6 (share of full coefficient),0.10,,0.80,posnorm,Cp_rate_6,
 ,,,,,,
 Emissions from externally produced feed,,,,,,
-Feed production,795.61996,834.5577,873.49544,posnorm,feed_prod_CO2,
-Feed transport,4.3343729,5.203274,6.0721751,posnorm,feed_trans_CO2,
+Feed production,795.62,834.56,873.50,posnorm,feed_prod_CO2,
+Feed transport,4.33,5.20,6.07,posnorm,feed_trans_CO2,
 ,,,,,,
 Conversion parameters,,,,,,
-Digestible energy expressed as a percentage of gross energyy (De),58.6681058,58.85437,59.0406342,posnorm,DE_perc,
-Percent crude protein in diet,5,,15,posnorm,perc_crude_protein_diet,estimated based on https://www.thebeefsite.com/articles/1542/protein-in-beef-cattle-diets/
-Methane conversion rate (0-1),0.065,,0.065,const,Y_m,
-"emission factor for N2O emissions from nitrogen leaching and runoff, kg N2O-N/kg N leached and runoff",0.0075,,0.0075,const,EF5,Equation 10.29
+Digestible energy expressed as a percentage of gross energyy (De),58.67,58.85,59.04,posnorm,DE_perc,
+Percent crude protein in diet,5.00,,15.00,posnorm,perc_crude_protein_diet,estimated based on https://www.thebeefsite.com/articles/1542/protein-in-beef-cattle-diets/
+Methane conversion rate (0-1),0.07,,0.07,const,Y_m,
+"emission factor for N2O emissions from nitrogen leaching and runoff, kg N2O-N/kg N leached and runoff",0.01,,0.01,const,EF5,Equation 10.29
 emission factor for N2O emissions from atmospheric deposition of nitrogen on soils and water surfaces,0.01,,0.01,const,EF4,Equation 10.27
 urinary energy expressed as fraction of Gross Energy intake,0.04,,0.04,const,urinary_energy,2006 IPCC Guidelines for National Greenhouse Gas Inventories (10.42)
 the ash content of manure calculated as a fraction of the dry matter feed intake,0.08,,0.08,const,ash_content,2006 IPCC Guidelines for National Greenhouse Gas Inventories (10.42)
@@ -83,65 +83,65 @@ Constants for methane production and conversion,,,,,,
 Maximum methane producing capacity of the manure (animal type 1),0.17,,0.17,const,Bo_animaltype_1,2006 IPCC Guidelines for National Greenhouse Gas Inventories
 Maximum methane producing capacity of the manure (animal type 2),0.17,,0.17,const,Bo_animaltype_2,2006 IPCC Guidelines for National Greenhouse Gas Inventories
 Maximum methane producing capacity of the manure (animal type 3),0.17,,0.17,const,Bo_animaltype_3,2006 IPCC Guidelines for National Greenhouse Gas Inventories
-Maximum methane producing capacity of the manure (animal type 4),0.135,,0.135,const,Bo_animaltype_4,2006 IPCC Guidelines for National Greenhouse Gas Inventories
-Maximum methane producing capacity of the manure (animal type 5),0.135,,0.135,const,Bo_animaltype_5,2006 IPCC Guidelines for National Greenhouse Gas Inventories
-Maximum methane producing capacity of the manure (animal type 6),0.135,,0.135,const,Bo_animaltype_6,2006 IPCC Guidelines for National Greenhouse Gas Inventories
+Maximum methane producing capacity of the manure (animal type 4),0.14,,0.14,const,Bo_animaltype_4,2006 IPCC Guidelines for National Greenhouse Gas Inventories
+Maximum methane producing capacity of the manure (animal type 5),0.14,,0.14,const,Bo_animaltype_5,2006 IPCC Guidelines for National Greenhouse Gas Inventories
+Maximum methane producing capacity of the manure (animal type 6),0.14,,0.14,const,Bo_animaltype_6,2006 IPCC Guidelines for National Greenhouse Gas Inventories
 Maximum methane producing capacity of the manure (animal type 7),0.17,,0.17,const,Bo_animaltype_7,2006 IPCC Guidelines for National Greenhouse Gas Inventories
 Maximum methane producing capacity of the manure (animal type 8),0.17,,0.17,const,Bo_animaltype_8,2006 IPCC Guidelines for National Greenhouse Gas Inventories
 Maximum methane producing capacity of the manure (animal type 9),0.17,,0.17,const,Bo_animaltype_9,2006 IPCC Guidelines for National Greenhouse Gas Inventories
 Maximum methane producing capacity of the manure (animal type 10),0.17,,0.17,const,Bo_animaltype_10,2006 IPCC Guidelines for National Greenhouse Gas Inventories
 Maximum methane producing capacity of the manure (animal type 11),0.17,,0.17,const,Bo_animaltype_11,2006 IPCC Guidelines for National Greenhouse Gas Inventories
 Maximum methane producing capacity of the manure (animal type 12),0.17,,0.17,const,Bo_animaltype_12,2006 IPCC Guidelines for National Greenhouse Gas Inventories
-Methane conversion factor - pasture,0.015,,0.015,const,MCFpasture,unknown
-Methane conversion factor - spreading,0.005,,0.005,const,MCFspread,unknown
-Methane conversion factor - drylot,0.015,,0.015,const,MCFdrylot,unknown
+Methane conversion factor - pasture,0.02,,0.02,const,MCFpasture,unknown
+Methane conversion factor - spreading,0.01,,0.01,const,MCFspread,unknown
+Methane conversion factor - drylot,0.02,,0.02,const,MCFdrylot,unknown
 Methane conversion factor - solid storage,0.04,,0.04,const,MCFsolidstore,unknown
-Methane conversion factor - composted,0.005,,0.005,const,MCFcomposted,unknown
-Methane conversion factor - liquid,0.2,,0.2,const,MCFliquid,unknown
-Methane conversion factor - biogas,0.1,,0.1,const,MCFbiogas,unknown
-Methane conversion factor - burning,0.1,,0.1,const,MCFburn,unknown
-Methane conversion factor - sold,0,,0,const,MCFsold,unknown
+Methane conversion factor - composted,0.01,,0.01,const,MCFcomposted,unknown
+Methane conversion factor - liquid,0.20,,0.20,const,MCFliquid,unknown
+Methane conversion factor - biogas,0.10,,0.10,const,MCFbiogas,unknown
+Methane conversion factor - burning,0.10,,0.10,const,MCFburn,unknown
+Methane conversion factor - sold,0.00,,0.00,const,MCFsold,unknown
 ,,,,,,
 Decision tree for manure management,,,,,,
-question 1: how much of the manure is centrally collected?,0.1,,0.9,tnorm_0_1,share_centrally,
-"question 2: of manure that's not centrally collected, how much is burned?",0.1,,0.9,tnorm_0_1,share_central_burn,
-"question 3: of centrally collected manure, how much is spread daily on cropland or pasture?",0.1,,0.9,tnorm_0_1,share_spread,
-question 4: how much of the manure that's not spread is sold?,0.1,,0.9,tnorm_0_1,share_sold,
-question 5: how much of the stored manure that's not sold is stored in liquid form?,0.1,,0.9,tnorm_0_1,share_liquid,
-question 6: how much of the liquid manure is converted to biogas?,0.1,,0.9,tnorm_0_1,share_biogas,
-question 7: how much of the solid manure is composted?,0.1,,0.9,tnorm_0_1,share_compost,
-question 8: how much of the solid manure is stored in dry lots?,0.1,,0.9,tnorm_0_1,share_drylot,
+question 1: how much of the manure is centrally collected?,0.10,,0.90,tnorm_0_1,share_centrally,
+"question 2: of manure that's not centrally collected, how much is burned?",0.10,,0.90,tnorm_0_1,share_central_burn,
+"question 3: of centrally collected manure, how much is spread daily on cropland or pasture?",0.10,,0.90,tnorm_0_1,share_spread,
+question 4: how much of the manure that's not spread is sold?,0.10,,0.90,tnorm_0_1,share_sold,
+question 5: how much of the stored manure that's not sold is stored in liquid form?,0.10,,0.90,tnorm_0_1,share_liquid,
+question 6: how much of the liquid manure is converted to biogas?,0.10,,0.90,tnorm_0_1,share_biogas,
+question 7: how much of the solid manure is composted?,0.10,,0.90,tnorm_0_1,share_compost,
+question 8: how much of the solid manure is stored in dry lots?,0.10,,0.90,tnorm_0_1,share_drylot,
 ,,,,,,
 Manura emission coefficients by management,,,,,,
 Manure nitrogen direct emission coefficients (Table 10.21 from the IPCC guidelines),,,,,,
 Manure nitrogen direct emission coefficient (pasture),0.02,,0.02,const,mndec_pasture,Table 10.21 from the IPCC guidelines
-Manure nitrogen direct emission coefficient (spread),0,,0,const,mndec_spread,Table 10.21 from the IPCC guidelines
+Manure nitrogen direct emission coefficient (spread),0.00,,0.00,const,mndec_spread,Table 10.21 from the IPCC guidelines
 Manure nitrogen direct emission coefficient (dry lot),0.02,,0.02,const,mndec_drylot,Table 10.21 from the IPCC guidelines
-Manure nitrogen direct emission coefficient (solid storage),0.005,,0.005,const,mndec_solidstore,Table 10.21 from the IPCC guidelines
-Manure nitrogen direct emission coefficient (composted),0.006,,0.006,const,mndec_composted,Table 10.21 from the IPCC guidelines
-Manure nitrogen direct emission coefficient (liquid),0.005,,0.005,const,mndec_liquid,Table 10.21 from the IPCC guidelines
-Manure nitrogen direct emission coefficient (biogas),0,,0,const,mndec_biogas,Table 10.21 from the IPCC guidelines
-Manure nitrogen direct emission coefficient (burned),0,,0,const,mndec_burn,Table 10.21 from the IPCC guidelines
-Manure nitrogen direct emission coefficient (sold),0,,0,const,mndec_sold,Table 10.21 from the IPCC guidelines
+Manure nitrogen direct emission coefficient (solid storage),0.01,,0.01,const,mndec_solidstore,Table 10.21 from the IPCC guidelines
+Manure nitrogen direct emission coefficient (composted),0.01,,0.01,const,mndec_composted,Table 10.21 from the IPCC guidelines
+Manure nitrogen direct emission coefficient (liquid),0.01,,0.01,const,mndec_liquid,Table 10.21 from the IPCC guidelines
+Manure nitrogen direct emission coefficient (biogas),0.00,,0.00,const,mndec_biogas,Table 10.21 from the IPCC guidelines
+Manure nitrogen direct emission coefficient (burned),0.00,,0.00,const,mndec_burn,Table 10.21 from the IPCC guidelines
+Manure nitrogen direct emission coefficient (sold),0.00,,0.00,const,mndec_sold,Table 10.21 from the IPCC guidelines
 ,,,,,,
 Manure nitrogen volatilization emission coefficients (Table 10.22 from the IPCC guidelines),,,,,,
 Manure nitrogen volatilization emission coefficient (pasture),0.02,,0.02,const,mnvc_pasture,Table 10.22 from the IPCC guidelines
 Manure nitrogen volatilization emission coefficient (spread),0.07,,0.07,const,mnvc_spread,Table 10.22 from the IPCC guidelines
-Manure nitrogen volatilization emission coefficient (dry lot),0.2,,0.2,const,mnvc_drylot,Table 10.22 from the IPCC guidelines
-Manure nitrogen volatilization emission coefficient (solid storage),0.3,,0.3,const,mnvc_solidstore,Table 10.22 from the IPCC guidelines
-Manure nitrogen volatilization emission coefficient (composted),0.3,,0.3,const,mnvc_composted,Table 10.22 from the IPCC guidelines
-Manure nitrogen volatilization emission coefficient (liquid),0.4,,0.4,const,mnvc_liquid,Table 10.22 from the IPCC guidelines
-Manure nitrogen volatilization emission coefficient (biogas),0,,0,const,mnvc_biogas,Table 10.22 from the IPCC guidelines
-Manure nitrogen volatilization emission coefficient (burned),0,,0,const,mnvc_burn,Table 10.22 from the IPCC guidelines
-Manure nitrogen volatilization emission coefficient (sold),0,,0,const,mnvc_sold,Table 10.22 from the IPCC guidelines
+Manure nitrogen volatilization emission coefficient (dry lot),0.20,,0.20,const,mnvc_drylot,Table 10.22 from the IPCC guidelines
+Manure nitrogen volatilization emission coefficient (solid storage),0.30,,0.30,const,mnvc_solidstore,Table 10.22 from the IPCC guidelines
+Manure nitrogen volatilization emission coefficient (composted),0.30,,0.30,const,mnvc_composted,Table 10.22 from the IPCC guidelines
+Manure nitrogen volatilization emission coefficient (liquid),0.40,,0.40,const,mnvc_liquid,Table 10.22 from the IPCC guidelines
+Manure nitrogen volatilization emission coefficient (biogas),0.00,,0.00,const,mnvc_biogas,Table 10.22 from the IPCC guidelines
+Manure nitrogen volatilization emission coefficient (burned),0.00,,0.00,const,mnvc_burn,Table 10.22 from the IPCC guidelines
+Manure nitrogen volatilization emission coefficient (sold),0.00,,0.00,const,mnvc_sold,Table 10.22 from the IPCC guidelines
 ,,,,,,
 Fraction of managed manure nitrogen losses for livestock category T due to runoff and leaching during solid and liquid storage of manure (typical range 0.01-0.20),,,,,,
-Fraction of managed manure nitrogen losses … (pasture),0.3,,0.3,const,frac_leach_pasture,source unclear
-Fraction of managed manure nitrogen losses … (spread),0.3,,0.3,const,frac_leach_spread,source unclear
-Fraction of managed manure nitrogen losses … (dry lot),0.3,,0.3,const,frac_leach_drylot,source unclear
-Fraction of managed manure nitrogen losses … (solid storage),0.3,,0.3,const,frac_leach_solidstore,source unclear
-Fraction of managed manure nitrogen losses … (composted),0.3,,0.3,const,frac_leach_composted,source unclear
-Fraction of managed manure nitrogen losses … (liquid),0.3,,0.3,const,frac_leach_liquid,source unclear
-Fraction of managed manure nitrogen losses … (biogas),0,,0,const,frac_leach_biogas,source unclear
-Fraction of managed manure nitrogen losses … (burned),0,,0,const,frac_leach_burn,source unclear
-Fraction of managed manure nitrogen losses … (sold),0,,0,const,frac_leach_sold,source unclear
+Fraction of managed manure nitrogen losses … (pasture),0.30,,0.30,const,frac_leach_pasture,source unclear
+Fraction of managed manure nitrogen losses … (spread),0.30,,0.30,const,frac_leach_spread,source unclear
+Fraction of managed manure nitrogen losses … (dry lot),0.30,,0.30,const,frac_leach_drylot,source unclear
+Fraction of managed manure nitrogen losses … (solid storage),0.30,,0.30,const,frac_leach_solidstore,source unclear
+Fraction of managed manure nitrogen losses … (composted),0.30,,0.30,const,frac_leach_composted,source unclear
+Fraction of managed manure nitrogen losses … (liquid),0.30,,0.30,const,frac_leach_liquid,source unclear
+Fraction of managed manure nitrogen losses … (biogas),0.00,,0.00,const,frac_leach_biogas,source unclear
+Fraction of managed manure nitrogen losses … (burned),0.00,,0.00,const,frac_leach_burn,source unclear
+Fraction of managed manure nitrogen losses … (sold),0.00,,0.00,const,frac_leach_sold,source unclear
