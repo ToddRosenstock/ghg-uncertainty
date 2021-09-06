@@ -377,7 +377,7 @@ We apply the `decisionSupport` tools for running the Monte Carlo simulation [@R-
 GHG_simulation <- mcSimulation(
   estimate = estimate_read_csv("data/livestock_ghg_input_table.csv"),
   model_function = ghg_emissions,
-  numberOfModelRuns = 1e2, #100 for now
+  numberOfModelRuns = 1e4, # 10,000 runs
   functionSyntax = "plainNames"
 )
 ```
@@ -497,7 +497,7 @@ in_var  <- GHG_simulation$y$milk_yield
 out_var <- GHG_simulation$y$on_farm
 ```
 
-## Milk_yield (x-axis) effect on on farm GHG emissions (y-axis)
+## Milk_yield (x-axis) effect on on-farm GHG emissions (y-axis)
 
 Here we use the `varscatter()` function to create a scatter plot of milk yields `in_var` (x) and GHG emissions `out_var` (y) with associated and estimated densities with loess smooth linear fits density curves. Plot made with the scatter.hist() function in the `plyr()` package [@R-plyr] in R [@R-base]. The result is a scatter plot with associated and estimated densities (using a loess smooth) given by the red dot (mean) and red ellipses (1 and 2 sigma from mean). The red line going across the plot shows the linear fit. Histograms are shown with smooth lines (loess smooth linear fits) density curves. The numeric value in the upper right gives the Spearman correlation coefficient between the influencing variable and the outcome variable.
 
