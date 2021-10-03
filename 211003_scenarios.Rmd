@@ -1,11 +1,14 @@
 ---
-title: "Greenhouse gas emissions model"
+title: "Greenhouse gas emissions model - making scenarios"
 author: "Cory Whitney and Eike Luedeling"
 bibliography:
  - references/packages.bib
  - references/papers.bib
 output: html_document
 ---
+
+
+We're defining the function as in 210617_GHG_model.Rmd, but there's no need to show this again here.
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -38,7 +41,7 @@ The formulas come from Chapter 10 of the *2006 IPCC Guidelines for National Gree
 
 We load the library and the data. The data contains ranges of possible values for the simulation. Each variable is represented with a confidence interval range and a specification of the distribution shape.
 
-```{r load_data}
+```{r load_data, include=FALSE}
 library(DiagrammeR)
 library(decisionSupport)
 library(plyr)
@@ -55,35 +58,8 @@ options(knitr.kable.NA = '', encoding = "Windows-1252")
 
 ```
 
-The manure management is based on a decision tree. 
 
-## Decision tree for manure management
-
-It is difficult to know with precision how much manure is managed according to each of the management categories. Capturing the corresponding uncertainty is difficult, because estimating each fraction separately is unlikely to add up to 100%. We address this problem with a decision tree.
-
-Each step in the decision tree (each node) represents a share of manure that is managed according to the name of the node. Green arrows indicate 'Yes' and red arrows 'No'. The descriptions for the uses can be found in the IPCC report on manure management chapter 10 [@dong_ipcc_2006].   
-
-```{r graph-mermaid-manure, echo=FALSE, fig.width=10, fig.height=1}
-mermaid("
-        graph LR
-        C(Central collection)-->B(Burned); linkStyle 0 stroke: red, stroke-width:1px
-                                B-->P(Pasture); linkStyle 1 stroke: red, stroke-width:1px
-        C-->D(Daily spread); linkStyle 2 stroke: green, stroke-width:1px
-            D-->S(Sold); linkStyle 3 stroke: red, stroke-width:1px
-                S-->L(Liquid storage); linkStyle 4 stroke: red, stroke-width:1px
-                    L-->Co(Composted); linkStyle 5 stroke: red, stroke-width:1px
-                        Co-->Dl(Dry lot); linkStyle 6 stroke: red, stroke-width:1px
-                             Dl-->St(Solid storage); linkStyle 7 stroke: red, stroke-width:1px
-                    L-->Bi(Biogas); linkStyle 8 stroke: green, stroke-width:1px
-                        Bi-->Ls(Liquid slurry); linkStyle 9 stroke: red, stroke-width:1px
-        ")
-```
-
-## Making variables for model development
-
-Here we generate a `make_variables` function for testing the model function 'line by line'. We use it to take a single random sample of the provided estimates (this isn't required for running the model later, but it helps when developing the code).
-
-```{r make_variables}
+```{r make_variables, include=FALSE}
 
 make_variables <- function(est,n=1){ x <- random(rho=est, n=n)
 for(i in colnames(x)) assign(i, as.numeric(x[1,i]),envir=.GlobalEnv)}
@@ -92,12 +68,8 @@ for(i in colnames(x)) assign(i, as.numeric(x[1,i]),envir=.GlobalEnv)}
 make_variables(estimate_read_csv(input_table))
 ```
 
-## The model
 
-The following is our draft of the emissions model, with explanations of all steps (we can format this better once we agree on the final model).
-
-
-```{r ghg_emissions_function}
+```{r ghg_emissions_function, include=FALSE}
 # Generate the GHG emissions function 
 ghg_emissions<-function(x, varnames){
 
@@ -369,17 +341,87 @@ return(list(enteric_CH4=enteric_CH4,
 }
 ```
 
-## Running the model
+## Running the model with scenarios
 
-We apply the `decisionSupport` tools for running the Monte Carlo simulation [@R-decisionSupport]. See the vignette guides on *applying the mcSimulation function* [@fernandez_applying_2021] and *simulating the cost effectiveness of controlled burning* [@whitney_simulating_2017] for examples.
+The normal mcSimulation function takes random draws for each of the input variables from the distributions specified in the input table. The distributions that are used are the same for every run of the Monte Carlo simulation. Sometimes it's desirable to specify particular scenarios *a priori*, e.g. to simulate outcomes for particular farm types, climate scenarios etc. To do this, we would normally have to define separate input tables and run separate simulations. This is quite inconvenient. Here, we'll develop a function that can do this job automatically.
+
+The new function will consist of a wrapper around the mcSimulation function, which will be able to modify the input table according to a scenario file we provide. This file will contain information on which variables should be modified for each scenario and how many model runs should be included in the simulation.
+
+```{r scenario_sampler}
+scenario_sampler<-function(base_estimate, scenarios, model_function, randomMethod = "calculate", functionSyntax="data.frameNames",
+  relativeTolerance = 0.05,
+  verbosity = 0)
+{
+  initial_estimate = estimate_read_csv(base_estimate)
+  scenarios<-read.csv(scenarios)
+  
+  scenario_names<-colnames(scenarios[3:ncol(scenarios)])
+  
+  for(scens in scenario_names)
+  {
+    estim<-initial_estimate
+    for (i in 2:nrow(scenarios))
+    {if(scenarios$param[i]=="both")
+      {estim$marginal[scenarios[i,1],"lower"]<-as.numeric(scenarios[i,scens])
+       estim$marginal[scenarios[i,1],"upper"]<-as.numeric(scenarios[i,scens])}
+     if(scenarios$param[i]=="lower")
+       estim$marginal[scenarios[i,1],"lower"]<-as.numeric(scenarios[i,scens])
+     if(scenarios$param[i]=="upper")
+       estim$marginal[scenarios[i,1],"upper"]<-as.numeric(scenarios[i,scens])
+     if(scenarios$param[i]=="distribution")
+       estim$marginal[scenarios[i,1],"distribution"]<-scenarios[i,scens]
+     }
+    scen_results<-mcSimulation(
+      estimate = estim,
+      model_function = model_function,
+      numberOfModelRuns = as.numeric(scenarios[which(scenarios[1,]=="Runs"),scens]),
+      functionSyntax = functionSyntax)
+    scen_results$x[,"Scenario"]<-scens
+    scen_results$y[,"Scenario"]<-scens
+    if(scens==scenario_names[1])
+      end_results<-scen_results
+    if(!scens==scenario_names[1])
+    {end_results$x<-rbind(end_results$x,scen_results$x)
+     end_results$y<-rbind(end_results$y,scen_results$y)
+     end_results$call<-"multi-scenario call"
+     }
+    
+  
+  }
+  class(end_results) <- cbind("mcSimulation", class(end_results))
+  return(end_results)
+}
+  
+
+```
+
+This function does the same as the mcSimulation function, but with an additional scenario_file that can be supplied. This file specifies which variables should be modified for each of the scenarios, as well as the number of model runs for for it. Here's an example file:
+
+```{r}
+knitr::kable(read.csv("data/scenarios.csv"))
+
+```
+
+Each column beyond the first two columns contains information for a particular scenario. This is restricted to the parameters that should be *changed* for this scenario. All variables that aren't specified in this table remain at their original values given in the usual input table (which is called `base_estimate` here).
+
+The first row ("Runs" in the first column) indicates the number of runs.
+
+Each subsequent row indicates which value from the input table should be modified, so the string in the first column has to correspond to a variable name in the input table. The second column indicates which value should be changes, with options being "lower", "upper", "distribution" and "both". If "both" is selected, both the lower and upper bounds are modified (this should only be done for constants).
 
 ```{r monte_carlo_simulation}
-GHG_simulation <- mcSimulation(
-  estimate = estimate_read_csv("data/livestock_ghg_input_table.csv"),
-  model_function = ghg_emissions,
-  numberOfModelRuns = 1e4, # 10,000 runs
-  functionSyntax = "plainNames"
-)
+
+GHG_simulation<-scenario_sampler(base_estimate = "data/livestock_ghg_input_table.csv",
+                                 scenarios = "data/scenarios.csv",
+                                 model_function = ghg_emissions,
+                                 functionSyntax = "plainNames")
+
+
+#GHG_simulation <- mcSimulation(
+#  estimate = estimate_read_csv("data/livestock_ghg_input_table.csv"),
+#  model_function = ghg_emissions,
+#  numberOfModelRuns = 1e4, # 10,000 runs
+#  functionSyntax = "plainNames"
+#)
 ```
 
 Here we plot the distributions of the various outputs from the model. 
@@ -471,8 +513,12 @@ plot_layout(guides = "collect", design = layout)
 Below we apply a post-hoc analysis to the `mcSimulation()` outputs with the `plsr.mcSimulation()` function in the `decisionSupport` package. We use the function to determine the Variable Importance in the Projection (VIP) score and coefficients of a Projection to Latent Structures (PLS) regression model. This function uses the outputs of the `mcSimulation()` selecting all the input variables from the `GHG_simulation` decision analysis function in the parameter `object` and then runs a PLS regression with an outcome variable defined in the parameter `resultName`. We use the code `names(GHG_simulation$y)[7]` to select the outcome variable `r names(GHG_simulation$y)[7]`, which is an element of the list `y` in our `GHG_simulation` outputs. 
 
 ```{r}
-pls_result <- plsr.mcSimulation(object = GHG_simulation,
-                  resultName = names(GHG_simulation$y)[7], ncomp = 1)
+GHG_simulation_PLS<-GHG_simulation
+GHG_simulation_PLS$x<-GHG_simulation_PLS$x[,1:ncol(GHG_simulation_PLS$x)-1]
+GHG_simulation_PLS$y<-GHG_simulation_PLS$y[,1:ncol(GHG_simulation_PLS$y)-1]
+
+pls_result <- plsr.mcSimulation(object = GHG_simulation_PLS,
+                  resultName = names(GHG_simulation_PLS$y)[7], ncomp = 1)
 ```
 
 We run the `plot_pls()` on the results from `plsr.mcSimulation()` with a number of standard settings. The length of the bars is equal to VIP with a vertical line at '1' on the x-axis indicating a standard cut-off for VIP used for variable selection [@Whitney2017]. The overall plot only shows those variables with a VIP > 0.8, which is the common threshold for variable selection [@Lanzanova2019, @Luedeling2016]. The colors of the bars represent the positive or negative coefficient of the given input variable with the output variable.

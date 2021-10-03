@@ -1,0 +1,6 @@
+﻿Variable,param,Scen1,Scen2
+Runs,x,100,300
+N_animal_type_1,both,100,4000
+N_animal_type_2,lower,100,10
+N_animal_type_2,upper,1000,20
+N_animal_type_2,distribution,posnorm,norm
