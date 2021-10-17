@@ -63,7 +63,7 @@ It is difficult to know with precision how much manure is managed according to e
 
 Each step in the decision tree (each node) represents a share of manure that is managed according to the name of the node. Green arrows indicate 'Yes' and red arrows 'No'. The descriptions for the uses can be found in the IPCC report on manure management chapter 10 [@dong_ipcc_2006].   
 
-```{r graph-mermaid-manure, echo=FALSE, fig.width=10, fig.height=1}
+```{r graph-mermaid-manure, echo=FALSE, fig.width=10, fig.height=1, include = F}
 mermaid("
         graph LR
         C(Central collection)-->B(Burned); linkStyle 0 stroke: red, stroke-width:1px
@@ -384,7 +384,8 @@ GHG_simulation <- mcSimulation(
 
 Here we plot the distributions of the various outputs from the model. 
 
-```{r plot_distributions, fig.width=10, fig.height=10}
+```{r plot_distributions, fig.width=10, fig.height=10, include = F}
+# add , include = F to keep this distribution figure building step out of the RMD
 # enteric_CH4=enteric_CH4,
 enteric_CH4_dist_plot <- plot_distributions(mcSimulation_object = GHG_simulation,
                    vars = "enteric_CH4",
@@ -472,7 +473,8 @@ Below we apply a post-hoc analysis to the `mcSimulation()` outputs with the `pls
 
 ```{r}
 pls_result <- plsr.mcSimulation(object = GHG_simulation,
-                  resultName = names(GHG_simulation$y)[7], ncomp = 1)
+                  resultName = names(GHG_simulation$y)[7], 
+                  ncomp = 1)
 ```
 
 We run the `plot_pls()` on the results from `plsr.mcSimulation()` with a number of standard settings. The length of the bars is equal to VIP with a vertical line at '1' on the x-axis indicating a standard cut-off for VIP used for variable selection [@Whitney2017]. The overall plot only shows those variables with a VIP > 0.8, which is the common threshold for variable selection [@Lanzanova2019, @Luedeling2016]. The colors of the bars represent the positive or negative coefficient of the given input variable with the output variable.
@@ -482,56 +484,69 @@ Here we import the input table again (the same table we used for the Monte Carlo
 ```{r}
 input_table <- read.csv("data/livestock_ghg_input_table.csv")
 
-plot_pls(pls_result, input_table = input_table, threshold = 0)
+plot_pls(pls_result, 
+         input_table = input_table, 
+         threshold = 0)
 ```
 
 
 # Uncertainty
 
-We apply a collection of functions for use in assessing uncertainty in the relationship between GHG emissions and milk yields in livestock production. We use functions from the `uncertainty` package. Install the package using `devtools::install_github("CWWhitney/uncertainty")`. 
+Here we apply a collection of functions for use in assessing uncertainty in the relationship between GHG emissions and milk yields in livestock production. We use functions from the `uncertainty` package. Install the package using `devtools::install_github("CWWhitney/uncertainty")`. 
 
-We apply the uncertainty functions on the `milk_yield` and `on_farm` variables. These come from the model results (`r nrow(GHG_simulation$y)`) of the `GHG_simulation` model results to the `in_var` (x) and an outcome variable `out_var` (y). in the model we defined `on_farm` as the sum of Carbon Dioxide Equivalent Enteric Methane Emissions from Livestock (`enteric_CH4_CO2eq`), Carbon Dioxide Equivalent Methane Emissions from Livestock Manure (`mm_CH4_CO2eq`), Carbon Dioxide Equivalent Nitrous Oxide Emissions from Livestock Manure (`mm_N2O_CO2eq`) and Carbon Dioxide Emissions from Livestock Feed Production and Transport (`feed_CO2`).
+We apply the uncertainty functions on the `milk_yield` and `on_farm` variables. These come from the model results (`r nrow(GHG_simulation$y)`) of the `GHG_simulation` model results to the `in_var` (x) and an outcome variable `out_var` (y). In the model we defined `on_farm` as the sum of Carbon Dioxide Equivalent Enteric Methane Emissions from Livestock (`enteric_CH4_CO2eq`), Carbon Dioxide Equivalent Methane Emissions from Livestock Manure (`mm_CH4_CO2eq`), Carbon Dioxide Equivalent Nitrous Oxide Emissions from Livestock Manure (`mm_N2O_CO2eq`) and Carbon Dioxide Emissions from Livestock Feed Production and Transport (`feed_CO2`).
 
 ```{r name_in_out_vars}
-in_var  <- GHG_simulation$y$milk_yield
-out_var <- GHG_simulation$y$on_farm
+in_var  <- GHG_simulation$y$milk_yield # "Total Milk Yield"
+out_var <- GHG_simulation$y$on_farm # "Total emissions"
 ```
 
 ## Milk_yield (x-axis) effect on on-farm GHG emissions (y-axis)
 
-Here we use the `varscatter()` function to create a scatter plot of milk yields `in_var` (x) and GHG emissions `out_var` (y) with associated and estimated densities with loess smooth linear fits density curves. Plot made with the scatter.hist() function in the `plyr()` package [@R-plyr] in R [@R-base]. The result is a scatter plot with associated and estimated densities (using a loess smooth) given by the red dot (mean) and red ellipses (1 and 2 sigma from mean). The red line going across the plot shows the linear fit. Histograms are shown with smooth lines (loess smooth linear fits) density curves. The numeric value in the upper right gives the Spearman correlation coefficient between the influencing variable and the outcome variable.
+Here we use the `varscatter()` function to create a scatter plot of milk yields `in_var` (x) and GHG emissions `out_var` (y) with associated and estimated densities with loess smooth linear fits density curves. We created the plot with the `scatter.hist()` function in the `plyr()` package [@R-plyr] in R [@R-base]. The result is a scatter plot with associated and estimated densities (using a loess smooth) given by the red dot (mean) and red ellipses (1 and 2 sigma from mean). The red line going across the plot shows the linear fit. Histograms are shown with smooth lines (loess smooth linear fits) density curves. The numeric value in the upper right gives the Spearman correlation coefficient between the influencing variable and the outcome variable.
 
 ```{r uncertainty_package}
 uncertainty::varscatter(in_var = in_var,
-                        out_var = out_var)
+                        out_var = out_var,
+                        xlab = "Total Milk Yield",
+                        ylab = "Total emissions")
 ```
 
 To verify the finding we use the `varkernel()` function for another type of graphical representation of the same relationship. We use the `varkernel()` function to perform a two-dimensional kernel density estimation for the expected value of GHG emissions and milk yield. The core of the process involves kernel density estimation. This is a nonparametric technique for estimating probability density functions (similar to histogram density estimation but with more dimensions). We apply this with the `kde2d()` function in the `MASS()` package [@R-MASS]. The function produces a matrix of the estimated density (z) of the expected value of the GHG emissions and milk yield. It looks slightly different than the scatter plot estimates above because the density function restricts the shape of the kernel to a normal distribution (a bivariate normal kernel).
 
 ```{r varkernel}
-uncertainty::varkernel(in_var = in_var, out_var = out_var)
+uncertainty::varkernel(in_var = in_var, 
+                       out_var = out_var,
+                        xlab = "Total Milk Yield",
+                        ylab = "Total emissions")
 ```
 
 The result of the `varkernel()` function shows a density surface plot of GHG emissions `in_var` (x) and milk yield `out_var` (y). In these `varkernel()` the density (z) over the entire plot integrates to one, and therefore represents the relative probability of an observation (the GHG emissions `out_var` along the y-axis) given a specific value for milk yield `in_var` (along the x-axis). The legend shows the value for the estimated density (z). The plot is made with the `filled.contour()` function of the `graphics()` package [@R-base]. 
 
 ## Probability of GHG emissions for a given range of milk yield
 
-We use the `varkernelslicerange()` function to show the milk yield (influencing variable `in_var` value) intervals. Here we choose a very wide distribution (the whole range of milk yields from the Monte Carlo simulation). Here we set the maximum expected value for milk yield `in_var` to `r round(max(in_var), digits = 0)` and the minimum expected value to `r round(min(in_var), digits = 0)`.
+We use the `varkernelslicerange()` function to show the total emissions given a specified milk yield (influencing variable `in_var` value) interval. Here we choose a very wide distribution (the whole range of milk yields from the Monte Carlo simulation). Here we set the maximum expected value for milk yield `in_var` to the maximum (`r round(max(in_var), digits = 0)`) and the minimum expected value (`r round(min(in_var), digits = 0)`) from our simulation. We can also choose another range by supplying milk yield values to `max_in_var` and `min_in_var`. 
 
 ```{r varkernelslicerange}
-uncertainty::varkernelslicerange(in_var = in_var, out_var = out_var, 
+uncertainty::varkernelslicerange(in_var = in_var, 
+                                 out_var = out_var, 
                                  min_in_var = round(min(in_var)),
-                                 max_in_var = round(max(in_var)))
+                                 max_in_var = round(max(in_var)), 
+                                 xlab_vars = "Total emissions given milk yield range")
 ```
 
 `varkernelslicerange()` plots the probabilities (shown along the y-axis) for the expected value of the outcome variable `out_var` (shown along the x-axis). As with `varkernelslice()` the probability values shown are relative, not absolute measures. They are the result of cuts through the density kernel `varkernel()`, which integrates to 1. 
 
 ## Influencing variable intervals
 
-For a more specific estimate we can choose from those optimized interquartile ranges to select a range to slice from the density kernel `varkernel()`. we do that here using the `varviolin()` function to determine meaningful milk yield variable intervals and how they interact with the outcome variable GHG emissions. We do this by calculating an 'optimal' interval width using the interquartile range `IQR()` function in the `stats()` package. 
+For a more specific estimate we can choose from those optimized interquartile ranges to select a range to slice from the density kernel `varkernel()`. We do that here using the `varviolin()` function to determine meaningful milk yield variable intervals and how they interact with the outcome variable GHG emissions. We do this by calculating an 'optimal' interval width using the interquartile range `IQR()` function in the `stats()` package. 
 
 ```{r varviolin, fig.width=17, fig.height=7}
-uncertainty::varviolin(in_var = in_var, out_var = out_var, legend.position = "left")
+uncertainty::varviolin(in_var = in_var, 
+                       out_var = out_var, 
+                       legend.position = "left",
+                        xlab = "Total Milk Yield",
+                        ylab = "Total emissions")
 ```
 
 The result of the `varviolin()` function shows violin plots of milk yield `in_var` values (x) and our outcome variable GHG emissions `out_var` (y) values. The plot was made with `ggplot2()` [@R-ggplot2]. These offer a possible selection of milk yields and show the resulting expected GHG emissions.
