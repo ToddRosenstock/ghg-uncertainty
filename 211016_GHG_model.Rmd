@@ -75,7 +75,7 @@ mermaid("
                         Co-->Dl(Dry lot); linkStyle 6 stroke: red, stroke-width:1px
                              Dl-->St(Solid storage); linkStyle 7 stroke: red, stroke-width:1px
                     L-->Bi(Biogas); linkStyle 8 stroke: green, stroke-width:1px
-                        Bi-->Ls(Liquid slurry); linkStyle 9 stroke: red, stroke-width:1px
+                        Bi-->Ls(Liquid); linkStyle 9 stroke: red, stroke-width:1px
         ")
 ```
 
@@ -83,7 +83,7 @@ mermaid("
 
 Here we generate a `make_variables` function for testing the model function 'line by line'. We use it to take a single random sample of the provided estimates (this isn't required for running the model later, but it helps when developing the code).
 
-```{r make_variables}
+```{r make_variables, warning=FALSE}
 
 make_variables <- function(est,n=1){ x <- random(rho=est, n=n)
 for(i in colnames(x)) assign(i, as.numeric(x[1,i]),envir=.GlobalEnv)}
@@ -99,7 +99,7 @@ The following is our draft of the emissions model, with explanations of all step
 
 ```{r ghg_emissions_function}
 # Generate the GHG emissions function 
-ghg_emissions<-function(x, varnames){
+ghg_emissions<-function(x){
 
 # Enteric fermentation emissions ($CH_4$)
 
@@ -246,27 +246,27 @@ Bo<-eval(parse(text=paste0("Bo_animaltype_",animal_type)))
 
 # question 1: how much of the manure is centrally collected? share_centrally
 # question 2: of manure that's not centrally collected, how much is burned? share_central_burn
-mms_burn<-(1-share_centrally)*share_central_burn
-mms_pasture<-(1-share_centrally)*(1-share_central_burn)
+#mms_burn<-(1-share_centrally)*share_central_burn
+#mms_pasture<-(1-share_centrally)*(1-share_central_burn)
 
 # question 3: of centrally collected manure, how much is spread daily on cropland or pasture? share_spread
-mms_spread<-share_centrally*share_spread
-not_spread<-share_centrally*(1-share_spread)
+#mms_spread<-share_centrally*share_spread
+#not_spread<-share_centrally*(1-share_spread)
 # question 4: how much of the manure that's not spread is sold? share_sold
-mms_sold<-not_spread*share_sold
-not_sold<-not_spread*(1-share_sold)
+#mms_sold<-not_spread*share_sold
+#not_sold<-not_spread*(1-share_sold)
 # question 5: how much of the stored manure that's not sold is stored in liquid form? share_liquid
-liquid<-not_sold*share_liquid
-solid<-not_sold*(1-share_liquid)
+#liquid<-not_sold*share_liquid
+#solid<-not_sold*(1-share_liquid)
 # question 6: how much of the liquid manure is converted to biogas? share_biogas
-mms_biogas<-liquid*share_biogas
-mms_liquid_slurry<-liquid*(1-share_biogas)
+#mms_biogas<-liquid*share_biogas
+#mms_liquid<-liquid*(1-share_biogas)
 # question 7: how much of the solid manure is composted? share_compost
-mms_composted<-solid*share_compost
-remain_solid<-solid*(1-share_compost)
+#mms_composted<-solid*share_compost
+#remain_solid<-solid*(1-share_compost)
 # question 8: how much of the solid manure is stored in dry lots? share_drylot
-mms_drylot<-remain_solid*share_drylot
-mms_solidstore<-remain_solid*(1-share_drylot)
+#mms_drylot<-remain_solid*share_drylot
+#mms_solidstore<-remain_solid*(1-share_drylot)
 
 # CH4 emission factor from manure management (Equation 10.23)
 mm_ch4<-(volsol*365)*
@@ -276,7 +276,7 @@ mm_ch4<-(volsol*365)*
             (mms_drylot*MCFdrylot)+
             (mms_solidstore*MCFsolidstore)+
             (mms_composted*MCFcomposted)+
-            (mms_liquid_slurry*MCFliquid)+
+            (mms_liquid*MCFliquid)+
             (mms_biogas*MCFbiogas)+
             (mms_burn*MCFburn)+
               # CW EL Comment ####
@@ -292,8 +292,10 @@ mm_CH4_CO2eq[animal_type]<-N_animal_type*mm_ch4*25
 N_intake<-(GE/18.45)*((perc_crude_protein_diet/100)/6.25)
 
 # estimate N retention (kg/animal/day) (Equation 10.33)
-N_retention<-((milk_yield*(1.9+0.4*milk_fat)/100)/6.38)+
-  ((weight_gain_WG*(268-(7.03*NE_growth/weight_gain_WG)))/(1000*6.25))
+if(weight_gain_WG==0)
+  N_retention<-((milk_yield*(1.9+0.4*milk_fat)/100)/6.38) else
+    N_retention<-((milk_yield*(1.9+0.4*milk_fat)/100)/6.38)+
+      ((weight_gain_WG*(268-(7.03*NE_growth/weight_gain_WG)))/(1000*6.25))
 
 # estimate N excretion (kg N/animal/yr) (Equation 10.31)
 N_excretion<-N_intake*(1-N_retention)*365
@@ -304,7 +306,7 @@ mm_direct_n2o<-N_excretion*((mms_pasture*mndec_pasture)+
                            (mms_drylot*mndec_drylot)+
                            (mms_solidstore*mndec_solidstore)+
                            (mms_composted*mndec_composted)+
-                           (mms_liquid_slurry*mndec_liquid)+
+                           (mms_liquid*mndec_liquid)+
                            (mms_biogas*mndec_biogas)+
                            (mms_burn*mndec_burn)+
                            (mms_sold*mndec_sold))*(44/28)
@@ -315,7 +317,7 @@ mm_vol_n<-N_excretion*((mms_pasture*mnvc_pasture)+
                            (mms_drylot*mnvc_drylot)+
                            (mms_solidstore*mnvc_solidstore)+
                            (mms_composted*mnvc_composted)+
-                           (mms_liquid_slurry*mnvc_liquid)+
+                           (mms_liquid*mnvc_liquid)+
                            (mms_biogas*mnvc_biogas)+
                            (mms_burn*mnvc_burn)+
                            (mms_sold*mnvc_sold))
@@ -329,7 +331,7 @@ mm_leach_n<-N_excretion*((mms_pasture*frac_leach_pasture)+
                            (mms_drylot*frac_leach_drylot)+
                            (mms_solidstore*frac_leach_solidstore)+
                            (mms_composted*frac_leach_composted)+
-                           (mms_liquid_slurry*frac_leach_liquid)+
+                           (mms_liquid*frac_leach_liquid)+
                            (mms_biogas*frac_leach_biogas)+
                            (mms_burn*frac_leach_burn)+
                            (mms_sold*frac_leach_sold))
@@ -354,7 +356,7 @@ total_milk[animal_type]<-N_animal_type*milk_yield*365
   # comment: the numbers in the table seem spuriously precise.
   ####
   
-feed_CO2<-feed_prod_CO2*feed_trans_CO2
+feed_CO2<-feed_prod_CO2+feed_trans_CO2
 
 # Total emissions
 on_farm<-enteric_CH4_CO2eq+mm_CH4_CO2eq+mm_N2O_CO2eq+feed_CO2
@@ -373,13 +375,54 @@ return(list(enteric_CH4=enteric_CH4,
 
 We apply the `decisionSupport` tools for running the Monte Carlo simulation [@R-decisionSupport]. See the vignette guides on *applying the mcSimulation function* [@fernandez_applying_2021] and *simulating the cost effectiveness of controlled burning* [@whitney_simulating_2017] for examples.
 
-```{r monte_carlo_simulation}
+```{r monte_carlo_simulation, warning=FALSE}
 GHG_simulation <- mcSimulation(
   estimate = estimate_read_csv("data/livestock_ghg_input_table.csv"),
   model_function = ghg_emissions,
   numberOfModelRuns = 1e4, # 10,000 runs
   functionSyntax = "plainNames"
 )
+```
+
+As of version 1.107 of `decisionSupport`, the package contains the `scenario_mc` function, which allows specifying different distributions of the input variables for specific subsets of the total number of model runs. We'll use this functionality here to simulate results for actual herd compositions encountered in Kenya.
+
+```{r scenario_making}
+Kenya_herds<-read.csv("data/Kenya_baseline_individual_cow_wNotes.csv")
+
+herds<-table(Kenya_herds[,c("QQNO","animal_type")])
+
+mms<-t(aggregate(Kenya_herds[,c("mms_pasture","mms_spread","mms_drylot","mms_solidstore","mms_composted","mms_liquid","mms_biogas","mms_burn","system","feed_kgCO2","feed_transport_kgCO2")],by=list(Kenya_herds$QQNO), FUN=median))
+mms<-mms[2:nrow(mms),]
+rownames(mms)[which(rownames(mms)=="system")]<-"feeding_system"
+rownames(mms)[which(rownames(mms)=="feed_kgCO2")]<-"feed_prod_CO2"
+rownames(mms)[which(rownames(mms)=="feed_transport_kgCO2")]<-"feed_trans_CO2"
+
+herd_scenarios<-cbind(data.frame(Variable=paste0("N_animal_type_",1:12),param=rep("both",12)),
+                      as.data.frame.matrix(t(herds)))
+colnames(herd_scenarios)[3:ncol(herd_scenarios)]<-paste0("farm_",1:(ncol(herd_scenarios)-2))
+
+mms_scenarios<-cbind(data.frame(Variable=rownames(mms),param=rep("both",nrow(mms))),
+                     as.data.frame.matrix(mms))
+colnames(mms_scenarios)[3:ncol(mms_scenarios)]<-paste0("farm_",1:(ncol(mms_scenarios)-2))
+
+scenarios<-rbind(herd_scenarios,mms_scenarios)
+
+scenarios[,1:7]   %>%
+    kableExtra::kbl(digits = 2)  %>%
+    kableExtra::kable_classic_2(full_width = F)
+
+```
+
+With these scenarios, we can now feed the Monte Carlo simulation with realistic farm compositions. To adequately consider uncertainty, we can run a user-specified number of random scenarios for each farm.
+
+```{r scenario_runs, warning=FALSE}
+
+GHG_simulation_real_farms<-scenario_mc(base_estimate=estimate_read_csv("data/livestock_ghg_input_table.csv"),
+                     scenarios=scenarios,
+                     model_function = ghg_emissions,
+                     numberOfModelRuns = 10,
+                       functionSyntax="plainNames")
+
 ```
 
 Here we plot the distributions of the various outputs from the model. 
@@ -394,8 +437,26 @@ enteric_CH4_dist_plot <- plot_distributions(mcSimulation_object = GHG_simulation
   theme(axis.title.x=element_blank(),
         axis.title.y=element_blank())
 
+enteric_CH4_dist_plot_farms <- plot_distributions(mcSimulation_object = GHG_simulation_real_farms,
+                   vars = "enteric_CH4",
+                   method = "boxplot_density",
+                   old_names = "enteric_CH4",
+                   new_names = "Total Methane Emissions from Livestock by Enteric Fermentation") + 
+  theme(axis.title.x=element_blank(),
+        axis.title.y=element_blank())
+
+
+
 # milk_yield=sum(total_milk),
 milk_yield_dist_plot <- plot_distributions(mcSimulation_object = GHG_simulation,
+                   vars = "milk_yield",
+                   method = "boxplot_density",
+                   old_names = "milk_yield",
+                   new_names = "Total Milk Yield") + 
+  theme(axis.title.x=element_blank(),
+        axis.title.y=element_blank())
+
+milk_yield_dist_plot_farms <- plot_distributions(mcSimulation_object = GHG_simulation_real_farms,
                    vars = "milk_yield",
                    method = "boxplot_density",
                    old_names = "milk_yield",
@@ -411,8 +472,23 @@ enteric_CH4_CO2eq_dist_plot <- plot_distributions(mcSimulation_object = GHG_simu
                    new_names = "Carbon Dioxide Equivalent Enteric Methane Emissions from Livestock") + 
   theme(axis.title.x=element_blank())
 
+enteric_CH4_CO2eq_dist_plot_farms <- plot_distributions(mcSimulation_object = GHG_simulation_real_farms,
+                   vars = "enteric_CH4_CO2eq",
+                   method = "boxplot_density",
+                   old_names = "enteric_CH4_CO2eq",
+                   new_names = "Carbon Dioxide Equivalent Enteric Methane Emissions from Livestock") + 
+  theme(axis.title.x=element_blank())
+
 # mm_CH4_CO2eq=sum(mm_CH4_CO2eq),
 mm_CH4_CO2eq_dist_plot <- plot_distributions(mcSimulation_object = GHG_simulation,
+                   vars = "mm_CH4_CO2eq",
+                   method = "boxplot_density",
+                   old_names = "mm_CH4_CO2eq",
+                   new_names = "Carbon Dioxide Equivalent Methane Emissions from Livestock Manure") + 
+  theme(axis.title.x=element_blank(),
+        axis.title.y=element_blank())
+
+mm_CH4_CO2eq_dist_plot_farms <- plot_distributions(mcSimulation_object = GHG_simulation_real_farms,
                    vars = "mm_CH4_CO2eq",
                    method = "boxplot_density",
                    old_names = "mm_CH4_CO2eq",
@@ -429,6 +505,14 @@ mm_N2O_CO2eq_dist_plot <- plot_distributions(mcSimulation_object = GHG_simulatio
   theme(axis.title.x=element_blank(),
         axis.title.y=element_blank())
 
+mm_N2O_CO2eq_dist_plot_farms <- plot_distributions(mcSimulation_object = GHG_simulation_real_farms,
+                   vars = "mm_N2O_CO2eq",
+                   method = "boxplot_density",
+                   old_names = "mm_N2O_CO2eq",
+                   new_names = "Carbon Dioxide Equivalent Nitrous Oxide Emissions from Livestock Manure") + 
+  theme(axis.title.x=element_blank(),
+        axis.title.y=element_blank())
+
 # feed_CO2=feed_CO2,
 feed_CO2_dist_plot <- plot_distributions(mcSimulation_object = GHG_simulation,
                    vars = "feed_CO2",
@@ -438,8 +522,23 @@ feed_CO2_dist_plot <- plot_distributions(mcSimulation_object = GHG_simulation,
   theme(axis.title.x=element_blank(),
         axis.title.y=element_blank())
 
+feed_CO2_dist_plot_farms <- plot_distributions(mcSimulation_object = GHG_simulation_real_farms,
+                   vars = "feed_CO2",
+                   method = "boxplot_density",
+                   old_names = "feed_CO2",
+                   new_names = "Carbon Dioxide Emissions from Livestock Feed Production and Transport") + 
+  theme(axis.title.x=element_blank(),
+        axis.title.y=element_blank())
+
 # on_farm=sum(on_farm)
 on_farm_dist_plot <- plot_distributions(mcSimulation_object = GHG_simulation,
+                   vars = "on_farm",
+                   method = "boxplot_density",
+                   old_names = "on_farm",
+                   new_names = "Total Carbon Dioxide Equivalent Emissions from Livestock") + 
+  theme(axis.title.y=element_blank())
+
+on_farm_dist_plot_farms <- plot_distributions(mcSimulation_object = GHG_simulation_real_farms,
                    vars = "on_farm",
                    method = "boxplot_density",
                    old_names = "on_farm",
@@ -456,13 +555,30 @@ layout <- "
            EEEFFF
            GGGGGG
           "
+```
 
+Here's the plot that results from using the same parameters for all farms:
+
+```{r}
 enteric_CH4_dist_plot + milk_yield_dist_plot + 
   enteric_CH4_CO2eq_dist_plot + mm_CH4_CO2eq_dist_plot + 
   mm_N2O_CO2eq_dist_plot + feed_CO2_dist_plot + 
   on_farm_dist_plot + 
-plot_layout(guides = "collect", design = layout) 
+plot_layout(guides = "collect", design = layout)
+
 ```
+
+And here's what happens when we run 10 random scenarios for each real herd composition:
+
+```{r}
+enteric_CH4_dist_plot_farms + milk_yield_dist_plot_farms + 
+  enteric_CH4_CO2eq_dist_plot_farms + mm_CH4_CO2eq_dist_plot_farms + 
+  mm_N2O_CO2eq_dist_plot_farms + feed_CO2_dist_plot_farms + 
+  on_farm_dist_plot_farms + 
+plot_layout(guides = "collect", design = layout)
+
+```
+
 
 ## Model sensitivity
 
@@ -471,11 +587,13 @@ plot_layout(guides = "collect", design = layout)
 Below we apply a post-hoc analysis to the `mcSimulation()` outputs with the `plsr.mcSimulation()` function in the `decisionSupport` package. We use the function to determine the Variable Importance in the Projection (VIP) score and coefficients of a Projection to Latent Structures (PLS) regression model. This function uses the outputs of the `mcSimulation()` selecting all the input variables from the `GHG_simulation` decision analysis function in the parameter `object` and then runs a PLS regression with an outcome variable defined in the parameter `resultName`. We use the code `names(GHG_simulation$y)[7]` to select the outcome variable `r names(GHG_simulation$y)[7]`, which is an element of the list `y` in our `GHG_simulation` outputs. 
 
 ```{r}
-pls_result <- plsr.mcSimulation(object = GHG_simulation,
-                  resultName = names(GHG_simulation$y)[7], ncomp = 1)
+pls_input<-GHG_simulation_real_farms
+pls_input$x<-pls_input$x[,which(!("Scenario" == colnames(pls_input$x)))]
+pls_result <- plsr.mcSimulation(object = pls_input,
+                  resultName = names(pls_input$y)[7], ncomp = 1)
 ```
 
-We run the `plot_pls()` on the results from `plsr.mcSimulation()` with a number of standard settings. The length of the bars is equal to VIP with a vertical line at '1' on the x-axis indicating a standard cut-off for VIP used for variable selection [@Whitney2017]. The overall plot only shows those variables with a VIP > 0.8, which is the common threshold for variable selection [@Lanzanova2019, @Luedeling2016]. The colors of the bars represent the positive or negative coefficient of the given input variable with the output variable.
+We run the `plot_pls()` on the results from `plsr.mcSimulation()` with a number of standard settings. The length of the bars is equal to VIP with a vertical line at '1' on the x-axis indicating a standard cut-off for VIP used for variable selection [@whitney_simulating_2017]. The overall plot only shows those variables with a VIP > 0.8, which is the common threshold for variable selection [@lanzanovaImprovingDevelopmentEfficiency2019b, @luedeling2016decision]. The colors of the bars represent the positive or negative coefficient of the given input variable with the output variable.
 
 Here we import the input table again (the same table we used for the Monte Carlo model) to replace the labels for the variables on the y-axis. The input table includes a 'label' and 'variable' column. The standard labels (from the 'variable' column) are usually computer readable and not very nice for a plot. The `plot_pls()` function uses the text in the 'label' column as replacement for the default text in the 'variable' column.  
 
@@ -490,11 +608,11 @@ plot_pls(pls_result, input_table = input_table, threshold = 0)
 
 We apply a collection of functions for use in assessing uncertainty in the relationship between GHG emissions and milk yields in livestock production. We use functions from the `uncertainty` package. Install the package using `devtools::install_github("CWWhitney/uncertainty")`. 
 
-We apply the uncertainty functions on the `milk_yield` and `on_farm` variables. These come from the model results (`r nrow(GHG_simulation$y)`) of the `GHG_simulation` model results to the `in_var` (x) and an outcome variable `out_var` (y). in the model we defined `on_farm` as the sum of Carbon Dioxide Equivalent Enteric Methane Emissions from Livestock (`enteric_CH4_CO2eq`), Carbon Dioxide Equivalent Methane Emissions from Livestock Manure (`mm_CH4_CO2eq`), Carbon Dioxide Equivalent Nitrous Oxide Emissions from Livestock Manure (`mm_N2O_CO2eq`) and Carbon Dioxide Emissions from Livestock Feed Production and Transport (`feed_CO2`).
+We apply the uncertainty functions on the `milk_yield` and `on_farm` variables. These come from the model results (`r nrow(GHG_simulation_real_farms$y)`) of the `GHG_simulation_real_farms` model results to the `in_var` (x) and an outcome variable `out_var` (y). in the model we defined `on_farm` as the sum of Carbon Dioxide Equivalent Enteric Methane Emissions from Livestock (`enteric_CH4_CO2eq`), Carbon Dioxide Equivalent Methane Emissions from Livestock Manure (`mm_CH4_CO2eq`), Carbon Dioxide Equivalent Nitrous Oxide Emissions from Livestock Manure (`mm_N2O_CO2eq`) and Carbon Dioxide Emissions from Livestock Feed Production and Transport (`feed_CO2`).
 
 ```{r name_in_out_vars}
-in_var  <- GHG_simulation$y$milk_yield
-out_var <- GHG_simulation$y$on_farm
+in_var  <- GHG_simulation_real_farms$y$milk_yield
+out_var <- GHG_simulation_real_farms$y$on_farm
 ```
 
 ## Milk_yield (x-axis) effect on on-farm GHG emissions (y-axis)

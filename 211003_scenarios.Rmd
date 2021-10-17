@@ -348,7 +348,7 @@ The normal mcSimulation function takes random draws for each of the input variab
 The new function will consist of a wrapper around the mcSimulation function, which will be able to modify the input table according to a scenario file we provide. This file will contain information on which variables should be modified for each scenario and how many model runs should be included in the simulation.
 
 ```{r scenario_sampler}
-scenario_sampler<-function(base_estimate, scenarios, model_function, randomMethod = "calculate", functionSyntax="data.frameNames",
+scenario_sampler<-function(base_estimate, scenarios, model_function, ..., numberOfModelRuns=NA, randomMethod = "calculate", functionSyntax="data.frameNames",
   relativeTolerance = 0.05,
   verbosity = 0)
 {
@@ -370,11 +370,20 @@ scenario_sampler<-function(base_estimate, scenarios, model_function, randomMetho
        estim$marginal[scenarios[i,1],"upper"]<-as.numeric(scenarios[i,scens])
      if(scenarios$param[i]=="distribution")
        estim$marginal[scenarios[i,1],"distribution"]<-scenarios[i,scens]
-     }
+    }
+    
+    if("Runs" %in% scenarios[1,])
+      n_Runs<-as.numeric(scenarios[which(scenarios[1,]=="Runs"),scens]) else
+        if(!is.na(numberOfModelRuns))
+          n_Runs<-numberOfModelRuns else
+            stop(paste("Not clear how many times scenario", scens, "should be run"))
+      if(!(n_Runs==round(n_Runs))&(n_Runs>0))
+        stop(paste("Number of runs for scenario", scens, "is not a positive integer"))
     scen_results<-mcSimulation(
       estimate = estim,
       model_function = model_function,
-      numberOfModelRuns = as.numeric(scenarios[which(scenarios[1,]=="Runs"),scens]),
+      ...,
+      numberOfModelRuns = n_Runs,
       functionSyntax = functionSyntax)
     scen_results$x[,"Scenario"]<-scens
     scen_results$y[,"Scenario"]<-scens
