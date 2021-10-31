@@ -1,0 +1,292 @@
+---
+title: "Greenhouse gas emissions model - making scenarios"
+author: "Cory Whitney and Eike Luedeling"
+bibliography:
+ - references/packages.bib
+ - references/papers.bib
+output: html_document
+---
+
+We're defining the function as in the 'Greenhouse gas emissions model' document. Please look there for more inforamtion about the original model design.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, warning = F, include = F}
+#install and load packages
+library(DiagrammeR)
+library(decisionSupport)
+library(ggplot2)
+library(plyr)
+library(rmarkdown)
+# devtools::install_github("CWWhitney/uncertainty")
+library(uncertainty)
+
+#Automatically write R package citation entries to a .bib file
+knitr::write_bib(c(.packages(), 
+                   'DiagrammeR',
+                   'decisionSupport',
+                   'MASS'), 'references/packages.bib')
+#resolves an issue with the scientific style of numbers,answer from @Paul Hiemstra: https://stackoverflow.com/a/25947542/4061993 
+#from the documentation of ?options:
+options(scipen=999)
+```
+
+We load the library and the data. The data contains ranges of possible values for the simulation. Each variable is represented with a confidence interval range and a specification of the distribution shape.
+
+```{r load_data, include=FALSE}
+library(DiagrammeR)
+library(decisionSupport)
+library(plyr)
+library(magrittr)
+library(kableExtra)
+### # This project will be stored in relative file paths (i.e. same or lower folders)
+
+ input_table <- "data/livestock_ghg_input_table.csv"
+
+options(knitr.kable.NA = '', encoding = "Windows-1252")
+ read.csv(input_table)[,c(1:2,4:6)]   %>%
+    kableExtra::kbl(digits = 2)  %>%
+    kableExtra::kable_classic_2(full_width = F)
+
+```
+
+```{r ghg_emissions_function, include=FALSE}
+# Generate the GHG emissions function 
+source("GHG_emissions_function.R", local = knitr::knit_global())
+```
+
+## Running the model with scenarios
+
+The normal `mcSimulation` function takes random draws for each of the input variables from the distributions specified in the input table. The distributions that are used are the same for every run of the Monte Carlo simulation. Sometimes it's desirable to specify particular scenarios *a priori*, e.g. to simulate outcomes for particular farm types, climate scenarios etc. To do this, we would normally have to define separate input tables and run separate simulations. This is quite inconvenient. Here, we'll develop a function that can do this job automatically.
+
+The new `scenario_sampler` function will consist of a wrapper around the `mcSimulation` function, which will be able to modify the input table according to a scenario file we provide. This file will contain information on which variables should be modified for each scenario and how many model runs should be included in the simulation.
+
+```{r scenario_sampler}
+scenario_sampler<-function(base_estimate, scenarios, model_function, ..., numberOfModelRuns=NA, randomMethod = "calculate", functionSyntax="data.frameNames",
+  relativeTolerance = 0.05,
+  verbosity = 0)
+{
+  initial_estimate = estimate_read_csv(base_estimate)
+  scenarios<-read.csv(scenarios)
+  
+  scenario_names<-colnames(scenarios[3:ncol(scenarios)])
+  
+  for(scens in scenario_names)
+  {
+    estim<-initial_estimate
+    for (i in 2:nrow(scenarios))
+    {if(scenarios$param[i]=="both")
+      {estim$marginal[scenarios[i,1],"lower"]<-as.numeric(scenarios[i,scens])
+       estim$marginal[scenarios[i,1],"upper"]<-as.numeric(scenarios[i,scens])}
+     if(scenarios$param[i]=="lower")
+       estim$marginal[scenarios[i,1],"lower"]<-as.numeric(scenarios[i,scens])
+     if(scenarios$param[i]=="upper")
+       estim$marginal[scenarios[i,1],"upper"]<-as.numeric(scenarios[i,scens])
+     if(scenarios$param[i]=="distribution")
+       estim$marginal[scenarios[i,1],"distribution"]<-scenarios[i,scens]
+    }
+    
+    if("Runs" %in% scenarios[1,])
+      n_Runs<-as.numeric(scenarios[which(scenarios[1,]=="Runs"),scens]) else
+        if(!is.na(numberOfModelRuns))
+          n_Runs<-numberOfModelRuns else
+            stop(paste("Not clear how many times scenario", scens, "should be run"))
+      if(!(n_Runs==round(n_Runs))&(n_Runs>0))
+        stop(paste("Number of runs for scenario", scens, "is not a positive integer"))
+    scen_results<-mcSimulation(
+      estimate = estim,
+      model_function = model_function,
+      ...,
+      numberOfModelRuns = n_Runs,
+      functionSyntax = functionSyntax)
+    scen_results$x[,"Scenario"]<-scens
+    scen_results$y[,"Scenario"]<-scens
+    if(scens==scenario_names[1])
+      end_results<-scen_results
+    if(!scens==scenario_names[1])
+    {end_results$x<-rbind(end_results$x,scen_results$x)
+     end_results$y<-rbind(end_results$y,scen_results$y)
+     end_results$call<-"multi-scenario call"
+     }
+    
+  
+  }
+  class(end_results) <- cbind("mcSimulation", class(end_results))
+  return(end_results)
+}
+  
+
+```
+
+This function does the same as the `mcSimulation` function, but with an additional `scenario_file` that can be supplied. This file specifies which variables should be modified for each of the scenarios, as well as the number of model runs for for it. Here's an example file:
+
+```{r}
+knitr::kable(read.csv("data/scenarios.csv"))
+
+```
+
+Each column beyond the first two columns contains information for a particular scenario. This is restricted to the parameters that should be *changed* for this scenario. All variables that aren't specified in this table remain at their original values given in the usual input table (which is called `base_estimate` here).
+
+The first row ("Runs" in the first column) indicates the number of runs.
+
+Each subsequent row indicates which value from the input table should be modified, so the string in the first column has to correspond to a variable name in the input table. The second column indicates which value should be changes, with options being "lower", "upper", "distribution" and "both". If "both" is selected, both the lower and upper bounds are modified (this should only be done for constants).
+
+```{r monte_carlo_simulation}
+
+GHG_simulation_scenarios<-scenario_sampler(base_estimate = "data/livestock_ghg_input_table.csv",
+                                 scenarios = "data/scenarios.csv",
+                                 model_function = ghg_emissions,
+                                 functionSyntax = "plainNames")
+
+
+```
+
+Here we plot the distributions of the various outputs from the model. 
+
+```{r plot_distributions, fig.width=10, fig.height=10}
+# enteric_CH4=enteric_CH4,
+enteric_CH4_dist_plot <- plot_distributions(mcSimulation_object = GHG_simulation_scenarios,
+                   vars = "enteric_CH4",
+                   method = "boxplot_density",
+                   old_names = "enteric_CH4",
+                   new_names = "Total Methane Emissions from Livestock by Enteric Fermentation") + 
+  theme(axis.title.x=element_blank(),
+        axis.title.y=element_blank())
+
+# milk_yield=sum(total_milk),
+milk_yield_dist_plot <- plot_distributions(mcSimulation_object = GHG_simulation_scenarios,
+                   vars = "milk_yield",
+                   method = "boxplot_density",
+                   old_names = "milk_yield",
+                   new_names = "Total Milk Yield") + 
+  theme(axis.title.x=element_blank(),
+        axis.title.y=element_blank())
+
+# enteric_CH4_CO2eq=sum(enteric_CH4_CO2eq),
+enteric_CH4_CO2eq_dist_plot <- plot_distributions(mcSimulation_object = GHG_simulation_scenarios,
+                   vars = "enteric_CH4_CO2eq",
+                   method = "boxplot_density",
+                   old_names = "enteric_CH4_CO2eq",
+                   new_names = "Carbon Dioxide Equivalent Enteric Methane Emissions from Livestock") + 
+  theme(axis.title.x=element_blank())
+
+# mm_CH4_CO2eq=sum(mm_CH4_CO2eq),
+mm_CH4_CO2eq_dist_plot <- plot_distributions(mcSimulation_object = GHG_simulation_scenarios,
+                   vars = "mm_CH4_CO2eq",
+                   method = "boxplot_density",
+                   old_names = "mm_CH4_CO2eq",
+                   new_names = "Carbon Dioxide Equivalent Methane Emissions from Livestock Manure") + 
+  theme(axis.title.x=element_blank(),
+        axis.title.y=element_blank())
+
+# mm_N2O_CO2eq=sum(mm_N2O_CO2eq),
+mm_N2O_CO2eq_dist_plot <- plot_distributions(mcSimulation_object = GHG_simulation_scenarios,
+                   vars = "mm_N2O_CO2eq",
+                   method = "boxplot_density",
+                   old_names = "mm_N2O_CO2eq",
+                   new_names = "Carbon Dioxide Equivalent Nitrous Oxide Emissions from Livestock Manure") + 
+  theme(axis.title.x=element_blank(),
+        axis.title.y=element_blank())
+
+# feed_CO2=feed_CO2,
+feed_CO2_dist_plot <- plot_distributions(mcSimulation_object = GHG_simulation_scenarios,
+                   vars = "feed_CO2",
+                   method = "boxplot_density",
+                   old_names = "feed_CO2",
+                   new_names = "Carbon Dioxide Emissions from Livestock Feed Production and Transport") + 
+  theme(axis.title.x=element_blank(),
+        axis.title.y=element_blank())
+
+# on_farm=sum(on_farm)
+on_farm_dist_plot <- plot_distributions(mcSimulation_object = GHG_simulation_scenarios,
+                   vars = "on_farm",
+                   method = "boxplot_density",
+                   old_names = "on_farm",
+                   new_names = "Total Carbon Dioxide Equivalent Emissions from Livestock") + 
+  theme(axis.title.y=element_blank())
+
+library(patchwork)
+# remove the axis marks from the two lefthand-most plots and the x-axis title from the left and right plots
+
+# plot with patchwork
+layout <- "
+           AAABBB
+           CCCDDD
+           EEEFFF
+           GGGGGG
+          "
+
+enteric_CH4_dist_plot + milk_yield_dist_plot + 
+  enteric_CH4_CO2eq_dist_plot + mm_CH4_CO2eq_dist_plot + 
+  mm_N2O_CO2eq_dist_plot + feed_CO2_dist_plot + 
+  on_farm_dist_plot + 
+plot_layout(guides = "collect", design = layout) 
+```
+
+## Model sensitivity
+
+#### Perform a Partial Least Squares Regression (PLSR) of Monte Carlo simulation results
+
+```{r}
+pls_result <- plsr.mcSimulation(object = GHG_simulation_scenarios,
+                  resultName = names(GHG_simulation_scenarios$y)[7], 
+                  ncomp = 1)
+```
+
+```{r}
+input_table <- read.csv("data/livestock_ghg_input_table.csv")
+
+plot_pls(pls_result, 
+         input_table = input_table, 
+         threshold = 0)
+```
+
+# Uncertainty
+
+As with the GHG Model, we apply the uncertainty functions on the `milk_yield` and `on_farm` variables. These come from the model results (`r nrow(GHG_simulation_scenarios$y)`) of the `GHG_simulation_scenarios` model results to the `in_var` (x) and an outcome variable `out_var` (y). In the model we defined `on_farm` as the sum of Carbon Dioxide Equivalent Enteric Methane Emissions from Livestock (`enteric_CH4_CO2eq`), Carbon Dioxide Equivalent Methane Emissions from Livestock Manure (`mm_CH4_CO2eq`), Carbon Dioxide Equivalent Nitrous Oxide Emissions from Livestock Manure (`mm_N2O_CO2eq`) and Carbon Dioxide Emissions from Livestock Feed Production and Transport (`feed_CO2`).
+
+```{r name_in_out_vars}
+in_var  <- GHG_simulation_scenarios$y$milk_yield # "Total Milk Yield"
+out_var <- GHG_simulation_scenarios$y$on_farm # "Total emissions"
+```
+
+## Milk_yield (x-axis) effect on on-farm GHG emissions (y-axis)
+
+```{r uncertainty_package}
+uncertainty::varscatter(in_var = in_var,
+                        out_var = out_var,
+                        xlab = "Total Milk Yield",
+                        ylab = "Total emissions")
+```
+```{r varkernel}
+uncertainty::varkernel(in_var = in_var, 
+                       out_var = out_var,
+                        xlab = "Total Milk Yield",
+                        ylab = "Total emissions")
+```
+
+## Probability of GHG emissions for a given range of milk yield
+
+```{r varkernelslicerange}
+uncertainty::varkernelslicerange(in_var = in_var, 
+                                 out_var = out_var, 
+                                 min_in_var = round(min(in_var)),
+                                 max_in_var = round(max(in_var)), 
+                                 xlab_vars = "Total emissions given milk yield range")
+```
+
+## Influencing variable intervals
+
+```{r varviolin, fig.width=17, fig.height=7}
+uncertainty::varviolin(in_var = in_var, 
+                       out_var = out_var, 
+                       legend.position = "left",
+                        xlab = "Total Milk Yield",
+                        ylab = "Total emissions")
+```
+
+This document was generated using R Markdown [@R-rmarkdown].
+
+# References
