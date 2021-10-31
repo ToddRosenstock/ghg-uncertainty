@@ -225,24 +225,6 @@ enteric_CH4_dist_plot + milk_yield_dist_plot +
 plot_layout(guides = "collect", design = layout) 
 ```
 
-## Model sensitivity
-
-#### Perform a Partial Least Squares Regression (PLSR) of Monte Carlo simulation results
-
-```{r}
-pls_result <- plsr.mcSimulation(object = GHG_simulation_scenarios,
-                  resultName = names(GHG_simulation_scenarios$y)[7], 
-                  ncomp = 1)
-```
-
-```{r}
-input_table <- read.csv("data/livestock_ghg_input_table.csv")
-
-plot_pls(pls_result, 
-         input_table = input_table, 
-         threshold = 0)
-```
-
 # Uncertainty
 
 As with the GHG Model, we apply the uncertainty functions on the `milk_yield` and `on_farm` variables. These come from the model results (`r nrow(GHG_simulation_scenarios$y)`) of the `GHG_simulation_scenarios` model results to the `in_var` (x) and an outcome variable `out_var` (y). In the model we defined `on_farm` as the sum of Carbon Dioxide Equivalent Enteric Methane Emissions from Livestock (`enteric_CH4_CO2eq`), Carbon Dioxide Equivalent Methane Emissions from Livestock Manure (`mm_CH4_CO2eq`), Carbon Dioxide Equivalent Nitrous Oxide Emissions from Livestock Manure (`mm_N2O_CO2eq`) and Carbon Dioxide Emissions from Livestock Feed Production and Transport (`feed_CO2`).
@@ -275,16 +257,6 @@ uncertainty::varkernelslicerange(in_var = in_var,
                                  min_in_var = round(min(in_var)),
                                  max_in_var = round(max(in_var)), 
                                  xlab_vars = "Total emissions given milk yield range")
-```
-
-## Influencing variable intervals
-
-```{r varviolin, fig.width=17, fig.height=7}
-uncertainty::varviolin(in_var = in_var, 
-                       out_var = out_var, 
-                       legend.position = "left",
-                        xlab = "Total Milk Yield",
-                        ylab = "Total emissions")
 ```
 
 This document was generated using R Markdown [@R-rmarkdown].
