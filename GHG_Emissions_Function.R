@@ -1,21 +1,40 @@
+# Generate the GHG emissions function ####
+# Cory Whitney and Eike Luedeling
 
-library(DiagrammeR)
+# # install packages ####
 library(decisionSupport)
 library(ggplot2)
 library(plyr)
-library(rmarkdown)
-# devtools::install_github("CWWhitney/uncertainty")
-library(uncertainty)
 
-# Generate the GHG emissions function 
+# load data ####
+input_table <- "data/livestock_ghg_input_table.csv"
+
+# make variables function ####
+# Here we generate a `make_variables` function 
+# for testing the model function 'line by line'. 
+# We use it to take a single random sample of the provided estimates 
+# (this isn't required for running the model later, 
+# but it helps when developing the code).
+make_variables <- function(est,n=1){ x <- random(rho=est, n=n)
+for(i in colnames(x)) assign(i, as.numeric(x[1,i]),envir=.GlobalEnv)}
+
+# run the function on the input_table
+make_variables(estimate_read_csv(input_table))
+
+# Generate the GHG emissions function ####
 ghg_emissions<-function(x, varnames){
   
   # Enteric fermentation emissions ($CH_4$)
   
-  # The main source of all this is Chapter 10 of the *2006 IPCC Guidelines for National Greenhouse Gas Inventories* [@dong_ipcc_2006] (Volume 4 - Agriculture, Forestry and Other Land Use). The document can be found on [the IPCC website](https://www.ipcc-nggip.iges.or.jp/public/2006gl/pdf/4_Volume4/V4_10_Ch10_Livestock.pdf).
+  # The main source of all this is Chapter 10 of the *2006 IPCC Guidelines 
+  # for National Greenhouse Gas Inventories* 
+  # (Volume 4 - Agriculture, Forestry and Other Land Use). 
+  # The document can be found on the IPCC web 
+  # https://www.ipcc-nggip.iges.or.jp/public/2006gl/pdf/4_Volume4/V4_10_Ch10_Livestock.pdf
   
   # We start with the net energy for maintenance (NE_m; in MJ/day)
-  # This includes a maintenance coefficient, for which different values are recommended depending on animal type
+  # This includes a maintenance coefficient, 
+  # for which different values are recommended depending on animal type
   
   # The following animal types were used in the example:
   
@@ -32,15 +51,25 @@ ghg_emissions<-function(x, varnames){
   # animal type 11 - pre-weaned male calves (<12 months)
   # animal type 12 - first-time pregnant cows
   
-  # animal types 4, 5 and 6 are all lactating cows - important to note here that the original data table appears to have worked with the actual number of months that cows were pregnant. This resulted in a weighted mean of the various maintenance coefficients. We're not sure where we could get such data. In the original dataset, types 4, 5 and 6 referred to different pregnancy/lactation states, but it doesn't seem like this scheme was rigorously followed.
+  # animal types 4, 5 and 6 are all lactating cows - 
+  # important to note here that the original data table 
+  # appears to have worked with the actual number of months 
+  # that cows were pregnant. This resulted in a weighted mean 
+  # of the various maintenance coefficients. 
+  # We're not sure where we could get such data. 
+  # In the original dataset, types 4, 5 and 6 
+  # referred to different pregnancy/lactation states, 
+  # but it doesn't seem like this scheme was rigorously followed.
   
-  # We make placeholder vectors to collect emissions data for all animal types
+  # We make placeholder vectors to collect emissions data 
+  # for all animal types
   mm_N2O_CO2eq<-c()
   mm_CH4_CO2eq<-c()
   enteric_CH4_CO2eq<-c()
   total_milk<-c()
   
-  # Now we start a long loop, where emissions are calculated for each animal type
+  # Now we start a long loop, 
+  # where emissions are calculated for each animal type
   
   for (animal_type in 1:12)
   {
@@ -71,64 +100,77 @@ ghg_emissions<-function(x, varnames){
     N_animal_type<-eval(parse(text=paste0("N_animal_type_",animal_type)))
     
     # define activity coefficient Ca (Table 10.5)
-    # Stall 0.00 - Animals are confined to a small area (i.e., tethered, pen, barn) with the result that they expend very little or no energy to acquire feed.
-    # Pasture 0.17 - Animals are confined in areas with sufficient forage requiring modest energy expense to acquire feed.
-    # Grazing large areas 0.36 - Animals graze in open range land or hilly terrain and expend significant energy to acquire feed.
+    # Stall 0.00 - Animals are confined to a small area 
+    #     (i.e., tethered, pen, barn) with the result that they expend 
+    #     very little or no energy to acquire feed.
+    # Pasture 0.17 - Animals are confined in areas with sufficient forage 
+    #     requiring modest energy expense to acquire feed.
+    # Grazing large areas 0.36 - Animals graze in open range land 
+    #     or hilly terrain and expend significant energy to acquire feed.
     
-    # We don't quite understand how Ca was assigned in the original data table. There are many 0s for 'System 1' (Stall?), but also lots of values between 0 and 0.17 or 0.36. We can only imagine that these are weighted averages or reflect additional information about the feeding system, but this information doesn't seem to be given in the table. For now, we're restricting these Ca values to only those that are given as 'pure' categories in the IPCC guidelines (Table 10.5).
+    # EL CW Note ####
+    # We don't quite understand how Ca was assigned in the original data table. 
+    # There are many 0s for 'System 1' (Stall?), 
+    # but also lots of values between 0 and 0.17 or 0.36. 
+    # We can only imagine that these are weighted averages or reflect 
+    # additional information about the feeding system, 
+    # but this information doesn't seem to be given in the table. 
+    # For now, we're restricting these Ca values to only those 
+    # that are given as 'pure' categories in the IPCC guidelines (Table 10.5).
     
     if(feeding_system==1) C_activity<-Ca_stall # Stall (0.0)
     if(feeding_system==2) C_activity<-Ca_pasture # Stall (0.17)
     if(feeding_system==3) C_activity<-Ca_large_grazing # Stall (0.36)
     
-    # Mean live weight (kg) of animals surely varies by animal type, so we need separate estimates for them
+    # Mean live weight (kg) of animals surely varies by animal type, 
+    # so we need separate estimates for them
     live_weight_LW<-eval(parse(text=paste0("live_weight_LW_",animal_type)))
     
     # Mean weight gain of animal type (kg/day)
     weight_gain_WG<-eval(parse(text=paste0("weight_gain_WG_",animal_type)))
     
     # Calculate the Net Energy for Maintenance (NE_m) (MJ/day) (Equation 10.3)
-    
     NE_m<-Cfi*(live_weight_LW^0.75)
     
     # Calculate the Net Energy for Activity (NE_activity) (MJ/day) (Equation 10.4)
-    
     NE_activity<-C_activity*NE_m
     
     #Net energy for growth (NE_growth) (MJ/day) (Equation 10.6)
-    
     NE_growth<-22.02*
       ((live_weight_LW/(growth_coefficient_C*mature_weight_MW))^0.75)*
       (weight_gain_WG^1.097)
     
     # Net energy for lactation
-    
     NE_lactation<-milk_yield*(1.47+0.40*milk_fat)
-    
-    # Draft animal services are not accounted for
-    # NE_work <- 0.1 * NE_m * hours_per_day
     
     #Energy need during pregnancy (Equation 10.13)
     NE_pregnancy<-Cp*NE_m
     
-    # The Cp coefficient given in Equation 10.13 is 0.1, but in the sample this is only applied for animal type 12 (first-time pregnant). For all other lactating cows, this is reduced - not clear how this was done.
+    # CW EL Note ####
+    # The Cp coefficient given in Equation 10.13 is 0.1, 
+    # but in the sample this is only applied for animal type 12 (first-time pregnant). 
+    # For all other lactating cows, this is reduced - not clear how this was done.
     
-    # Ratio of net energy available in a diet for maintenance to digestible energy consumed (Equation 10.14)
+    # Ratio of net energy available in a diet for maintenance 
+    # to digestible energy consumed (Equation 10.14)
     REM<-1.123-(4.092/1000*DE_perc)+(1.126/100000*DE_perc^2)-(25.4/DE_perc)
     
-    # Ratio of net energy available for growth in a diet to digestible energy consumed (Equation 10.15)
+    # Ratio of net energy available for growth in a diet 
+    # to digestible energy consumed (Equation 10.15)
     REG<-1.164-(5.160/1000*DE_perc)+(1.308/100000*DE_perc^2)-(37.4/DE_perc)
     
     # Gross Energy (GE) MJ/day
     NE_work<-0 # work animals aren't covered here, so we set this to zero
-    GE<-(((NE_m+NE_activity+NE_lactation+NE_work+NE_pregnancy)/REM)+(NE_growth/REG))/(DE_perc/100)
+    GE<-(((NE_m+NE_activity+NE_lactation+NE_work+NE_pregnancy)/REM)+
+           (NE_growth/REG))/(DE_perc/100)
     
-    # CH4 emission factors for enteric fermentation from a livestock category (Equation 10.21)
-    
+    # CH4 emission factors for enteric fermentation from a livestock category 
+    # (Equation 10.21)
     enteric_CH4<-(GE*Y_m*365)/55.65 # kg CH4 per animal per year
     
     # Compute the CO2-equivalent of methane emissions for enteric methane
-    #This converts methane emissions to their Global Warming Potential (CO2-equivalent of CH4 is 25)
+    # This converts methane emissions to their Global Warming Potential 
+    # (CO2-equivalent of CH4 is 25)
     enteric_CH4_CO2eq[animal_type]<-N_animal_type*enteric_CH4*25
     
     # Manure management methane ($CH_4$) and nitrous oxide ($N_2O$)
@@ -139,32 +181,40 @@ ghg_emissions<-function(x, varnames){
                (urinary_energy*GE))*
       ((1-ash_content)/18.45) 
     
-    # The maximum methane emission from manure (Bo) depends on the animal type. In the input table, we
-    # treat these as constants for each animal type. The following line assigns the corresponding Bo value
+    # The maximum methane emission from manure (Bo) depends on the animal type. 
+    # In the input table, we treat these as constants for each animal type. 
+    # The following line assigns the corresponding Bo value
+    
     ##### EL CW Note #### 
-    ##### # to the Bo variable. In the dataset we're using for Kenya, only two values for Bo are given: 0.17 for
+    ##### # to the Bo variable. In the dataset we're using for Kenya, 
+    ##### only two values for Bo are given: 0.17 for
     # animal types 4-6 and 0.135 for animal types 1-3 and 7-12.
     
     Bo<-eval(parse(text=paste0("Bo_animaltype_",animal_type)))
     
     # decisions on manure management
-    # the management options we're considering here are the ones from the Excel table. The IPCC guidelines
-    # list more and partly different ones.
+    # CW EL Note ####
+    # the management options we're considering here are the ones from the Excel table. 
+    # The IPCC guidelines list more and partly different ones.
     
-    # We're deciding on manure management according to a decision tree (see figure above):
+    # We're deciding on manure management according to a decision tree 
+    # (see figure in GHG_model report):
     
     # question 1: how much of the manure is centrally collected? share_centrally
-    # question 2: of manure that's not centrally collected, how much is burned? share_central_burn
+    # question 2: of manure that's not centrally collected, 
+    # how much is burned? share_central_burn
     mms_burn<-(1-share_centrally)*share_central_burn
     mms_pasture<-(1-share_centrally)*(1-share_central_burn)
     
-    # question 3: of centrally collected manure, how much is spread daily on cropland or pasture? share_spread
+    # question 3: of centrally collected manure, 
+    # how much is spread daily on cropland or pasture? share_spread
     mms_spread<-share_centrally*share_spread
     not_spread<-share_centrally*(1-share_spread)
     # question 4: how much of the manure that's not spread is sold? share_sold
     mms_sold<-not_spread*share_sold
     not_sold<-not_spread*(1-share_sold)
-    # question 5: how much of the stored manure that's not sold is stored in liquid form? share_liquid
+    # question 5: how much of the stored manure that's not sold 
+    # is stored in liquid form? share_liquid
     liquid<-not_sold*share_liquid
     solid<-not_sold*(1-share_liquid)
     # question 6: how much of the liquid manure is converted to biogas? share_biogas
@@ -189,13 +239,14 @@ ghg_emissions<-function(x, varnames){
             (mms_biogas*MCFbiogas)+
             (mms_burn*MCFburn)+
             # CW EL Comment ####
-          # the original code was lacking the 'sold' fraction - we added this for completeness
+          # the original code was lacking the 'sold' fraction - 
+          # we added this for completeness
           (mms_sold*MCFsold)))
     
     # Estimate CO2eq for manure methane
     mm_CH4_CO2eq[animal_type]<-N_animal_type*mm_ch4*25
     
-    # Calculate Nitrous oxide emissions from manure and urine on pasture
+    # Calculate Nitrous oxide emissions from manure and urine on pasture ####
     
     # estimate N intake (kg/animal/day) (Equation 10.32)
     N_intake<-(GE/18.45)*((perc_crude_protein_diet/100)/6.25)
@@ -204,10 +255,12 @@ ghg_emissions<-function(x, varnames){
     N_retention<-((milk_yield*(1.9+0.4*milk_fat)/100)/6.38)+
       ((weight_gain_WG*(268-(7.03*NE_growth/weight_gain_WG)))/(1000*6.25))
     
-    # estimate N excretion (kg N/animal/yr) (Equation 10.31)
+    # estimate N excretion 
+    # (kg N/animal/yr) (Equation 10.31)
     N_excretion<-N_intake*(1-N_retention)*365
     
-    # Direct nitrous oxide emissions (kg N2O/animal/yr) (Eq 10.25 from IPCC guidelines)
+    # Direct nitrous oxide emissions 
+    # (kg N2O/animal/yr) (Eq 10.25 from IPCC guidelines)
     mm_direct_n2o<-N_excretion*((mms_pasture*mndec_pasture)+
                                   (mms_spread*mndec_spread)+
                                   (mms_drylot*mndec_drylot)+
@@ -218,7 +271,8 @@ ghg_emissions<-function(x, varnames){
                                   (mms_burn*mndec_burn)+
                                   (mms_sold*mndec_sold))*(44/28)
     
-    # N losses from volatilization (kg N/animal/yr) (Eq 10.26 from IPCC guidelines)
+    # N losses from volatilization 
+    # (kg N/animal/yr) (Eq 10.26 from IPCC guidelines)
     mm_vol_n<-N_excretion*((mms_pasture*mnvc_pasture)+
                              (mms_spread*mnvc_spread)+
                              (mms_drylot*mnvc_drylot)+
@@ -229,7 +283,8 @@ ghg_emissions<-function(x, varnames){
                              (mms_burn*mnvc_burn)+
                              (mms_sold*mnvc_sold))
     
-    # indirect N2O emissions due to volatilization of N from manure management (kg N2O/animal/year) (Equation 10.27)
+    # indirect N2O emissions due to volatilization of N from manure management 
+    # (kg N2O/animal/year) (Equation 10.27)
     mm_vol_n2o<-mm_vol_n*EF4*(44/28)
     
     # Nitrous oxide (N2O) from leaching (kg N/animal/year) (equation 10.28)
@@ -243,11 +298,13 @@ ghg_emissions<-function(x, varnames){
                                (mms_burn*frac_leach_burn)+
                                (mms_sold*frac_leach_sold))
     
-    # indirect N2O emissions due to leaching of N from manure management (kg N2O/animal/year) (Equation 10.29)
+    # indirect N2O emissions due to leaching of N from manure management 
+    # (kg N2O/animal/year) (Equation 10.29)
     mm_leach_n2o<-mm_leach_n*EF5*(44/28)
     
     # CW EL Comment ####
-    # # comment: this is probably wrong, since leached nitrogen doesn't emit (much) nitrous oxide
+    # # comment: we removed this, it was probably wrong, 
+    # since leached nitrogen doesn't emit (much) nitrous oxide
     #mm_leach_n2o<-n_excretion*((mms_pasture*0.3)+(mms_spread*0.3)+(mms_drylot*0.3)+(mms_solidstore*0.3)+
     #              (mms_composted*0.3)+(mms_liquid*0.3)+(mms_biogas*0)+(mms_burn*0))*0.0075*(44/28)
     
@@ -266,13 +323,17 @@ ghg_emissions<-function(x, varnames){
   feed_CO2<-feed_prod_CO2*feed_trans_CO2
   
   # Total emissions 
-  # #### #### 
+  # CW to EL Note ####
+  # Temporary fix with is.nan() ####
   # (some NaN generated above for some vectors)
   enteric_CH4_CO2eq[is.nan(enteric_CH4_CO2eq)]<-0
   mm_CH4_CO2eq[is.nan(mm_CH4_CO2eq)]<-0
   mm_N2O_CO2eq[is.nan(mm_N2O_CO2eq)]<-0
   
-  #### feed_CO2 is a single number, otherss are lists of 12 ###
+  # CW to EL Note ####
+  #### changed to sum of all vectors
+  #### plus feed_C02
+  #### feed_CO2 is a single number, others are lists of 12 ###
   on_farm<-sum(enteric_CH4_CO2eq+mm_CH4_CO2eq+mm_N2O_CO2eq)+feed_CO2
   
   return(list(enteric_CH4=enteric_CH4,
