@@ -7,21 +7,24 @@ bibliography:
 output: html_document
 ---
 
-We're defining the function as in the 'Greenhouse gas emissions model' document. Please look there for more inforamtion about the original model design.
+We're defining the function as in the ['Greenhouse gas emissions model']() document. Please look there for more information about the original model design.
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r, warning = F, include = F}
+```{r, warning=FALSE, include=FALSE}
 #install and load packages
 library(DiagrammeR)
 library(decisionSupport)
 library(ggplot2)
+library(kableExtra)
+library(magrittr)
 library(plyr)
 library(rmarkdown)
 # devtools::install_github("CWWhitney/uncertainty")
 library(uncertainty)
+
 
 #Automatically write R package citation entries to a .bib file
 knitr::write_bib(c(.packages(), 
@@ -36,11 +39,7 @@ options(scipen=999)
 We load the library and the data. The data contains ranges of possible values for the simulation. Each variable is represented with a confidence interval range and a specification of the distribution shape.
 
 ```{r load_data, include=FALSE}
-library(DiagrammeR)
-library(decisionSupport)
-library(plyr)
-library(magrittr)
-library(kableExtra)
+
 ### # This project will be stored in relative file paths (i.e. same or lower folders)
 
  input_table <- "data/livestock_ghg_input_table.csv"
