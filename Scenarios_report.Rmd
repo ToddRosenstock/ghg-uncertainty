@@ -60,64 +60,7 @@ source("GHG_emissions_function.R", local = knitr::knit_global())
 
 The normal `mcSimulation` function takes random draws for each of the input variables from the distributions specified in the input table. The distributions that are used are the same for every run of the Monte Carlo simulation. Sometimes it's desirable to specify particular scenarios *a priori*, e.g. to simulate outcomes for particular farm types, climate scenarios etc. To do this, we would normally have to define separate input tables and run separate simulations. This is quite inconvenient. Here, we'll develop a function that can do this job automatically.
 
-The new `scenario_sampler` function will consist of a wrapper around the `mcSimulation` function, which will be able to modify the input table according to a scenario file we provide. This file will contain information on which variables should be modified for each scenario and how many model runs should be included in the simulation.
-
-```{r scenario_sampler}
-scenario_sampler<-function(base_estimate, scenarios, model_function, ..., numberOfModelRuns=NA, randomMethod = "calculate", functionSyntax="data.frameNames",
-  relativeTolerance = 0.05,
-  verbosity = 0)
-{
-  initial_estimate = estimate_read_csv(base_estimate)
-  scenarios<-read.csv(scenarios)
-
-  scenario_names<-colnames(scenarios[3:ncol(scenarios)])
-
-  for(scens in scenario_names)
-  {
-    estim<-initial_estimate
-    for (i in 2:nrow(scenarios))
-    {if(scenarios$param[i]=="both")
-      {estim$marginal[scenarios[i,1],"lower"]<-as.numeric(scenarios[i,scens])
-       estim$marginal[scenarios[i,1],"upper"]<-as.numeric(scenarios[i,scens])}
-     if(scenarios$param[i]=="lower")
-       estim$marginal[scenarios[i,1],"lower"]<-as.numeric(scenarios[i,scens])
-     if(scenarios$param[i]=="upper")
-       estim$marginal[scenarios[i,1],"upper"]<-as.numeric(scenarios[i,scens])
-     if(scenarios$param[i]=="distribution")
-       estim$marginal[scenarios[i,1],"distribution"]<-scenarios[i,scens]
-    }
-
-    if("Runs" %in% scenarios[1,])
-      n_Runs<-as.numeric(scenarios[which(scenarios[1,]=="Runs"),scens]) else
-        if(!is.na(numberOfModelRuns))
-          n_Runs<-numberOfModelRuns else
-            stop(paste("Not clear how many times scenario", scens, "should be run"))
-      if(!(n_Runs==round(n_Runs))&(n_Runs>0))
-        stop(paste("Number of runs for scenario", scens, "is not a positive integer"))
-    scen_results<-mcSimulation(
-      estimate = estim,
-      model_function = model_function,
-      ...,
-      numberOfModelRuns = n_Runs,
-      functionSyntax = functionSyntax)
-    scen_results$x[,"Scenario"]<-scens
-    scen_results$y[,"Scenario"]<-scens
-    if(scens==scenario_names[1])
-      end_results<-scen_results
-    if(!scens==scenario_names[1])
-    {end_results$x<-rbind(end_results$x,scen_results$x)
-     end_results$y<-rbind(end_results$y,scen_results$y)
-     end_results$call<-"multi-scenario call"
-     }
-
-
-  }
-  class(end_results) <- cbind("mcSimulation", class(end_results))
-  return(end_results)
-}
-
-
-```
+The new `scenario_mc` function consists of a wrapper around the `mcSimulation` function, which is able to modify the input table according to a scenario file we provide. This file contains information on which variables should be modified for each scenario and how many model runs should be included in the simulation.
 
 This function does the same as the `mcSimulation` function, but with an additional `scenario_file` that can be supplied. This file specifies which variables should be modified for each of the scenarios, as well as the number of model runs for for it. Here's an example file:
 
@@ -134,8 +77,8 @@ Each subsequent row indicates which value from the input table should be modifie
 
 ```{r monte_carlo_simulation}
 
-GHG_simulation_scenarios<-scenario_sampler(base_estimate = "data/livestock_ghg_input_table.csv",
-                                 scenarios = "data/scenarios.csv",
+GHG_simulation_scenarios<-scenario_mc(base_estimate = estimate_read_csv("data/livestock_ghg_input_table.csv"),
+                                 scenarios = read.csv("data/scenarios.csv",fileEncoding="UTF-8-BOM"),
                                  model_function = ghg_emissions,
                                  functionSyntax = "plainNames")
 
