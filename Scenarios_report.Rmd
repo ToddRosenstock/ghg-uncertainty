@@ -69,9 +69,9 @@ scenario_sampler<-function(base_estimate, scenarios, model_function, ..., number
 {
   initial_estimate = estimate_read_csv(base_estimate)
   scenarios<-read.csv(scenarios)
-  
+
   scenario_names<-colnames(scenarios[3:ncol(scenarios)])
-  
+
   for(scens in scenario_names)
   {
     estim<-initial_estimate
@@ -86,7 +86,7 @@ scenario_sampler<-function(base_estimate, scenarios, model_function, ..., number
      if(scenarios$param[i]=="distribution")
        estim$marginal[scenarios[i,1],"distribution"]<-scenarios[i,scens]
     }
-    
+
     if("Runs" %in% scenarios[1,])
       n_Runs<-as.numeric(scenarios[which(scenarios[1,]=="Runs"),scens]) else
         if(!is.na(numberOfModelRuns))
@@ -109,20 +109,20 @@ scenario_sampler<-function(base_estimate, scenarios, model_function, ..., number
      end_results$y<-rbind(end_results$y,scen_results$y)
      end_results$call<-"multi-scenario call"
      }
-    
-  
+
+
   }
   class(end_results) <- cbind("mcSimulation", class(end_results))
   return(end_results)
 }
-  
+
 
 ```
 
 This function does the same as the `mcSimulation` function, but with an additional `scenario_file` that can be supplied. This file specifies which variables should be modified for each of the scenarios, as well as the number of model runs for for it. Here's an example file:
 
 ```{r}
-knitr::kable(read.csv("data/scenarios.csv"))
+knitr::kable(read.table("data/scenarios.csv", sep = ","))
 
 ```
 
