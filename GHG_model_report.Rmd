@@ -60,7 +60,7 @@ It is difficult to know with precision how much manure is managed according to e
 
 Each step in the decision tree (each node) represents a share of manure that is managed according to the name of the node. Green arrows indicate 'Yes' and red arrows 'No'. The descriptions for the uses can be found in the IPCC report on manure management chapter 10 [@dong_ipcc_2006].   
 
-```{r graph-mermaid-manure, echo=FALSE, fig.width=10, fig.height=1}
+```{r graph-mermaid-manure, echo=FALSE, fig.width=4, fig.height=1}
 mermaid("
         graph LR
         C(Central collection)-->B(Burned); linkStyle 0 stroke: red, stroke-width:1px
