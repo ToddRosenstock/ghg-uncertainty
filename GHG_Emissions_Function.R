@@ -108,16 +108,7 @@ ghg_emissions<-function(x, varnames){
     # Grazing large areas 0.36 - Animals graze in open range land 
     #     or hilly terrain and expend significant energy to acquire feed.
     
-    # EL CW Note ####
-    # We don't quite understand how Ca was assigned in the original data table. 
-    # There are many 0s for 'System 1' (Stall?), 
-    # but also lots of values between 0 and 0.17 or 0.36. 
-    # We can only imagine that these are weighted averages or reflect 
-    # additional information about the feeding system, 
-    # but this information doesn't seem to be given in the table. 
-    # For now, we're restricting these Ca values to only those 
-    # that are given as 'pure' categories in the IPCC guidelines (Table 10.5).
-    
+
     if(feeding_system==1) C_activity<-Ca_stall # Stall (0.0)
     if(feeding_system==2) C_activity<-Ca_pasture # Stall (0.17)
     if(feeding_system==3) C_activity<-Ca_large_grazing # Stall (0.36)
@@ -145,11 +136,6 @@ ghg_emissions<-function(x, varnames){
     
     #Energy need during pregnancy (Equation 10.13)
     NE_pregnancy<-Cp*NE_m
-    
-    # CW EL Note ####
-    # The Cp coefficient given in Equation 10.13 is 0.1, 
-    # but in the sample this is only applied for animal type 12 (first-time pregnant). 
-    # For all other lactating cows, this is reduced - not clear how this was done.
     
     # Ratio of net energy available in a diet for maintenance 
     # to digestible energy consumed (Equation 10.14)
@@ -185,47 +171,7 @@ ghg_emissions<-function(x, varnames){
     # In the input table, we treat these as constants for each animal type. 
     # The following line assigns the corresponding Bo value
     
-    ##### EL CW Note #### 
-    ##### # to the Bo variable. In the dataset we're using for Kenya, 
-    ##### only two values for Bo are given: 0.17 for
-    # animal types 4-6 and 0.135 for animal types 1-3 and 7-12.
-    
     Bo<-eval(parse(text=paste0("Bo_animaltype_",animal_type)))
-    
-    # decisions on manure management
-    # CW EL Note ####
-    # the management options we're considering here are the ones from the Excel table. 
-    # The IPCC guidelines list more and partly different ones.
-    
-    # We're deciding on manure management according to a decision tree 
-    # (see figure in GHG_model report):
-    
-    # question 1: how much of the manure is centrally collected? share_centrally
-    # question 2: of manure that's not centrally collected, 
-    # how much is burned? share_central_burn
-    mms_burn<-(1-share_centrally)*share_central_burn
-    mms_pasture<-(1-share_centrally)*(1-share_central_burn)
-    
-    # question 3: of centrally collected manure, 
-    # how much is spread daily on cropland or pasture? share_spread
-    mms_spread<-share_centrally*share_spread
-    not_spread<-share_centrally*(1-share_spread)
-    # question 4: how much of the manure that's not spread is sold? share_sold
-    mms_sold<-not_spread*share_sold
-    not_sold<-not_spread*(1-share_sold)
-    # question 5: how much of the stored manure that's not sold 
-    # is stored in liquid form? share_liquid
-    liquid<-not_sold*share_liquid
-    solid<-not_sold*(1-share_liquid)
-    # question 6: how much of the liquid manure is converted to biogas? share_biogas
-    mms_biogas<-liquid*share_biogas
-    mms_liquid_slurry<-liquid*(1-share_biogas)
-    # question 7: how much of the solid manure is composted? share_compost
-    mms_composted<-solid*share_compost
-    remain_solid<-solid*(1-share_compost)
-    # question 8: how much of the solid manure is stored in dry lots? share_drylot
-    mms_drylot<-remain_solid*share_drylot
-    mms_solidstore<-remain_solid*(1-share_drylot)
     
     # CH4 emission factor from manure management (Equation 10.23)
     mm_ch4<-(volsol*365)*
@@ -235,10 +181,9 @@ ghg_emissions<-function(x, varnames){
             (mms_drylot*MCFdrylot)+
             (mms_solidstore*MCFsolidstore)+
             (mms_composted*MCFcomposted)+
-            (mms_liquid_slurry*MCFliquid)+
+            (mms_liquid*MCFliquid)+
             (mms_biogas*MCFbiogas)+
             (mms_burn*MCFburn)+
-            # CW EL Comment ####
           # the original code was lacking the 'sold' fraction - 
           # we added this for completeness
           (mms_sold*MCFsold)))
@@ -246,13 +191,18 @@ ghg_emissions<-function(x, varnames){
     # Estimate CO2eq for manure methane
     mm_CH4_CO2eq[animal_type]<-N_animal_type*mm_ch4*25
     
-    # Calculate Nitrous oxide emissions from manure and urine on pasture ####
+    # Calculate Nitrous oxide emissions from manure and urine on pasture
     
     # estimate N intake (kg/animal/day) (Equation 10.32)
     N_intake<-(GE/18.45)*((perc_crude_protein_diet/100)/6.25)
     
     # estimate N retention (kg/animal/day) (Equation 10.33)
-    N_retention<-((milk_yield*(1.9+0.4*milk_fat)/100)/6.38)+
+    
+    if(weight_gain_WG==0)
+      N_retention <- ((milk_yield*(1.9+0.4*milk_fat)/100)/6.38)
+        
+    if(!weight_gain_WG==0)
+      N_retention<-((milk_yield*(1.9+0.4*milk_fat)/100)/6.38)+
       ((weight_gain_WG*(268-(7.03*NE_growth/weight_gain_WG)))/(1000*6.25))
     
     # estimate N excretion 
@@ -266,7 +216,7 @@ ghg_emissions<-function(x, varnames){
                                   (mms_drylot*mndec_drylot)+
                                   (mms_solidstore*mndec_solidstore)+
                                   (mms_composted*mndec_composted)+
-                                  (mms_liquid_slurry*mndec_liquid)+
+                                  (mms_liquid*mndec_liquid)+
                                   (mms_biogas*mndec_biogas)+
                                   (mms_burn*mndec_burn)+
                                   (mms_sold*mndec_sold))*(44/28)
@@ -278,7 +228,7 @@ ghg_emissions<-function(x, varnames){
                              (mms_drylot*mnvc_drylot)+
                              (mms_solidstore*mnvc_solidstore)+
                              (mms_composted*mnvc_composted)+
-                             (mms_liquid_slurry*mnvc_liquid)+
+                             (mms_liquid*mnvc_liquid)+
                              (mms_biogas*mnvc_biogas)+
                              (mms_burn*mnvc_burn)+
                              (mms_sold*mnvc_sold))
@@ -293,7 +243,7 @@ ghg_emissions<-function(x, varnames){
                                (mms_drylot*frac_leach_drylot)+
                                (mms_solidstore*frac_leach_solidstore)+
                                (mms_composted*frac_leach_composted)+
-                               (mms_liquid_slurry*frac_leach_liquid)+
+                               (mms_liquid*frac_leach_liquid)+
                                (mms_biogas*frac_leach_biogas)+
                                (mms_burn*frac_leach_burn)+
                                (mms_sold*frac_leach_sold))
@@ -316,24 +266,11 @@ ghg_emissions<-function(x, varnames){
   }
   
   # Emissions from feed production and transport. 
-  # CW EL Comment ####
-  # comment: the numbers in the table seem spuriously precise.
-  ####
-  
+
   feed_CO2<-feed_prod_CO2*feed_trans_CO2
   
   # Total emissions 
-  # CW to EL Note ####
-  # Temporary fix with is.nan() ####
-  # (some NaN generated above for some vectors)
-  enteric_CH4_CO2eq[is.nan(enteric_CH4_CO2eq)]<-0
-  mm_CH4_CO2eq[is.nan(mm_CH4_CO2eq)]<-0
-  mm_N2O_CO2eq[is.nan(mm_N2O_CO2eq)]<-0
-  
-  # CW to EL Note ####
-  #### changed to sum of all vectors
-  #### plus feed_C02
-  #### feed_CO2 is a single number, others are lists of 12 ###
+
   on_farm<-sum(enteric_CH4_CO2eq+mm_CH4_CO2eq+mm_N2O_CO2eq)+feed_CO2
   
   return(list(enteric_CH4=enteric_CH4,

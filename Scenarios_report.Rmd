@@ -75,11 +75,47 @@ The first row ("Runs" in the first column) indicates the number of runs.
 
 Each subsequent row indicates which value from the input table should be modified, so the string in the first column has to correspond to a variable name in the input table. The second column indicates which value should be changes, with options being "lower", "upper", "distribution" and "both". If "both" is selected, both the lower and upper bounds are modified (this should only be done for constants).
 
+```{r}
+scenarios<-read.table("data/scenarios.csv", sep = ",", fileEncoding = "UTF-8-BOM")
+
+Kenyaherds<-read.table("data/Kenya_baseline_individual_cow_wNotes.csv", sep = ",",
+                       fileEncoding = "UTF-8-BOM", header=TRUE)
+
+scenarios<-data.frame(Variable=variables_to_update,param="both")
+
+# count the number of animals for each type
+
+animals<-table(Kenyaherds[,c("QQNO","animal_type")])
+
+for(i in 1:nrow(animals))
+  {coln<-paste0("Farm_",row.names(animals)[i])
+   scenarios[,coln]<-NA
+     scenarios[which(scenarios$Variable %in% paste0("N_animal_type_",1:12)),coln]<-animals[i,]
+}
+
+# for some animal-scale variables (e.g. milk yield), we need averages per farm
+
+# farm-scale variables
+
+Farms<-unique(Kenyaherds$QQNO)
+  
+for (f in Farms)
+  {coln<-paste0("Farm_",f)
+   scenarios[which(scenarios$Variable %in% "feeding_system"),coln]<-
+     median(Kenyaherds[which(Kenyaherds$QQNO==f),"system"])
+   }
+  
+write.csv(scenarios,"data/farm_scenarios.csv")
+
+```
+
+
+
 ```{r monte_carlo_simulation}
 
 GHG_simulation_scenarios<-scenario_mc(base_estimate = estimate_read_csv("data/livestock_ghg_input_table.csv"),
-                                 scenarios = read.csv("data/scenarios.csv",fileEncoding="UTF-8-BOM"),
-                                 model_function = ghg_emissions,
+                                 scenarios = read.csv("data/farm_scenarios.csv",fileEncoding="UTF-8-BOM")[1:2,],
+                                 model_function = ghg_emissions,numberOfModelRuns=10,
                                  functionSyntax = "plainNames")
 
 
