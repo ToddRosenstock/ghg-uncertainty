@@ -76,16 +76,18 @@ The first row ("Runs" in the first column) indicates the number of runs.
 Each subsequent row indicates which value from the input table should be modified, so the string in the first column has to correspond to a variable name in the input table. The second column indicates which value should be changes, with options being "lower", "upper", "distribution" and "both". If "both" is selected, both the lower and upper bounds are modified (this should only be done for constants).
 
 ```{r}
-scenarios<-read.table("data/scenarios.csv", sep = ",", fileEncoding = "UTF-8-BOM")
+scenarios<-read.table("data/scenarios.csv", sep = ",", fileEncoding = "UTF-8-BOM",header=TRUE)
 
 Kenyaherds<-read.table("data/Kenya_baseline_individual_cow_wNotes.csv", sep = ",",
                        fileEncoding = "UTF-8-BOM", header=TRUE)
 
-scenarios<-data.frame(Variable=variables_to_update,param="both")
-
 # count the number of animals for each type
 
 animals<-table(Kenyaherds[,c("QQNO","animal_type")])
+
+variables_to_update<-c(paste0("N_animal_type_",1:12),"feeding_system")
+
+scenarios<-data.frame(Variables=variables_to_update,param="both")
 
 for(i in 1:nrow(animals))
   {coln<-paste0("Farm_",row.names(animals)[i])
