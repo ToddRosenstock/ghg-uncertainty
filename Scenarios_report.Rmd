@@ -85,9 +85,9 @@ Kenyaherds<-read.table("data/Kenya_baseline_individual_cow_wNotes.csv", sep = ",
 
 animals<-table(Kenyaherds[,c("QQNO","animal_type")])
 
-variables_to_update<-c(paste0("N_animal_type_",1:12),"feeding_system")
+variables_to_update<-c(paste0("N_animal_type_",1:12),"feeding_system","feed_prod_CO2","feed_trans_CO2")
 
-scenarios<-data.frame(Variables=variables_to_update,param="both")
+scenarios<-data.frame(Variable=variables_to_update,param="both")
 
 for(i in 1:nrow(animals))
   {coln<-paste0("Farm_",row.names(animals)[i])
@@ -105,18 +105,23 @@ for (f in Farms)
   {coln<-paste0("Farm_",f)
    scenarios[which(scenarios$Variable %in% "feeding_system"),coln]<-
      median(Kenyaherds[which(Kenyaherds$QQNO==f),"system"])
+   scenarios[which(scenarios$Variable %in% "feed_prod_CO2"),coln]<-
+     median(Kenyaherds[which(Kenyaherds$QQNO==f),"feed_kgCO2"])
+   scenarios[which(scenarios$Variable %in% "feed_trans_CO2"),coln]<-
+     median(Kenyaherds[which(Kenyaherds$QQNO==f),"feed.transport_kgCO2"])
+   
    }
   
-write.csv(scenarios,"data/farm_scenarios.csv")
+write.csv(scenarios,"data/farm_scenarios.csv",row.names = FALSE)
 
 ```
 
 
 
-```{r monte_carlo_simulation}
+```{r monte_carlo_simulation, warning=FALSE}
 
 GHG_simulation_scenarios<-scenario_mc(base_estimate = estimate_read_csv("data/livestock_ghg_input_table.csv"),
-                                 scenarios = read.csv("data/farm_scenarios.csv",fileEncoding="UTF-8-BOM")[1:2,],
+                                 scenarios = read.csv("data/farm_scenarios.csv",fileEncoding="UTF-8-BOM"),
                                  model_function = ghg_emissions,numberOfModelRuns=10,
                                  functionSyntax = "plainNames")
 
