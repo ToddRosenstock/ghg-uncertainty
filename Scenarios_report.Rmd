@@ -84,9 +84,21 @@ Kenyaherds<-read.table("data/Kenya_baseline_individual_cow_wNotes.csv", sep = ",
 
 animals<-table(Kenyaherds[,c("QQNO","animal_type")])
 
-variables_to_update<-c(paste0("N_animal_type_",1:12),"feeding_system","feed_prod_CO2","feed_trans_CO2")
+variables_to_update_const<-c(paste0("N_animal_type_",1:12),
+                             "feeding_system")
 
-scenarios<-data.frame(Variable=variables_to_update,param="both")
+scenarios<-data.frame(Variable=variables_to_update_const,param="both")
+
+variables_to_update_posnorm<-c(paste0("milk_yield_",4:6),
+                             "feed_prod_CO2",
+                             "feed_trans_CO2",
+                             paste0("live_weight_LW_",1:12),
+                             paste0("weight_gain_WG_",1:12),
+                             "DE_perc",
+                             "perc_crude_protein_diet")
+
+scenarios<-rbind(scenarios,data.frame(Variable=rep(variables_to_update_posnorm,each=3),param=c("lower","upper","distribution")))
+
 
 for(i in 1:nrow(animals))
   {coln<-paste0("Farm_",row.names(animals)[i])
@@ -96,18 +108,68 @@ for(i in 1:nrow(animals))
 
 # for some animal-scale variables (e.g. milk yield), we need averages per farm
 
+### error estimates for variables
+milk_yield_error<-0.25
+feed_trans_error<-0.25
+feed_prod_error<-0.25
+live_weight_error<-0.1
+weight_gain_error<-0.1
+digestible_energy_error<-0.1
+crude_protein_error<-0.1
+
 # farm-scale variables
 
 Farms<-unique(Kenyaherds$QQNO)
   
 for (f in Farms)
   {coln<-paste0("Farm_",f)
-   scenarios[which(scenarios$Variable %in% "feeding_system"),coln]<-
+  # update feeding system 
+  scenarios[which(scenarios$Variable == "feeding_system"),coln]<-
      median(Kenyaherds[which(Kenyaherds$QQNO==f),"system"])
-   scenarios[which(scenarios$Variable %in% "feed_prod_CO2"),coln]<-
-     median(Kenyaherds[which(Kenyaherds$QQNO==f),"feed_kgCO2"])
-   scenarios[which(scenarios$Variable %in% "feed_trans_CO2"),coln]<-
-     median(Kenyaherds[which(Kenyaherds$QQNO==f),"feed.transport_kgCO2"])
+  
+  # update digestible energy (mean for all animals for now) (with error)
+  scenarios[which(scenarios$Variable == "DE_perc"),coln][1:2]<-
+     mean(Kenyaherds[which(Kenyaherds$QQNO==f),"dig_energy"])*
+                           c(1-digestible_energy_error,1+digestible_energy_error)
+  
+  # update crude protein (mean for all animals for now) (with error)
+  scenarios[which(scenarios$Variable == "perc_crude_protein_diet"),coln][1:2]<-
+     mean(Kenyaherds[which(Kenyaherds$QQNO==f),"CP."])*
+                           c(1-crude_protein_error,1+crude_protein_error)
+  
+  # update feed production CO2 (with error)
+   scenarios[which(scenarios$Variable == "feed_prod_CO2"),coln][1:2]<-
+     mean(Kenyaherds[which(Kenyaherds$QQNO==f),"feed_kgCO2"])*
+                           c(1-feed_prod_error,1+feed_prod_error)
+  # update feed transport CO2 (with error)
+   scenarios[which(scenarios$Variable == "feed_trans_CO2"),coln][1:2]<-
+     mean(Kenyaherds[which(Kenyaherds$QQNO==f),"feed.transport_kgCO2"])*
+                           c(1-feed_trans_error,1+feed_trans_error)
+  # update milk yield for each cow type (animal type 4-6) (with error)
+   for(typ in 4:6)
+     if(sum(Kenyaherds$QQNO==f&Kenyaherds$animal_type==typ)>0)
+       scenarios[which(scenarios$Variable==paste0("milk_yield_",typ)),coln][1:2]<-
+         mean(Kenyaherds[which(Kenyaherds$QQNO==f&Kenyaherds$animal_type==typ),
+                         "milk_yield"])*c(1-milk_yield_error,1+milk_yield_error)
+  # update live weight and weight gain for each animal type (with error)
+   for(typ in 1:12)
+     if(sum(Kenyaherds$QQNO==f&Kenyaherds$animal_type==typ)>0)
+       {scenarios[which(scenarios$Variable==paste0("live_weight_LW_",typ)),coln][1:2]<-
+         mean(Kenyaherds[which(Kenyaherds$QQNO==f&Kenyaherds$animal_type==typ),
+                         "live_weight_LW"])*c(1-live_weight_error,1+live_weight_error)
+       scenarios[which(scenarios$Variable==paste0("weight_gain_WG_",typ)),coln][1:2]<-
+         mean(Kenyaherds[which(Kenyaherds$QQNO==f&Kenyaherds$animal_type==typ),
+                         "weight_gain_WG"])*c(1-weight_gain_error,1+weight_gain_error)
+     }
+   
+   for(varia in variables_to_update_posnorm)
+   if(sum(is.na(scenarios[which(scenarios$Variable==varia),coln][1:2]))==0)   
+     if(!equals(scenarios[which(scenarios$Variable==varia),coln][1],
+               scenarios[which(scenarios$Variable==varia),coln][2]))
+        scenarios[which(scenarios$Variable==varia&
+                   scenarios$param=="distribution"),coln]<-"posnorm" else
+            scenarios[which(scenarios$Variable==varia&
+                   scenarios$param=="distribution"),coln]<-"const"         
    
    }
   
@@ -209,13 +271,24 @@ enteric_CH4_dist_plot + milk_yield_dist_plot +
 plot_layout(guides = "collect", design = layout) 
 ```
 
-# Uncertainty
+# Normalizing milk yield and emissions per head
+
+```{r}
+
+animals_per_run<-rowSums(GHG_simulation_scenarios$x[paste0("N_animal_type_",1:12)])
+
+milk_yield_per_head<-GHG_simulation_scenarios$y$milk_yield/animals_per_run
+total_emissions_per_head<-GHG_simulation_scenarios$y$on_farm/animals_per_run
+
+```
+
+# Uncertainty for per-head data
 
 As with the GHG Model, we apply the uncertainty functions on the `milk_yield` and `on_farm` variables. These come from the model results (`r nrow(GHG_simulation_scenarios$y)`) of the `GHG_simulation_scenarios` model results to the `in_var` (x) and an outcome variable `out_var` (y). In the model we defined `on_farm` as the sum of Carbon Dioxide Equivalent Enteric Methane Emissions from Livestock (`enteric_CH4_CO2eq`), Carbon Dioxide Equivalent Methane Emissions from Livestock Manure (`mm_CH4_CO2eq`), Carbon Dioxide Equivalent Nitrous Oxide Emissions from Livestock Manure (`mm_N2O_CO2eq`) and Carbon Dioxide Emissions from Livestock Feed Production and Transport (`feed_CO2`).
 
 ```{r name_in_out_vars}
-in_var  <- GHG_simulation_scenarios$y$milk_yield # "Total Milk Yield"
-out_var <- GHG_simulation_scenarios$y$on_farm # "Total emissions"
+in_var  <- milk_yield_per_head # "Total Milk Yield"
+out_var <- total_emissions_per_head # "Total emissions"
 ```
 
 ## Milk_yield (x-axis) effect on on-farm GHG emissions (y-axis)
