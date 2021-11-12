@@ -65,7 +65,7 @@ The new `scenario_mc` function consists of a wrapper around the `mcSimulation` f
 This function does the same as the `mcSimulation` function, but with an additional `scenario_file` that can be supplied. This file specifies which variables should be modified for each of the scenarios, as well as the number of model runs for for it. Here's an example file:
 
 ```{r}
-knitr::kable(read.table("data/scenarios.csv", sep = ","))
+knitr::kable(read.table("data/scenarios.csv", sep = ",", fileEncoding = "UTF-8-BOM",header=TRUE))
 
 ```
 
@@ -76,8 +76,6 @@ The first row ("Runs" in the first column) indicates the number of runs.
 Each subsequent row indicates which value from the input table should be modified, so the string in the first column has to correspond to a variable name in the input table. The second column indicates which value should be changes, with options being "lower", "upper", "distribution" and "both". If "both" is selected, both the lower and upper bounds are modified (this should only be done for constants).
 
 ```{r}
-scenarios<-read.table("data/scenarios.csv", sep = ",", fileEncoding = "UTF-8-BOM",header=TRUE)
-
 Kenyaherds<-read.table("data/Kenya_baseline_individual_cow_wNotes.csv", sep = ",",
                        fileEncoding = "UTF-8-BOM", header=TRUE)
 

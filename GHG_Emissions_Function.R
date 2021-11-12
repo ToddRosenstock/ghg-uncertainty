@@ -267,7 +267,7 @@ ghg_emissions<-function(x, varnames){
   
   # Emissions from feed production and transport. 
 
-  feed_CO2<-feed_prod_CO2*feed_trans_CO2
+  feed_CO2<-feed_prod_CO2+feed_trans_CO2
   
   # Total emissions 
 
