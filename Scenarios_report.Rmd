@@ -16,6 +16,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r, warning=FALSE, include=FALSE}
 #install and load packages
 library(DiagrammeR)
+# devtools::install_github("eikeluedeling/decisionSupport")
 library(decisionSupport)
 library(ggplot2)
 library(kableExtra)
