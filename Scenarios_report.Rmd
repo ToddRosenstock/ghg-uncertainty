@@ -90,6 +90,7 @@ variables_to_update_const<-c(paste0("N_animal_type_",1:12),
 scenarios<-data.frame(Variable=variables_to_update_const,param="both")
 
 variables_to_update_posnorm<-c(paste0("milk_yield_",4:6),
+                             paste0("Cp_rate_",4:6),
                              "feed_prod_CO2",
                              "feed_trans_CO2",
                              paste0("live_weight_LW_",1:12),
@@ -109,11 +110,11 @@ for(i in 1:nrow(animals))
 # for some animal-scale variables (e.g. milk yield), we need averages per farm
 
 ### error estimates for variables
-milk_yield_error<-0.25
-feed_trans_error<-0.25
-feed_prod_error<-0.25
-live_weight_error<-0.1
-weight_gain_error<-0.1
+milk_yield_error<-0.275 # Migose et al. (2020, https://www.sciencedirect.com/science/article/abs/pii/S1871141319307371 )
+feed_trans_error<-0.25 # Vellinga et al (2013, https://edepot.wur.nl/254098)
+feed_prod_error<-0.25 # Vellinga et al (2013, https://edepot.wur.nl/254098)
+live_weight_error<-0.145 # Goopy et al. (2018, https://www.publish.csiro.au/an/an16577 ) 
+weight_gain_error<-0.145 # Goopy et al. (2018, https://www.publish.csiro.au/an/an16577 ) 
 digestible_energy_error<-0.1
 crude_protein_error<-0.1
 
@@ -148,9 +149,14 @@ for (f in Farms)
   # update milk yield for each cow type (animal type 4-6) (with error)
    for(typ in 4:6)
      if(sum(Kenyaherds$QQNO==f&Kenyaherds$animal_type==typ)>0)
-       scenarios[which(scenarios$Variable==paste0("milk_yield_",typ)),coln][1:2]<-
+       {scenarios[which(scenarios$Variable==paste0("milk_yield_",typ)),coln][1:2]<-
          mean(Kenyaherds[which(Kenyaherds$QQNO==f&Kenyaherds$animal_type==typ),
                          "milk_yield"])*c(1-milk_yield_error,1+milk_yield_error)
+       scenarios[which(scenarios$Variable==paste0("CP_rate_",typ)),coln][1:2]<-
+         mean(Kenyaherds[which(Kenyaherds$QQNO==f&Kenyaherds$animal_type==typ),
+                         "Cp"]/0.1) *c(1,1)
+   
+     }
   # update live weight and weight gain for each animal type (with error)
    for(typ in 1:12)
      if(sum(Kenyaherds$QQNO==f&Kenyaherds$animal_type==typ)>0)
@@ -296,14 +302,14 @@ out_var <- total_emissions_per_head # "Total emissions"
 ```{r uncertainty_package}
 uncertainty::varscatter(in_var = in_var,
                         out_var = out_var,
-                        xlab = "Total Milk Yield",
-                        ylab = "Total emissions")
+                        xlab = expression(Total~milk~yield~(kg~head^{-1}~year^{-1})),
+                        ylab = expression(Total~emissions~(kg~CO[2]-eq~head^{-1}~year^{-1})))
 ```
 ```{r varkernel}
 uncertainty::varkernel(in_var = in_var, 
                        out_var = out_var,
-                        xlab = "Total Milk Yield",
-                        ylab = "Total emissions")
+                        xlab = expression(Total~milk~yield~(kg~head^{-1}~year^{-1})),
+                        ylab = expression(Total~emissions~(kg~CO[2]-eq~head^{-1}~year^{-1})))
 ```
 
 ## Probability of GHG emissions for a given range of milk yield
@@ -354,16 +360,13 @@ res<-run_model(GHG_simulation_scenarios$x,ghg_emissions)
 
 To simulate interventions, we can now feed this function with modified x_data data.frames.
 
-## Breed
+## Breed intervention
 
 Introduction of higher-performance breeds may reduce greenhouse gas emissions. We simulate an intervention that replaces animals of low-performance breeds with animals of high-performance breeds.
 
 To retain the farm-specific performance levels obtained from the farm survey, we simulate these impacts in a relative manner. For this, we first need to determine the performance and characteristics of each of the breeds. We'll base this on the farm survey data (`Kenyaherds` dataset from above).
 
 ```{r}
-aggregate(Kenyaherds$milk_yield, by=list(Kenyaherds$breed,Kenyaherds$animal_type), FUN=mean)
-
-
 cows<-Kenyaherds[which(Kenyaherds$animal_type %in% 4:6),]
 
 ggplot(cows, aes(factor(breed),milk_yield)) +
@@ -425,36 +428,51 @@ weight_gains$Intervention_factor[which(weight_gains$median_weight_gain==0)]<-1
 
 Now we can modify the input table accordingly.
 
-GHG_simulation_scenarios$x
-
 go through all the farms. Determine the 'improvement' coefficients (based on herd structure)
 
 ```{r}
 farms<-unique(Kenyaherds$QQNO)
 breed_intervention<-data.frame(Farm=farms, milk_yield_4=1, milk_yield_5=1, milk_yield_6=1) 
 
-Kenyaherds[,"milk_change"]<-0
-cows<-which(Kenyaherds$animal_type %in% 4:6)
-Kenyaherds$milk_change[cows]<- sapply(cows,function(x) 1/milk_summary$Intervention_factor[milk_summary$Breed==Kenyaherds$breed[x]]  )
+Kenyaherds_interventions<-Kenyaherds[,c("QQNO",
+                                        "system",
+                                        "animal_type",
+                                        "breed",
+                                        "live_weight_LW",
+                                        "mature_weight_MW",
+                                        "weight_gain_WG",
+                                        "milk_yield",
+                                        "dig_energy",
+                                        "CP.")]
+
+Kenyaherds_interventions[,"milk_change"]<-0
+cows<-which(Kenyaherds_interventions$animal_type %in% 4:6)
+Kenyaherds_interventions$milk_change[cows]<- sapply(cows,function(x) 1/milk_summary$Intervention_factor[milk_summary$Breed==Kenyaherds_interventions$breed[x]]  )
   
-milk_change<-aggregate(Kenyaherds$milk_change[cows], by=list(Kenyaherds$QQNO[cows]), FUN=mean)
+milk_change<-aggregate(Kenyaherds_interventions$milk_change[cows], by=list(Kenyaherds_interventions$QQNO[cows]), FUN=mean)
 
 breed_intervention$milk_yield_4[which(breed_intervention$Farm %in% milk_change[,1])]<-milk_change[,2]
 breed_intervention$milk_yield_5<-breed_intervention$milk_yield_4
 breed_intervention$milk_yield_6<-breed_intervention$milk_yield_4
 
-for(i in 1:nrow(Kenyaherds))
-  {Kenyaherds[i,"live_weight_change"]<-1/live_weights$Intervention_factor[which(live_weights$animal_type==Kenyaherds$animal_type[i]&
-                                                                                live_weights$breed==Kenyaherds$breed[i])]
-#   Kenyaherds[i,"mature_weight_change"]<-1/mature_weights$Intervention_factor[which(mature_weights$animal_type==Kenyaherds$animal_type[i]&
-#                                                                                mature_weights$breed==Kenyaherds$breed[i])]
-   Kenyaherds[i,"weight_gain_change"]<-1/weight_gains$Intervention_factor[which(weight_gains$animal_type==Kenyaherds$animal_type[i]&
-                                                                                weight_gains$breed==Kenyaherds$breed[i])]
+for(i in 1:nrow(Kenyaherds_interventions))
+  {Kenyaherds_interventions[i,"live_weight_change"]<-
+    1/live_weights$Intervention_factor[which(live_weights$animal_type==Kenyaherds_interventions$animal_type[i]&
+                                             live_weights$breed==Kenyaherds_interventions$breed[i])]
+#   Kenyaherds_interventions[i,"mature_weight_change"]<-
+#      1/mature_weights$Intervention_factor[which(mature_weights$animal_type==Kenyaherds_interventions$animal_type[i]&
+#                                                 mature_weights$breed==Kenyaherds_interventions$breed[i])]
+   Kenyaherds_interventions[i,"weight_gain_change"]<-
+     1/weight_gains$Intervention_factor[which(weight_gains$animal_type==Kenyaherds_interventions$animal_type[i]&
+                                              weight_gains$breed==Kenyaherds_interventions$breed[i])]
 }
    
-live_weight_agg<-aggregate(Kenyaherds$live_weight_change, by=list(Kenyaherds$QQNO,Kenyaherds$animal_type), FUN=mean)
-#mature_weight_agg<-aggregate(Kenyaherds$mature_weight_change, by=list(Kenyaherds$QQNO,Kenyaherds$animal_type), FUN=mean)
-weight_gain_agg<-aggregate(Kenyaherds$weight_gain_change, by=list(Kenyaherds$QQNO,Kenyaherds$animal_type), FUN=mean)
+live_weight_agg<-aggregate(Kenyaherds_interventions$live_weight_change,
+                           by=list(Kenyaherds_interventions$QQNO,Kenyaherds_interventions$animal_type), FUN=mean)
+#mature_weight_agg<-aggregate(Kenyaherds_interventions$mature_weight_change,
+#by=list(Kenyaherds_interventions$QQNO,Kenyaherds_interventions$animal_type), FUN=mean)
+weight_gain_agg<-aggregate(Kenyaherds_interventions$weight_gain_change,
+                           by=list(Kenyaherds_interventions$QQNO,Kenyaherds_interventions$animal_type), FUN=mean)
 
 colnames(live_weight_agg)<-c("farm","animal_type","conv_factor")
 #colnames(mature_weight_agg)<-c("farm","animal_type","conv_factor")
@@ -490,20 +508,69 @@ adoption_rate<-0.6
 
 for(i in 1:nrow(x_breed_intervention))
 {if(rbinom(1,1,adoption_rate))
-    x_breed_intervention[,colnames(breed_intervention)[2:ncol(breed_intervention)]]
+    x_breed_intervention[i,colnames(breed_intervention)[2:ncol(breed_intervention)]]<-
+      x_breed_intervention[i,colnames(breed_intervention)[2:ncol(breed_intervention)]] * 
+      breed_intervention[which(paste0("Farm_",breed_intervention$Farm)==x_breed_intervention$Scenario[i]),
+                         2:ncol(breed_intervention)]
   # implement changes in x file
 }
-  res<-run_model(x_breed_intervention,ghg_emissions)
+  breed_res<-run_model(x_breed_intervention,ghg_emissions)
+
+  animals_per_run<-rowSums(breed_res$x[paste0("N_animal_type_",1:12)])
+
+breed_milk_yield_per_head<-breed_res$y$milk_yield/animals_per_run
+breed_total_emissions_per_head<-breed_res$y$on_farm/animals_per_run
 
   
 ```
 
-```{r}
-uncertainty::varkernel(in_var = res$x$milk_yield_5, 
-                       out_var = res$y$on_farm,
-                        xlab = "Total Milk Yield",
-                        ylab = "Total emissions")
+### Evaluate impact of breed intervention
 
+Assumed adoption rate, based on all farms (even the ones that already have high-performance farms and therefore don't get an 'upgrade'): `r adoption_rate*100` %
+
+```{r, fig.show="hold", out.width="50%", fig.cap="Breed intervention (left) vs. baseline (right)", message=FALSE}
+
+uncertainty::varscatter(in_var = breed_milk_yield_per_head,
+                        out_var = breed_total_emissions_per_head,
+                        xlab = expression(Total~milk~yield~(kg~head^{-1}~year^{-1})),
+                        ylab = expression(Total~emissions~(kg~CO[2]-eq~head^{-1}~year^{-1})))
+
+uncertainty::varscatter(in_var = GHG_simulation_scenarios$y$milk_yield/animals_per_run,
+                        out_var = GHG_simulation_scenarios$y$on_farm/animals_per_run,
+                        xlab = expression(Total~milk~yield~(kg~head^{-1}~year^{-1})),
+                        ylab = expression(Total~emissions~(kg~CO[2]-eq~head^{-1}~year^{-1})))
+
+uncertainty::varkernel(in_var = breed_milk_yield_per_head, 
+                       out_var = breed_total_emissions_per_head,
+                        xlab = expression(Total~milk~yield~(kg~head^{-1}~year^{-1})),
+                        ylab = expression(Total~emissions~(kg~CO[2]-eq~head^{-1}~year^{-1})))
+
+uncertainty::varkernel(in_var = GHG_simulation_scenarios$y$milk_yield/animals_per_run, 
+                       out_var = GHG_simulation_scenarios$y$on_farm/animals_per_run,
+                        xlab = expression(Total~milk~yield~(kg~head^{-1}~year^{-1})),
+                        ylab = expression(Total~emissions~(kg~CO[2]-eq~head^{-1}~year^{-1})))
+
+uncertainty::varkernelslicerange(in_var = breed_res$y$milk_yield/animals_per_run, 
+                                 out_var = breed_res$y$on_farm/animals_per_run, 
+                                 min_in_var = round(min(breed_res$y$milk_yield/animals_per_run)),
+                                 max_in_var = round(max(breed_res$y$milk_yield/animals_per_run)), 
+                                 xlab_vars = "Total emissions given milk yield range")
+
+uncertainty::varkernelslicerange(in_var = GHG_simulation_scenarios$y$milk_yield/animals_per_run, 
+                                 out_var = GHG_simulation_scenarios$y$on_farm/animals_per_run, 
+                                 min_in_var = round(min(GHG_simulation_scenarios$y$milk_yield/animals_per_run)),
+                                 max_in_var = round(max(GHG_simulation_scenarios$y$milk_yield/animals_per_run)), 
+                                 xlab_vars = "Total emissions given milk yield range")
+
+```
+
+
+```{r}
+breed_change_in_CO2_eq_per_animal<-breed_res$y$on_farm/animals_per_run-
+  GHG_simulation_scenarios$y$on_farm/animals_per_run
+
+breed_change_in_milk_yield_per_animal<-breed_res$y$milk_yield/animals_per_run-
+  GHG_simulation_scenarios$y$milk_yield/animals_per_run
 ```
 
 
