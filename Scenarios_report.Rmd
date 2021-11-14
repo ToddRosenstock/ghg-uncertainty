@@ -7,7 +7,7 @@ bibliography:
 output: html_document
 ---
 
-We're defining the function as in the ['Greenhouse gas emissions model']() document. Please look there for more information about the original model design.
+We're defining the function as in the ['Greenhouse gas emissions model'](https://github.com/ToddRosenstock/ghg-uncertainty) document. Please look there for more information about the original model design.
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -37,7 +37,7 @@ knitr::write_bib(c(.packages(),
 options(scipen=999)
 ```
 
-We load the library and the data. The data contains ranges of possible values for the simulation. Each variable is represented with a confidence interval range and a specification of the distribution shape.
+Here we load the library and the data. The data contains ranges of possible values for the simulation. Each variable is represented with a confidence interval range and a specification of the distribution shape.
 
 ```{r load_data, include=FALSE}
 
@@ -59,22 +59,18 @@ source("GHG_emissions_function.R", local = knitr::knit_global())
 
 ## Running the model with scenarios
 
-The normal `mcSimulation` function takes random draws for each of the input variables from the distributions specified in the input table. The distributions that are used are the same for every run of the Monte Carlo simulation. Sometimes it's desirable to specify particular scenarios *a priori*, e.g. to simulate outcomes for particular farm types, climate scenarios etc. To do this, we would normally have to define separate input tables and run separate simulations. This is quite inconvenient. Here, we'll develop a function that can do this job automatically.
+The normal `mcSimulation` function takes random draws for each of the input variables from the distributions specified in the input table. The distributions that are used are the same for every run of the Monte Carlo simulation. Sometimes it's desirable to specify particular scenarios *a priori*, e.g. to simulate outcomes for particular farm types, climate scenarios etc. To do this, we would normally have to define separate input tables and run separate simulations. This is quite inconvenient. Here, we usep a function that can do this job automatically.
 
-The new `scenario_mc` function consists of a wrapper around the `mcSimulation` function, which is able to modify the input table according to a scenario file we provide. This file contains information on which variables should be modified for each scenario and how many model runs should be included in the simulation.
+The `scenario_mc` function in the `decisionSupport` package (@R-decisionSupport) consists of a wrapper around the `mcSimulation` function. The function is able to modify the input table according to a scenario file we provide. This file contains information on which variables should be modified for each scenario and how many model runs should be included in the simulation. The function is essentially the same as the `mcSimulation` function, but with an additional `scenarios` option which imports the contents of a .csv file. 
 
-This function does the same as the `mcSimulation` function, but with an additional `scenario_file` that can be supplied. This file specifies which variables should be modified for each of the scenarios, as well as the number of model runs for for it. Here's an example file:
+The .csv file for the `scenarios` option specifies variables that should be modified for each of the scenarios, as well as the number of model runs for for it. Each column beyond the first two columns in the file contain information for a particular scenario. This is restricted to the parameters that should be *changed* for this scenario. Here's an example `scenarios` file:
 
 ```{r}
 knitr::kable(read.table("data/scenarios.csv", sep = ",", fileEncoding = "UTF-8-BOM",header=TRUE))
 
 ```
 
-Each column beyond the first two columns contains information for a particular scenario. This is restricted to the parameters that should be *changed* for this scenario. All variables that aren't specified in this table remain at their original values given in the usual input table (which is called `base_estimate` here).
-
-The first row ("Runs" in the first column) indicates the number of runs.
-
-Each subsequent row indicates which value from the input table should be modified, so the string in the first column has to correspond to a variable name in the input table. The second column indicates which value should be changes, with options being "lower", "upper", "distribution" and "both". If "both" is selected, both the lower and upper bounds are modified (this should only be done for constants).
+The first row ("Runs" in the first column) indicates the number of runs. Each subsequent row indicates which value from the input table should be modified, so the string in the first column has to correspond to a variable name in the input table. The second column indicates which values should be changed, with options being "lower", "upper", "distribution" and "both". If "both" is selected, both the lower and upper bounds are modified (this should only be done for constants). 
 
 ```{r}
 Kenyaherds<-read.table("data/Kenya_baseline_individual_cow_wNotes.csv", sep = ",",
@@ -183,13 +179,22 @@ write.csv(scenarios,"data/farm_scenarios.csv",row.names = FALSE)
 
 ```
 
+Here's the resulting file:
 
+```{r}
+knitr::kable(read.table("data/farm_scenarios.csv", sep = ",", fileEncoding = "UTF-8-BOM",header=TRUE))
+
+```
+
+Here we run the model with the `scenario_mc` function. All variables that aren't specified in the file called in the `scenarios` option remain at their original values, given in the usual input table, called with `base_estimate`. 
 
 ```{r monte_carlo_simulation, warning=FALSE}
 
 GHG_simulation_scenarios<-scenario_mc(base_estimate = estimate_read_csv("data/livestock_ghg_input_table.csv"),
-                                 scenarios = read.csv("data/farm_scenarios.csv",fileEncoding="UTF-8-BOM"),
-                                 model_function = ghg_emissions,numberOfModelRuns=10,
+                                 scenarios = read.csv("data/farm_scenarios.csv",
+                                                      fileEncoding = "UTF-8-BOM"),
+                                 model_function = ghg_emissions,
+                                 numberOfModelRuns = 10,
                                  functionSyntax = "plainNames")
 
 
