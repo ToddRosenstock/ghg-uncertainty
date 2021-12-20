@@ -25,6 +25,7 @@ library(plyr)
 library(rmarkdown)
 # devtools::install_github("CWWhitney/uncertainty")
 library(uncertainty)
+library(chillR)
 
 
 #Automatically write R package citation entries to a .bib file
@@ -185,14 +186,23 @@ write.csv(scenarios,"data/farm_scenarios.csv",row.names = FALSE)
 
 
 
-```{r monte_carlo_simulation, warning=FALSE}
+```{r monte_carlo_simulation, warning=FALSE, eval=FALSE}
 
 GHG_simulation_scenarios<-scenario_mc(base_estimate = estimate_read_csv("data/livestock_ghg_input_table.csv"),
                                  scenarios = read.csv("data/farm_scenarios.csv",fileEncoding="UTF-8-BOM"),
                                  model_function = ghg_emissions,numberOfModelRuns=10,
                                  functionSyntax = "plainNames")
 
+```
 
+```{r, eval=FALSE, include=FALSE}
+dir.create("results")
+save_temperature_scenarios(GHG_simulation_scenarios,"results","Baseline")
+```
+
+```{r, include=FALSE}
+GHG_simulation_scenarios<-load_temperature_scenarios("results","Baseline")
+class(GHG_simulation_scenarios)<-"mcSimulation"
 ```
 
 Here we plot the distributions of the various outputs from the model. 
@@ -277,37 +287,22 @@ enteric_CH4_dist_plot + milk_yield_dist_plot +
 plot_layout(guides = "collect", design = layout) 
 ```
 
-# Normalizing milk yield and emissions per head
-
-```{r}
-
-animals_per_run<-rowSums(GHG_simulation_scenarios$x[paste0("N_animal_type_",1:12)])
-
-milk_yield_per_head<-GHG_simulation_scenarios$y$milk_yield/animals_per_run
-total_emissions_per_head<-GHG_simulation_scenarios$y$on_farm/animals_per_run
-
-```
 
 # Uncertainty for per-head data
 
 As with the GHG Model, we apply the uncertainty functions on the `milk_yield` and `on_farm` variables. These come from the model results (`r nrow(GHG_simulation_scenarios$y)`) of the `GHG_simulation_scenarios` model results to the `in_var` (x) and an outcome variable `out_var` (y). In the model we defined `on_farm` as the sum of Carbon Dioxide Equivalent Enteric Methane Emissions from Livestock (`enteric_CH4_CO2eq`), Carbon Dioxide Equivalent Methane Emissions from Livestock Manure (`mm_CH4_CO2eq`), Carbon Dioxide Equivalent Nitrous Oxide Emissions from Livestock Manure (`mm_N2O_CO2eq`) and Carbon Dioxide Emissions from Livestock Feed Production and Transport (`feed_CO2`).
 
-```{r name_in_out_vars}
-in_var  <- milk_yield_per_head # "Total Milk Yield"
-out_var <- total_emissions_per_head # "Total emissions"
-```
-
 ## Milk_yield (x-axis) effect on on-farm GHG emissions (y-axis)
 
 ```{r uncertainty_package}
-uncertainty::varscatter(in_var = in_var,
-                        out_var = out_var,
+uncertainty::varscatter(in_var = GHG_simulation_scenarios$y$pc_milk_yield,
+                        out_var = GHG_simulation_scenarios$y$pc_on_farm,
                         xlab = expression(Total~milk~yield~(kg~head^{-1}~year^{-1})),
                         ylab = expression(Total~emissions~(kg~CO[2]-eq~head^{-1}~year^{-1})))
 ```
 ```{r varkernel}
-uncertainty::varkernel(in_var = in_var, 
-                       out_var = out_var,
+uncertainty::varkernel(in_var = GHG_simulation_scenarios$y$pc_milk_yield,
+                        out_var = GHG_simulation_scenarios$y$pc_on_farm,
                         xlab = expression(Total~milk~yield~(kg~head^{-1}~year^{-1})),
                         ylab = expression(Total~emissions~(kg~CO[2]-eq~head^{-1}~year^{-1})))
 ```
@@ -315,16 +310,14 @@ uncertainty::varkernel(in_var = in_var,
 ## Probability of GHG emissions for a given range of milk yield
 
 ```{r varkernelslicerange}
-uncertainty::varkernelslicerange(in_var = in_var, 
-                                 out_var = out_var, 
-                                 min_in_var = round(min(in_var)),
-                                 max_in_var = round(max(in_var)), 
+uncertainty::varkernelslicerange(in_var = GHG_simulation_scenarios$y$pc_milk_yield,
+                                 out_var = GHG_simulation_scenarios$y$pc_on_farm, 
+                                 min_in_var = round(min(GHG_simulation_scenarios$y$pc_milk_yield)),
+                                 max_in_var = round(max(GHG_simulation_scenarios$y$pc_milk_yield)), 
                                  xlab_vars = "Total emissions given milk yield range")
 ```
 
 # Interventions
-
-Here's a wild idea: Can we simply change values in the GHG_simulation_scenarios$x table now and apply the model to the resulting table? We may not have to draw new values (and that actually wouldn't even be good, because this would dilute the intervention effect).
 
 To clearly characterize the impact of interventions, we should compare their impact with a counterfactual, i.e. with the same farms without the intervention. While this is usually impossible in practice, it is easy with a model. We just have to run the simulation again with identical inputs except for those that are affected by the intervention.
 
@@ -501,28 +494,38 @@ breed_intervention[is.na(breed_intervention)]<-1
 go through the x file
 for each row take a random draw based on adoption rate (does farm adopt or not), then (possibly) apply factors
 
-```{r}
-x_breed_intervention<-GHG_simulation_scenarios$x
+```{r, eval=FALSE}
+x_breed_intervention <- GHG_simulation_scenarios$x
 
-adoption_rate<-0.6
+adoption_rate <- 0.6
 
-for(i in 1:nrow(x_breed_intervention))
-{if(rbinom(1,1,adoption_rate))
-    x_breed_intervention[i,colnames(breed_intervention)[2:ncol(breed_intervention)]]<-
-      x_breed_intervention[i,colnames(breed_intervention)[2:ncol(breed_intervention)]] * 
-      breed_intervention[which(paste0("Farm_",breed_intervention$Farm)==x_breed_intervention$Scenario[i]),
+for (i in 1:nrow(x_breed_intervention))
+{
+  if (rbinom(1, 1, adoption_rate)) # if farmers adopt, make changes in x file
+    x_breed_intervention[i, colnames(breed_intervention)[2:ncol(breed_intervention)]] <-
+      x_breed_intervention[i, colnames(breed_intervention)[2:ncol(breed_intervention)]] *
+      breed_intervention[which(paste0("Farm_", breed_intervention$Farm) ==
+                                 x_breed_intervention$Scenario[i]),
                          2:ncol(breed_intervention)]
-  # implement changes in x file
 }
-  breed_res<-run_model(x_breed_intervention,ghg_emissions)
+# run model for modified x file
+breed_res <- run_model(x_breed_intervention, ghg_emissions)
 
-  animals_per_run<-rowSums(breed_res$x[paste0("N_animal_type_",1:12)])
-
-breed_milk_yield_per_head<-breed_res$y$milk_yield/animals_per_run
-breed_total_emissions_per_head<-breed_res$y$on_farm/animals_per_run
-
-  
 ```
+
+
+```{r, include=FALSE, eval=FALSE}
+breed_res$call<-"multi-scenario call"
+save_temperature_scenarios(breed_res,"results","Breed_intervention")
+```
+
+```{r, include=FALSE}
+adoption_rate <- 0.6
+breed_res<-load_temperature_scenarios("results","Breed_intervention")
+class(breed_res)<-"mcSimulation"
+```
+
+
 
 ### Evaluate impact of breed intervention
 
@@ -530,47 +533,47 @@ Assumed adoption rate, based on all farms (even the ones that already have high-
 
 ```{r, fig.show="hold", out.width="50%", fig.cap="Breed intervention (left) vs. baseline (right)", message=FALSE}
 
-uncertainty::varscatter(in_var = breed_milk_yield_per_head,
-                        out_var = breed_total_emissions_per_head,
+uncertainty::varscatter(in_var = breed_res$y$pc_milk_yield,
+                        out_var = breed_res$y$pc_on_farm,
+                        xlab = expression(Total~milk~yield~(kg~head^{-1}~year^{-1})),
+                        ylab = expression(Total~emissions~(kg~CO[2]-eq~head^{-1}~year^{-1}))) 
+
+uncertainty::varscatter(in_var = GHG_simulation_scenarios$y$pc_milk_yield,
+                        out_var = GHG_simulation_scenarios$y$pc_on_farm,
                         xlab = expression(Total~milk~yield~(kg~head^{-1}~year^{-1})),
                         ylab = expression(Total~emissions~(kg~CO[2]-eq~head^{-1}~year^{-1})))
 
-uncertainty::varscatter(in_var = GHG_simulation_scenarios$y$milk_yield/animals_per_run,
-                        out_var = GHG_simulation_scenarios$y$on_farm/animals_per_run,
+uncertainty::varkernel(in_var = breed_res$y$pc_milk_yield,
+                        out_var = breed_res$y$pc_on_farm,
                         xlab = expression(Total~milk~yield~(kg~head^{-1}~year^{-1})),
                         ylab = expression(Total~emissions~(kg~CO[2]-eq~head^{-1}~year^{-1})))
 
-uncertainty::varkernel(in_var = breed_milk_yield_per_head, 
-                       out_var = breed_total_emissions_per_head,
+uncertainty::varkernel(in_var = GHG_simulation_scenarios$y$pc_milk_yield,
+                        out_var = GHG_simulation_scenarios$y$pc_on_farm,
                         xlab = expression(Total~milk~yield~(kg~head^{-1}~year^{-1})),
                         ylab = expression(Total~emissions~(kg~CO[2]-eq~head^{-1}~year^{-1})))
 
-uncertainty::varkernel(in_var = GHG_simulation_scenarios$y$milk_yield/animals_per_run, 
-                       out_var = GHG_simulation_scenarios$y$on_farm/animals_per_run,
-                        xlab = expression(Total~milk~yield~(kg~head^{-1}~year^{-1})),
-                        ylab = expression(Total~emissions~(kg~CO[2]-eq~head^{-1}~year^{-1})))
-
-uncertainty::varkernelslicerange(in_var = breed_res$y$milk_yield/animals_per_run, 
-                                 out_var = breed_res$y$on_farm/animals_per_run, 
-                                 min_in_var = round(min(breed_res$y$milk_yield/animals_per_run)),
-                                 max_in_var = round(max(breed_res$y$milk_yield/animals_per_run)), 
+uncertainty::varkernelslicerange(in_var = breed_res$y$pc_milk_yield,
+                                 out_var = breed_res$y$pc_on_farm, 
+                                 min_in_var = round(min(breed_res$y$pc_milk_yield)),
+                                 max_in_var = round(max(breed_res$y$pc_milk_yield)), 
                                  xlab_vars = "Total emissions given milk yield range")
 
-uncertainty::varkernelslicerange(in_var = GHG_simulation_scenarios$y$milk_yield/animals_per_run, 
-                                 out_var = GHG_simulation_scenarios$y$on_farm/animals_per_run, 
-                                 min_in_var = round(min(GHG_simulation_scenarios$y$milk_yield/animals_per_run)),
-                                 max_in_var = round(max(GHG_simulation_scenarios$y$milk_yield/animals_per_run)), 
+uncertainty::varkernelslicerange(in_var = GHG_simulation_scenarios$y$pc_milk_yield,
+                        out_var = GHG_simulation_scenarios$y$pc_on_farm,
+                                 min_in_var = round(min(GHG_simulation_scenarios$y$pc_milk_yield)),
+                                 max_in_var = round(max(GHG_simulation_scenarios$y$pc_milk_yield)), 
                                  xlab_vars = "Total emissions given milk yield range")
 
 ```
 
 
 ```{r}
-breed_change_in_CO2_eq_per_animal<-breed_res$y$on_farm/animals_per_run-
-  GHG_simulation_scenarios$y$on_farm/animals_per_run
+breed_change_in_CO2_eq_per_animal<-breed_res$y$pc_on_farm-
+  GHG_simulation_scenarios$y$pc_on_farm
 
-breed_change_in_milk_yield_per_animal<-breed_res$y$milk_yield/animals_per_run-
-  GHG_simulation_scenarios$y$milk_yield/animals_per_run
+breed_change_in_milk_yield_per_animal<-breed_res$y$pc_milk_yield-
+  GHG_simulation_scenarios$y$pc_milk_yield
 ```
 
 
@@ -578,6 +581,148 @@ breed_change_in_milk_yield_per_animal<-breed_res$y$milk_yield/animals_per_run-
 
 ## Herd structure
 
+### Retiring unproductive bulls
+
+To simulate this scenario, we simply have to remove all animals of type 1 from the herds.
+
+```{r , warning=FALSE, eval=FALSE}
+x_nobull_intervention <- GHG_simulation_scenarios$x
+
+nobull_adoption_rate <- 1.0
+
+for (i in 1:nrow(x_nobull_intervention))
+{
+  if (rbinom(1, 1, nobull_adoption_rate)) # if farmers adopt, make changes in x file
+    x_nobull_intervention$N_animal_type_1[i]<-0
+}
+# run model for modified x file
+nobull_res <- run_model(x_nobull_intervention, ghg_emissions)
+
+```
+
+
+```{r, include=FALSE, eval=FALSE}
+nobull_res$call<-"multi-scenario call"
+save_temperature_scenarios(nobull_res,"results","noBull_intervention")
+```
+
+```{r, include=FALSE}
+nobull_res<-load_temperature_scenarios("results","noBull_intervention")
+class(nobull_res)<-"mcSimulation"
+```
+
+
+
+#### Evaluate impact of "Retiring unproductive bulls" intervention
+
+We're assuming that all bulls >36 months old have been removed.
+
+```{r, fig.show="hold", out.width="50%", fig.cap="No bulls intervention (left) vs. baseline (right)", message=FALSE}
+
+uncertainty::varscatter(in_var = nobull_res$y$pc_milk_yield,
+                        out_var = nobull_res$y$pc_on_farm,
+                        xlab = expression(Total~milk~yield~(kg~head^{-1}~year^{-1})),
+                        ylab = expression(Total~emissions~(kg~CO[2]-eq~head^{-1}~year^{-1}))) 
+
+uncertainty::varscatter(in_var = GHG_simulation_scenarios$y$pc_milk_yield,
+                        out_var = GHG_simulation_scenarios$y$pc_on_farm,
+                        xlab = expression(Total~milk~yield~(kg~head^{-1}~year^{-1})),
+                        ylab = expression(Total~emissions~(kg~CO[2]-eq~head^{-1}~year^{-1})))
+
+uncertainty::varkernel(in_var = nobull_res$y$pc_milk_yield,
+                        out_var = nobull_res$y$pc_on_farm,
+                        xlab = expression(Total~milk~yield~(kg~head^{-1}~year^{-1})),
+                        ylab = expression(Total~emissions~(kg~CO[2]-eq~head^{-1}~year^{-1})))
+
+uncertainty::varkernel(in_var = GHG_simulation_scenarios$y$pc_milk_yield,
+                        out_var = GHG_simulation_scenarios$y$pc_on_farm,
+                        xlab = expression(Total~milk~yield~(kg~head^{-1}~year^{-1})),
+                        ylab = expression(Total~emissions~(kg~CO[2]-eq~head^{-1}~year^{-1})))
+
+uncertainty::varkernelslicerange(in_var = nobull_res$y$pc_milk_yield,
+                                 out_var = nobull_res$y$pc_on_farm, 
+                                 min_in_var = round(min(nobull_res$y$pc_milk_yield,na.rm=TRUE)),
+                                 max_in_var = round(max(nobull_res$y$pc_milk_yield,na.rm=TRUE)), 
+                                 xlab_vars = "Total emissions given milk yield range")
+
+uncertainty::varkernelslicerange(in_var = GHG_simulation_scenarios$y$pc_milk_yield,
+                        out_var = GHG_simulation_scenarios$y$pc_on_farm,
+                                 min_in_var = round(min(GHG_simulation_scenarios$y$pc_milk_yield)),
+                                 max_in_var = round(max(GHG_simulation_scenarios$y$pc_milk_yield)), 
+                                 xlab_vars = "Total emissions given milk yield range")
+
+```
+
+### Reducing unproductive replacement males
+
+The idea is to raise the off-take rate of replacement males by 23% (not sure why this number). We'll implement this by eliminating replacement males on all adopting farms, with a 23% adoption rate. The result should be quite similar.
+
+```{r , warning=FALSE, eval=FALSE}
+x_lessReplace_intervention <- GHG_simulation_scenarios$x
+
+lessReplace_adoption_rate <- 0.23
+
+for (i in 1:nrow(x_lessReplace_intervention))
+{
+  if (rbinom(1, 1, lessReplace_adoption_rate)) # if farmers adopt, make changes in x file
+    x_lessReplace_intervention$N_animal_type_3[i]<-0
+}
+# run model for modified x file
+lessReplace_res <- run_model(x_lessReplace_intervention, ghg_emissions)
+
+```
+
+
+```{r, include=FALSE, eval=FALSE}
+lessReplace_res$call<-"multi-scenario call"
+save_temperature_scenarios(lessReplace_res,"results","lessReplace_intervention")
+```
+
+```{r, include=FALSE}
+lessReplace_res<-load_temperature_scenarios("results","lessReplace_intervention")
+class(lessReplace_res)<-"mcSimulation"
+```
+
+
+#### Evaluate impact of "Retiring unproductive bulls" intervention
+
+We're assuming that all bulls >36 months old have been removed.
+
+```{r, fig.show="hold", out.width="50%", fig.cap="Fewer replacement males intervention (left) vs. baseline (right)", message=FALSE}
+
+uncertainty::varscatter(in_var = lessReplace_res$y$pc_milk_yield,
+                        out_var = lessReplace_res$y$pc_on_farm,
+                        xlab = expression(Total~milk~yield~(kg~head^{-1}~year^{-1})),
+                        ylab = expression(Total~emissions~(kg~CO[2]-eq~head^{-1}~year^{-1}))) 
+
+uncertainty::varscatter(in_var = GHG_simulation_scenarios$y$pc_milk_yield,
+                        out_var = GHG_simulation_scenarios$y$pc_on_farm,
+                        xlab = expression(Total~milk~yield~(kg~head^{-1}~year^{-1})),
+                        ylab = expression(Total~emissions~(kg~CO[2]-eq~head^{-1}~year^{-1})))
+
+uncertainty::varkernel(in_var = lessReplace_res$y$pc_milk_yield,
+                        out_var = lessReplace_res$y$pc_on_farm,
+                        xlab = expression(Total~milk~yield~(kg~head^{-1}~year^{-1})),
+                        ylab = expression(Total~emissions~(kg~CO[2]-eq~head^{-1}~year^{-1})))
+
+uncertainty::varkernel(in_var = GHG_simulation_scenarios$y$pc_milk_yield,
+                        out_var = GHG_simulation_scenarios$y$pc_on_farm,
+                        xlab = expression(Total~milk~yield~(kg~head^{-1}~year^{-1})),
+                        ylab = expression(Total~emissions~(kg~CO[2]-eq~head^{-1}~year^{-1})))
+
+uncertainty::varkernelslicerange(in_var = lessReplace_res$y$pc_milk_yield,
+                                 out_var = lessReplace_res$y$pc_on_farm, 
+                                 min_in_var = round(min(lessReplace_res$y$pc_milk_yield,na.rm=TRUE)),
+                                 max_in_var = round(max(lessReplace_res$y$pc_milk_yield,na.rm=TRUE)), 
+                                 xlab_vars = "Total emissions given milk yield range")
+
+uncertainty::varkernelslicerange(in_var = GHG_simulation_scenarios$y$pc_milk_yield,
+                        out_var = GHG_simulation_scenarios$y$pc_on_farm,
+                                 min_in_var = round(min(GHG_simulation_scenarios$y$pc_milk_yield)),
+                                 max_in_var = round(max(GHG_simulation_scenarios$y$pc_milk_yield)), 
+                                 xlab_vars = "Total emissions given milk yield range")
+
+```
 
 
 

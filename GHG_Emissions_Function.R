@@ -19,7 +19,7 @@ make_variables <- function(est,n=1){ x <- random(rho=est, n=n)
 for(i in colnames(x)) assign(i, as.numeric(x[1,i]),envir=.GlobalEnv)}
 
 # run the function on the input_table
-make_variables(estimate_read_csv(input_table))
+# make_variables(estimate_read_csv(input_table))
 
 # Generate the GHG emissions function ####
 ghg_emissions<-function(x, varnames){
@@ -273,11 +273,23 @@ ghg_emissions<-function(x, varnames){
 
   on_farm<-sum(enteric_CH4_CO2eq+mm_CH4_CO2eq+mm_N2O_CO2eq)+feed_CO2
   
+  total_animals<-sum(sapply(1:12,function(x) eval(parse(text=paste0("N_animal_type_",x)))))
+
   return(list(enteric_CH4=enteric_CH4,
               milk_yield=sum(total_milk),
               enteric_CH4_CO2eq=sum(enteric_CH4_CO2eq),
               mm_CH4_CO2eq=sum(mm_CH4_CO2eq),
               mm_N2O_CO2eq=sum(mm_N2O_CO2eq),
               feed_CO2=feed_CO2,
-              on_farm=on_farm))
+              on_farm=on_farm,
+              pc_enteric_CH4=enteric_CH4/total_animals,
+              pc_milk_yield=sum(total_milk)/total_animals,
+              pc_enteric_CH4_CO2eq=sum(enteric_CH4_CO2eq)/total_animals,
+              pc_mm_CH4_CO2eq=sum(mm_CH4_CO2eq)/total_animals,
+              pc_mm_N2O_CO2eq=sum(mm_N2O_CO2eq)/total_animals,
+              pc_feed_CO2=feed_CO2/total_animals,
+              pc_on_farm=on_farm/total_animals
+              
+              
+              ))
 }
