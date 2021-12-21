@@ -183,7 +183,7 @@ write.csv(scenarios,"data/farm_scenarios.csv",row.names = FALSE)
 Here's the resulting file:
 
 ```{r}
-knitr::kable(read.table("data/farm_scenarios.csv", sep = ",", fileEncoding = "UTF-8-BOM",header=TRUE))
+knitr::kable(read.table("data/farm_scenarios.csv", sep = ",", fileEncoding = "UTF-8-BOM",header=TRUE)[,1:5])
 
 ```
 
@@ -558,17 +558,17 @@ uncertainty::varkernel(in_var = GHG_simulation_scenarios$y$pc_milk_yield,
                         xlab = expression(Total~milk~yield~(kg~head^{-1}~year^{-1})),
                         ylab = expression(Total~emissions~(kg~CO[2]-eq~head^{-1}~year^{-1})))
 
-uncertainty::varkernelslicerange(in_var = breed_res$y$pc_milk_yield,
-                                 out_var = breed_res$y$pc_on_farm, 
-                                 min_in_var = round(min(breed_res$y$pc_milk_yield)),
-                                 max_in_var = round(max(breed_res$y$pc_milk_yield)), 
-                                 xlab_vars = "Total emissions given milk yield range")
-
-uncertainty::varkernelslicerange(in_var = GHG_simulation_scenarios$y$pc_milk_yield,
-                        out_var = GHG_simulation_scenarios$y$pc_on_farm,
-                                 min_in_var = round(min(GHG_simulation_scenarios$y$pc_milk_yield)),
-                                 max_in_var = round(max(GHG_simulation_scenarios$y$pc_milk_yield)), 
-                                 xlab_vars = "Total emissions given milk yield range")
+# uncertainty::varkernelslicerange(in_var = breed_res$y$pc_milk_yield,
+#                                  out_var = breed_res$y$pc_on_farm, 
+#                                  min_in_var = round(min(breed_res$y$pc_milk_yield)),
+#                                  max_in_var = round(max(breed_res$y$pc_milk_yield)), 
+#                                  xlab_vars = "Total emissions given milk yield range")
+# 
+# uncertainty::varkernelslicerange(in_var = GHG_simulation_scenarios$y$pc_milk_yield,
+#                         out_var = GHG_simulation_scenarios$y$pc_on_farm,
+#                                  min_in_var = round(min(GHG_simulation_scenarios$y$pc_milk_yield)),
+#                                  max_in_var = round(max(GHG_simulation_scenarios$y$pc_milk_yield)), 
+#                                  xlab_vars = "Total emissions given milk yield range")
 
 ```
 
@@ -644,17 +644,17 @@ uncertainty::varkernel(in_var = GHG_simulation_scenarios$y$pc_milk_yield,
                         xlab = expression(Total~milk~yield~(kg~head^{-1}~year^{-1})),
                         ylab = expression(Total~emissions~(kg~CO[2]-eq~head^{-1}~year^{-1})))
 
-uncertainty::varkernelslicerange(in_var = nobull_res$y$pc_milk_yield,
-                                 out_var = nobull_res$y$pc_on_farm, 
-                                 min_in_var = round(min(nobull_res$y$pc_milk_yield,na.rm=TRUE)),
-                                 max_in_var = round(max(nobull_res$y$pc_milk_yield,na.rm=TRUE)), 
-                                 xlab_vars = "Total emissions given milk yield range")
-
-uncertainty::varkernelslicerange(in_var = GHG_simulation_scenarios$y$pc_milk_yield,
-                        out_var = GHG_simulation_scenarios$y$pc_on_farm,
-                                 min_in_var = round(min(GHG_simulation_scenarios$y$pc_milk_yield)),
-                                 max_in_var = round(max(GHG_simulation_scenarios$y$pc_milk_yield)), 
-                                 xlab_vars = "Total emissions given milk yield range")
+# uncertainty::varkernelslicerange(in_var = nobull_res$y$pc_milk_yield,
+#                                  out_var = nobull_res$y$pc_on_farm, 
+#                                  min_in_var = round(min(nobull_res$y$pc_milk_yield,na.rm=TRUE)),
+#                                  max_in_var = round(max(nobull_res$y$pc_milk_yield,na.rm=TRUE)), 
+#                                  xlab_vars = "Total emissions given milk yield range")
+# 
+# uncertainty::varkernelslicerange(in_var = GHG_simulation_scenarios$y$pc_milk_yield,
+#                         out_var = GHG_simulation_scenarios$y$pc_on_farm,
+#                                  min_in_var = round(min(GHG_simulation_scenarios$y$pc_milk_yield)),
+#                                  max_in_var = round(max(GHG_simulation_scenarios$y$pc_milk_yield)), 
+#                                  xlab_vars = "Total emissions given milk yield range")
 
 ```
 
@@ -715,19 +715,93 @@ uncertainty::varkernel(in_var = GHG_simulation_scenarios$y$pc_milk_yield,
                         xlab = expression(Total~milk~yield~(kg~head^{-1}~year^{-1})),
                         ylab = expression(Total~emissions~(kg~CO[2]-eq~head^{-1}~year^{-1})))
 
-uncertainty::varkernelslicerange(in_var = lessReplace_res$y$pc_milk_yield,
-                                 out_var = lessReplace_res$y$pc_on_farm, 
-                                 min_in_var = round(min(lessReplace_res$y$pc_milk_yield,na.rm=TRUE)),
-                                 max_in_var = round(max(lessReplace_res$y$pc_milk_yield,na.rm=TRUE)), 
-                                 xlab_vars = "Total emissions given milk yield range")
-
-uncertainty::varkernelslicerange(in_var = GHG_simulation_scenarios$y$pc_milk_yield,
-                        out_var = GHG_simulation_scenarios$y$pc_on_farm,
-                                 min_in_var = round(min(GHG_simulation_scenarios$y$pc_milk_yield)),
-                                 max_in_var = round(max(GHG_simulation_scenarios$y$pc_milk_yield)), 
-                                 xlab_vars = "Total emissions given milk yield range")
+# uncertainty::varkernelslicerange(in_var = lessReplace_res$y$pc_milk_yield,
+#                                  out_var = lessReplace_res$y$pc_on_farm, 
+#                                  min_in_var = round(min(lessReplace_res$y$pc_milk_yield,na.rm=TRUE)),
+#                                  max_in_var = round(max(lessReplace_res$y$pc_milk_yield,na.rm=TRUE)), 
+#                                  xlab_vars = "Total emissions given milk yield range")
+# 
+# uncertainty::varkernelslicerange(in_var = GHG_simulation_scenarios$y$pc_milk_yield,
+#                         out_var = GHG_simulation_scenarios$y$pc_on_farm,
+#                                  min_in_var = round(min(GHG_simulation_scenarios$y$pc_milk_yield)),
+#                                  max_in_var = round(max(GHG_simulation_scenarios$y$pc_milk_yield)), 
+#                                  xlab_vars = "Total emissions given milk yield range")
 
 ```
+
+# Comparing the scenarios
+
+Below we compare the density distributions for the scenarios. This required loading some helper functions that contain modified versions of some functions from the `uncertainty` package (`multi_data_varkernelslicerange` and `data_varkernelslicerange`).
+
+```{r uncertainty_evaluation_functions, include=FALSE}
+# Generate the GHG emissions function 
+source("uncertainty_evaluation.R", local = knitr::knit_global())
+```
+
+The plot below shows that in terms of per-capita emissions, the difference between the scenarios is not impressive.
+
+```{r}
+per_capita_scenarios<-list(list(scenario="Baseline",
+                     in_var=GHG_simulation_scenarios$y$pc_milk_yield,
+                     out_var=GHG_simulation_scenarios$y$pc_on_farm),
+                list(scenario="Less male replacement",
+                     in_var=lessReplace_res$y$pc_milk_yield,
+                     out_var=lessReplace_res$y$pc_on_farm),
+                list(scenario="No bulls",
+                     in_var=nobull_res$y$pc_milk_yield,
+                     out_var=nobull_res$y$pc_on_farm),
+                list(scenario="Breed upgrade",
+                     in_var=breed_res$y$pc_milk_yield,
+                     out_var=breed_res$y$pc_on_farm))
+                
+    
+    
+per_capita_emissions<-multi_data_varkernelslicerange(per_capita_scenarios)               
+                           
+library(ggplot2)
+
+ggplot(data = per_capita_emissions$slice_values, aes(x = y, y = z, color = scenario)) +
+  geom_line() + theme_bw(base_size = 12) +
+  xlab(expression(Per~capita~emissions~(kg~CO[2]-eq~year^-1))) +
+  ylab("Density") +
+  ggtitle("Per capita emissions") +
+  scale_color_discrete(name = "Scenario")
+
+```
+
+We can also look at the distribution of emissions per kg of milk yield. The plot below shows the cumulative probability distribution for this metric. The differences are a bit more visible here, but still fairly minor.
+
+```{r}
+
+
+ghg_per_milk <-
+  rbind(
+    data.frame(
+      scenario = "Baseline",
+      milk_yield = GHG_simulation_scenarios$y$pc_milk_yield,
+      GHG = GHG_simulation_scenarios$y$pc_on_farm
+    ),data.frame(
+      scenario = "Less male replacement",
+      milk_yield = lessReplace_res$y$pc_milk_yield,
+      GHG = lessReplace_res$y$pc_on_farm
+    ),data.frame(
+      scenario = "No bulls",
+      milk_yield = nobull_res$y$pc_milk_yield,
+      GHG = nobull_res$y$pc_on_farm
+    ),data.frame(
+      scenario = "Breed upgrade",
+      milk_yield = breed_res$y$pc_milk_yield,
+      GHG = breed_res$y$pc_on_farm
+    ))
+ghg_per_milk[,"ghg_per_milk"]<-ghg_per_milk$GHG/ghg_per_milk$milk_yield
+    
+ggplot(data = ghg_per_milk, aes(x = ghg_per_milk, color = scenario)) +
+  stat_ecdf() + xlim(0, 10) + theme_bw(base_size = 12) + ggtitle("Emissions per kg of milk (truncated at 10 kg)") + xlab(expression(Emissions~per~kg~milk~(kg~CO[2]-eq~year^-1))) + ylab("Cumulative probability")
+
+
+```
+
+
 
 
 
