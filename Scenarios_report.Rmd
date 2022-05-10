@@ -322,6 +322,56 @@ uncertainty::varkernelslicerange(in_var = GHG_simulation_scenarios$y$pc_milk_yie
                                  xlab_vars = "Total emissions given milk yield range")
 ```
 
+# Probability of an increase in milk yield being associated with an increase in GHG emission intensity
+
+```{r}
+
+GHG_simulation_scenarios$y[,"emission_intensity"]<-GHG_simulation_scenarios$y$pc_on_farm/GHG_simulation_scenarios$y$pc_milk_yield
+
+GHG_sim_scen_y<-GHG_simulation_scenarios$y
+
+GHG_sim_scen_y<-GHG_sim_scen_y[which(!is.infinite(GHG_sim_scen_y$emission_intensity)),]
+
+uncertainty::varkernelslicerange(in_var = GHG_sim_scen_y$pc_milk_yield,
+                                 out_var = GHG_sim_scen_y$emission_intensity, 
+                                 min_in_var = round(min(GHG_sim_scen_y$pc_milk_yield)),
+                                 max_in_var = round(max(GHG_sim_scen_y$pc_milk_yield)), 
+                                 xlab_vars = "Emission intensity (XX/L) given milk yield range")
+
+
+  in_var<-GHG_sim_scen_y$pc_milk_yield
+  out_var<-GHG_sim_scen_y$emission_intensity
+baseline_milk_yield <- min(in_var)
+sliceb <-
+  varslice_resample(in_var, out_var, expectedin_var = baseline_milk_yield, n_runs = 100000)
+more_milk <- baseline_milk_yield
+results <- data.frame(milk_yield = more_milk, probability = 0.5)
+
+
+# the following isn't working yet
+# I suspect this is because of an error in the varslice_resample function (and also the varkernelslice functions).
+# I suspect the problem is in   Relative_probability <- in_outkernel$z[, expectedin_var]
+# There may not be an expectedin_var'th column - this should be the column that corresponds to the x value expectedin_var
+
+while (more_milk < max(in_var))
+{
+  more_milk <- more_milk + 10
+  slice_more_milk <-
+    varslice_resample(in_var,
+                      out_var,
+                      expectedin_var = more_milk,
+                      n_runs = 100000)
+  results <-
+    rbind(results, c(more_milk, sum(sliceb > slice_more_milk) / length(sliceb)))
+}
+
+
+
+
+
+```
+
+
 # Interventions
 
 To clearly characterize the impact of interventions, we should compare their impact with a counterfactual, i.e. with the same farms without the intervention. While this is usually impossible in practice, it is easy with a model. We just have to run the simulation again with identical inputs except for those that are affected by the intervention.
