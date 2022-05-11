@@ -340,20 +340,8 @@ uncertainty::varkernelslicerange(in_var = GHG_sim_scen_y$pc_milk_yield,
                                  xlab_vars = "Emission intensity (XX/L) given milk yield range")
 
 
-  in_var<-GHG_sim_scen_y$pc_milk_yield
-  out_var<-GHG_sim_scen_y$emission_intensity
-baseline_milk_yield <- min(in_var)
-sliceb <-
-  varslice_resample(in_var, out_var, expectedin_var = baseline_milk_yield, n_runs = 100000)
-more_milk <- baseline_milk_yield
-results <- data.frame(milk_yield = more_milk, probability = 0.5)
-
-
-
-#devtools::install_github("CWWhitney/uncertainty")
-#require(uncertainty)
-
-?varslice_resample
+in_var = GHG_sim_scen_y$pc_milk_yield
+out_var = GHG_sim_scen_y$emission_intensity
 
 
 milk_yields_to_sample<-seq(100,10000,100)
@@ -367,48 +355,34 @@ for(i in 1:length(milk_yields_to_sample))
   varslice_resample(in_var,
                       out_var,
                       expectedin_var = milk_yields_to_sample[i],
-                      n_runs = 100000,
+                      n_samples = 100000,
   out_var_sampling = (max(out_var) - min(out_var))/10000)$resample
  }
 
-#decreased_emissions_probability <-
-#  data.frame(Base_yield = milk_yields_to_sample)#
-#
-#for (i in 1:(length(milk_yields_to_sample) - 1))
-#{
-#  for (j in (i + 1):length(milk_yields_to_sample))
-#    decreased_emissions_probability[i, j] <-
-#      sum(slices[[i]] > slices[[j]]) / length(slices[[i]])
-#  
-#}
-#colnames(decreased_emissions_probability)[2:ncol(decreased_emissions_probability)] <-
-#  paste0("new", milk_yields_to_sample[2:length(milk_yields_to_sample)])
-
-
-decreased_emissions_probability2 <-
+decreased_emissions_probability <-
   data.frame(Base_yield = NA,new_yield=NA,probability=NA)
 
 for (i in 1:(length(milk_yields_to_sample) - 1))
 {
   for (j in (i + 1):length(milk_yields_to_sample))
-    {decreased_emissions_probability2[nrow(decreased_emissions_probability2)+1,"Base_yield"]<-milk_yields_to_sample[i]
-     decreased_emissions_probability2$new_yield[nrow(decreased_emissions_probability2)]<-milk_yields_to_sample[j]
-     decreased_emissions_probability2$probability[nrow(decreased_emissions_probability2)] <-
+    {decreased_emissions_probability[nrow(decreased_emissions_probability)+1,"Base_yield"]<-milk_yields_to_sample[i]
+     decreased_emissions_probability$new_yield[nrow(decreased_emissions_probability)]<-milk_yields_to_sample[j]
+     decreased_emissions_probability$probability[nrow(decreased_emissions_probability)] <-
       sum(slices[[i]] > slices[[j]]) / length(slices[[i]])
   
 }
 }
 
-decreased_emissions_probability2<-decreased_emissions_probability2[which(!is.na(decreased_emissions_probability2$Base_yield)),]
+decreased_emissions_probability<-decreased_emissions_probability[which(!is.na(decreased_emissions_probability$Base_yield)),]
 
-decreased_emissions_probability2[,"yield_increase"]<-decreased_emissions_probability2$new_yield-decreased_emissions_probability2$Base_yield
-
-
+decreased_emissions_probability[,"yield_increase"]<-decreased_emissions_probability$new_yield-decreased_emissions_probability$Base_yield
 
 
-ggplot(data = decreased_emissions_probability2, aes(Base_yield, yield_increase, z =
+
+
+ggplot(data = decreased_emissions_probability, aes(Base_yield, yield_increase, z =
                                                       probability)) + geom_contour_filled() +
-  ggtitle("Probability that emission reductions occurred") + 
+  ggtitle("Probability that emission intensity reductions occurred") + 
   xlab("Baseline milk yield per head and year (kg)") +
   ylab("Milk yield increase per head and year (kg)") +
   stat_contour(breaks = c(0.9),col="black")
