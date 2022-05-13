@@ -454,7 +454,7 @@ uncertainty::varkernel(in_var = GHG_simulation_scenarios$y$pc_milk_yield,
                         ylab = expression(Total~emissions~intensity~of~milk~production~(kg~CO[2]-eq~kg^{-1})))
 ```
 
-# THIS LOOKS BAD, BECAUSE OF Low-Milk-high-emissions households. Would be good to break the axis - any ideas?
+# THIS LOOKS BAD, BECAUSE OF Low-Milk-high-emissions households. Would be good to break the axis - any ideas? (I removed the extreme peak now by excluding underperforming dairy households)
 
 The milk yield per capita is sometimes proposed as an indicator of greenhouse gas emissions. We can now examine the merits of this indicator. Essentially, its usefulness hinges on its relationship with greenhouse gas emission intensity. We can investigate this by taking slices through the density surface.
 
@@ -466,7 +466,7 @@ slice<-uncertainty::varslice_resample(in_var = GHG_simulation_scenarios$y$pc_mil
                                  expectedin_var=2000,
                            n = 1000,
                            n_samples = 1000,
-                           out_var_sampling = (max(out_var)-min(out_var))/1000) 
+                           out_var_sampling = 1000) 
 
 
   
@@ -478,9 +478,20 @@ graphics::plot(x = slice$slice$Output_values,
                  col = "seagreen", 
                  lwd = 2)
 
+
+ggplot(data=slice$slice, aes(CO2eq_per_milk)) +
+geom_histogram(aes(y=..density..), colour="black", fill="white")+
+ geom_density(alpha=.2, fill="#FF6666") +
+  ylab("Relative probability") +
+    xlab(expression(Emission~density~of~milk~production~(XX~CO[2]-eq~kg^-1)))
+
+ggsave("Fig_3_emission_density_farm5.png")
+
+
+
 ```
 
-# THIS WON'T REALLY WORK... peak is too high, everything else becomes invisible
+# THIS WON'T REALLY WORK... peak is too high, everything else becomes invisible (should work now, afte excluding underperforming households)
 
 
 
