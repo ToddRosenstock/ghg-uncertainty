@@ -420,12 +420,19 @@ uncertainty::varscatter(in_var = GHG_simulation_scenarios$y$pc_milk_yield,
                         ylab = expression(Total~emissions~(kg~CO[2]-eq~head^{-1}~year^{-1})))
 ```
 
-An indicator that is often of interest is the ratio between these two variables: total emissions divided by the milk yield. We'll calculate this next. We then have to remove all households that don't produce any milk, because this ratio would be infinity for them.
+An indicator that is often of interest is the ratio between these two variables: total emissions divided by the milk yield. We'll calculate this next. We then have to remove all households that don't produce any milk, because this ratio would be infinity for them. In fact, we'll remove all households that reported very low milk yields of <500 kg per year per capita, since these are unlikely to represent regularly operating dairy operations. For instance, they may be mostly focused on beef cattle production, or they may only have a small number of dairy cows that happened to be unproductive at the time of the survey.
+
 
 ```{r}
 GHG_simulation_scenarios$y[,"CO2eq_per_milk"]<-GHG_simulation_scenarios$y$pc_on_farm/GHG_simulation_scenarios$y$pc_milk_yield
-GHG_simulation_scenarios$y<-GHG_simulation_scenarios$y[is.finite(GHG_simulation_scenarios$y$CO2eq_per_milk),]
 
+GHG_simulation_scenarios$y<-GHG_simulation_scenarios$y[which(GHG_simulation_scenarios$y$pc_milk_yield>500),]
+
+#GHG_simulation_scenarios$y<-GHG_simulation_scenarios$y[is.finite(GHG_simulation_scenarios$y$CO2eq_per_milk),]
+
+#GHG_simulation_scenarios$y[GHG_simulation_scenarios$y[,"CO2eq_per_milk"]>10,]
+
+#GHG_simulation_scenarios$y
 ```
 
 Now we can plot the emissions intensity vs. the milk yield.
