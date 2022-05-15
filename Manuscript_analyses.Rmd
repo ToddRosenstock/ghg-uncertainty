@@ -1,13 +1,11 @@
 ---
-title: "Manuscript_analyses"
+title: "Accounting for uncertainty in simulation greenhouse gas emissions from dairy cattle in Kenya"
 author: "Eike Luedeling, Cory Whitney, Todd Rosenstock"
 date: "5/12/2022"
 output: html_document
 ---
 
-# Accounting for uncertainty in simulation greenhouse gas emissions from dairy cattle in Kenya
-
-## Set up
+# Set up
 
 Install and load required packages
 
@@ -77,7 +75,7 @@ options(knitr.kable.NA = '', encoding = "Windows-1252")
 
 ```
 
-## Monte Carlo simulation
+# Monte Carlo simulation
 
 With the model equation and the input table defined above, we can run a Monte Carlo simulation that returns a probability distribution for the greenhouse gas emissions resulting from the particular herd that is specified in the input table.
 
@@ -88,7 +86,7 @@ GHG_emissions<-mcSimulation(estimate=estimate_read_csv(input_table),
                             functionSyntax="plainNames")
 ```
 
-## Running a Monte Carlo simulation with scenarios
+# Running a Monte Carlo simulation with scenarios
 
 The `mcSimulation` function takes random draws for each of the input variables from the distributions specified in the input table. The distributions that are used are the same for every run of the Monte Carlo simulation. This may be desirable in homogeneous populations where all combinations of random values are plausible, but it often misses the mark where populations are composed of particular member types with specific characteristics. To account for populations that are heterogeneous, which is the case for livestock-keeping households in Kenya, we use the `scenario_mc` function, which allows specifying particular subgroups. Defining such scenarios can be desirable when it's necessary to simulate outcomes for particular farm types, climate scenarios etc. To do this, we would normally have to define separate input tables and run separate simulations. This is quite inconvenient. Here, we use a function that can do this job automatically.
 
@@ -107,7 +105,7 @@ The first row ("Runs" in the first column) indicates the number of runs. Each su
 
 We define subgroups based on the populations of household that was described by a household survey in Kenya. Each of the XXX encountered in this survey is converted into one scenario, for which Monte Carlo simulation is then used to produce multiple replicates.
 
-## Household-based scenarios
+# Household-based scenarios
 
 The information for the household is extracted from a spreadsheet that contains all the survey responses. Extracting all relevant information is a slightly complex task, which is accomplished by the following code.
 
@@ -337,7 +335,7 @@ ggsave("Fig_1_GHG_simulation_outputs.png")
 
 # THIS STILL NEEDS IMPROVEMENT - e.g. units are missing, and plot titles don't fit (use concise symbols with subscripts etc.)
 
-## Possible errors resulting from input uncertainty
+# Possible errors resulting from input uncertainty
 
 To illustrate the possible influence of input uncertainty on estimates of total farm emissions, we show the example of farm #5 from the household survey. This farm has 6 head of cattle, including 3 lactating cows. We simulate 1000 versions of this farm.
 
@@ -374,20 +372,22 @@ ggplot(data=farm5_emissions$y, aes(CO2eq_per_milk)) +
 geom_histogram(aes(y=..density..), colour="black", fill="white")+
  geom_density(alpha=.2, fill="#FF6666") +
   ylab("Relative probability") +
-    xlab(expression(Emission~density~of~milk~production~(XX~CO[2]-eq~kg^-1)))
+    xlab(expression(Emission~density~of~milk~production~(kg~CO[2]-eq~kg^-1)))
 
 ggsave("Fig_3_emission_density_farm5.png")
 
 ```
 
-# UNIT NEEDS TO BE ADDED HERE (and checked for milk, though this is probably right)
-# ALSO need to add the usual precise value estimate
+# STILL NEED TO add the usual precise value estimate
 
 # Population-wide emission density of milk production
 
 Since the emission density of each household thus involves considerable uncertainty, such uncertainty should also be expected at the population level.
 
 We can illustrate this uncertainty using a scatter plot. The following figure shows all combinations of total milk yield and total greenhouse gas emissions across all households.
+
+As with the GHG Model, we apply the uncertainty functions on the `milk_yield` and `on_farm` variables. These come from the model results (`r nrow(GHG_simulation_scenarios$y)`) of the `GHG_simulation_scenarios` model results to the `in_var` (x) and an outcome variable `out_var` (y). In the model we defined `on_farm` as the sum of Carbon Dioxide Equivalent Enteric Methane Emissions from Livestock (`enteric_CH4_CO2eq`), Carbon Dioxide Equivalent Methane Emissions from Livestock Manure (`mm_CH4_CO2eq`), Carbon Dioxide Equivalent Nitrous Oxide Emissions from Livestock Manure (`mm_N2O_CO2eq`) and Carbon Dioxide Emissions from Livestock Feed Production and Transport (`feed_CO2`).
+
 
 ```{r}
 uncertainty::varscatter(in_var = GHG_simulation_scenarios$y$pc_milk_yield,
@@ -399,26 +399,7 @@ uncertainty::varscatter(in_var = GHG_simulation_scenarios$y$pc_milk_yield,
 # NICE PLOT, but would be nicer still if this was also a ggplot figure. Kinda inconsistent if it isn't. Also can't save it with ggsave, so will need another way.
 
 
-
-
-
-
-
-
-
-
-
-
-As with the GHG Model, we apply the uncertainty functions on the `milk_yield` and `on_farm` variables. These come from the model results (`r nrow(GHG_simulation_scenarios$y)`) of the `GHG_simulation_scenarios` model results to the `in_var` (x) and an outcome variable `out_var` (y). In the model we defined `on_farm` as the sum of Carbon Dioxide Equivalent Enteric Methane Emissions from Livestock (`enteric_CH4_CO2eq`), Carbon Dioxide Equivalent Methane Emissions from Livestock Manure (`mm_CH4_CO2eq`), Carbon Dioxide Equivalent Nitrous Oxide Emissions from Livestock Manure (`mm_N2O_CO2eq`) and Carbon Dioxide Emissions from Livestock Feed Production and Transport (`feed_CO2`).
-
-## Milk_yield (x-axis) effect on on-farm GHG emissions (y-axis)
-
-```{r}
-uncertainty::varscatter(in_var = GHG_simulation_scenarios$y$pc_milk_yield,
-                        out_var = GHG_simulation_scenarios$y$pc_on_farm,
-                        xlab = expression(Total~milk~yield~(kg~head^{-1}~year^{-1})),
-                        ylab = expression(Total~emissions~(kg~CO[2]-eq~head^{-1}~year^{-1})))
-```
+# Emissions intensity of milk production
 
 An indicator that is often of interest is the ratio between these two variables: total emissions divided by the milk yield. We'll calculate this next. We then have to remove all households that don't produce any milk, because this ratio would be infinity for them. In fact, we'll remove all households that reported very low milk yields of <500 kg per year per capita, since these are unlikely to represent regularly operating dairy operations. For instance, they may be mostly focused on beef cattle production, or they may only have a small number of dairy cows that happened to be unproductive at the time of the survey.
 
@@ -426,21 +407,20 @@ An indicator that is often of interest is the ratio between these two variables:
 ```{r}
 GHG_simulation_scenarios$y[,"CO2eq_per_milk"]<-GHG_simulation_scenarios$y$pc_on_farm/GHG_simulation_scenarios$y$pc_milk_yield
 
-GHG_simulation_scenarios$y<-GHG_simulation_scenarios$y[which(GHG_simulation_scenarios$y$pc_milk_yield>500),]
+normal_milk_yield<-which(GHG_simulation_scenarios$y$pc_milk_yield>500)
 
-#GHG_simulation_scenarios$y<-GHG_simulation_scenarios$y[is.finite(GHG_simulation_scenarios$y$CO2eq_per_milk),]
+dairy_households<-GHG_simulation_scenarios
+dairy_households$x<-dairy_households$x[normal_milk_yield,]
+dairy_households$y<-dairy_households$y[normal_milk_yield,]
 
-#GHG_simulation_scenarios$y[GHG_simulation_scenarios$y[,"CO2eq_per_milk"]>10,]
-
-#GHG_simulation_scenarios$y
 ```
 
 Now we can plot the emissions intensity vs. the milk yield.
 
 ```{r}
 
-uncertainty::varscatter(in_var = GHG_simulation_scenarios$y$pc_milk_yield,
-                        out_var = GHG_simulation_scenarios$y$CO2eq_per_milk,
+uncertainty::varscatter(in_var = dairy_households$y$pc_milk_yield,
+                        out_var = dairy_households$y$CO2eq_per_milk,
                         xlab = expression(Total~milk~yield~(kg~head^{-1}~year^{-1})),
                         ylab = expression(Total~emissions~intensity~of~milk~production~(kg~CO[2]-eq~kg^{-1})))
 ```
@@ -448,21 +428,21 @@ uncertainty::varscatter(in_var = GHG_simulation_scenarios$y$pc_milk_yield,
 This can also be illustrated by a density surface.
 
 ```{r varkernel}
-uncertainty::varkernel(in_var = GHG_simulation_scenarios$y$pc_milk_yield,
-                        out_var = GHG_simulation_scenarios$y$CO2eq_per_milk,
+uncertainty::varkernel(in_var = dairy_households$y$pc_milk_yield,
+                        out_var = dairy_households$y$CO2eq_per_milk,
                         xlab = expression(Total~milk~yield~(kg~head^{-1}~year^{-1})),
                         ylab = expression(Total~emissions~intensity~of~milk~production~(kg~CO[2]-eq~kg^{-1})))
 ```
 
-# THIS LOOKS BAD, BECAUSE OF Low-Milk-high-emissions households. Would be good to break the axis - any ideas? (I removed the extreme peak now by excluding underperforming dairy households)
-
 The milk yield per capita is sometimes proposed as an indicator of greenhouse gas emissions. We can now examine the merits of this indicator. Essentially, its usefulness hinges on its relationship with greenhouse gas emission intensity. We can investigate this by taking slices through the density surface.
 
-## Probability of GHG emissions for a given range of milk yield
+# Probability of GHG emissions for a given milk yield
+
+The following plot shows the emissions intensity that corresponds to a milk yield of 2000 kg per capita per year, based on the population of households covered in the survey.
 
 ```{r varkernelslicerange}
-slice<-uncertainty::varslice_resample(in_var = GHG_simulation_scenarios$y$pc_milk_yield,
-                                 out_var = GHG_simulation_scenarios$y$CO2eq_per_milk, 
+slice<-uncertainty::varslice_resample(in_var = dairy_households$y$pc_milk_yield,
+                                 out_var = dairy_households$y$CO2eq_per_milk, 
                                  expectedin_var=2000,
                            n = 1000,
                            n_samples = 1000,
@@ -479,23 +459,522 @@ graphics::plot(x = slice$slice$Output_values,
                  lwd = 2)
 
 
-ggplot(data=slice$slice, aes(CO2eq_per_milk)) +
+ggplot(data=data.frame(CO2eq_per_milk=slice$resampled), aes(CO2eq_per_milk)) +
 geom_histogram(aes(y=..density..), colour="black", fill="white")+
  geom_density(alpha=.2, fill="#FF6666") +
   ylab("Relative probability") +
-    xlab(expression(Emission~density~of~milk~production~(XX~CO[2]-eq~kg^-1)))
+    xlab(expression(Emission~density~of~milk~production~at~2000~kg~milk~per~capita~(XX~CO[2]-eq~kg^-1)))
 
-ggsave("Fig_3_emission_density_farm5.png")
+ggsave("Fig_X_emission_density_all_farms.png")
 
 
 
 ```
 
-# THIS WON'T REALLY WORK... peak is too high, everything else becomes invisible (should work now, afte excluding underperforming households)
+We see considerable uncertainty about the emissions at this particular level of production, and the previous figure shows that emissions of all other levels is similarly variable. This raises considerable doubts about the usefulness of milk yield as an indicator of emissions intensity - at least when this indicator is taken at face value, without considering this uncertainty. Yet, some information is contained even in such an imperfect indicator, since, as also shown in the previous figure, there is clearly a correlation between milk yield and emissions intensity. The following proposes a mechanism for quantifying the level of certainty, with which a change in milk yield can reasonably be associated with a change in emissions intensity.
+
+# Probability of an increase in milk yield being associated with an increase in GHG emission intensity
+
+To derive the level of certainty, with which a change in milk yield is associated with an increase or decrease in emissions intensity, we have to investigate the probability distributions (as shown in Fig. X) of emissions intensity at two levels of milk production. This can be achieved using the `varslice_resample` function for both production levels.
+
+Let's look at this for production of 2000 and 3000 kg milk per capita per year. We'll take 1000 random draws of the emissions intensities that associated with both levels and compare values among these samples.
+
+```{r}
+slice_2000<-uncertainty::varslice_resample(in_var = dairy_households$y$pc_milk_yield,
+                                 out_var = dairy_households$y$CO2eq_per_milk, 
+                                 expectedin_var=2000,
+                           n = 1000,
+                           n_samples = 1000,
+                           out_var_sampling = 1000)
+slice_3000<-uncertainty::varslice_resample(in_var = dairy_households$y$pc_milk_yield,
+                                 out_var = dairy_households$y$CO2eq_per_milk, 
+                                 expectedin_var=3000,
+                           n = 1000,
+                           n_samples = 1000,
+                           out_var_sampling = 1000) 
+
+sum(slice_3000$resampled < slice_2000$resampled) / length(slice_2000$resampled)
+
+```
+The comparison in the last line of code above reveals that in `r sum(slice_3000$resampled < slice_2000$resampled) / length(slice_2000$resampled)*100` % of cases, emissions intensity at the higher milk production level is lower than at the lower level.
+
+We can now generalize this result by doing similar calculations for multiple production levels and illustrating them for the whole population.
+
+```{r}
+
+in_var = dairy_households$y$pc_milk_yield
+out_var = dairy_households$y$CO2eq_per_milk
+
+
+milk_yields_to_sample<-seq(100,10000,100)
+milk_yields_to_sample<-milk_yields_to_sample[which(milk_yields_to_sample<max(in_var))]
+milk_yields_to_sample<-milk_yields_to_sample[which(milk_yields_to_sample>min(in_var))]
+slices<-list()
+
+# slice through the distribution at every 100 L milk yield per cow
+
+for(i in 1:length(milk_yields_to_sample))
+{slices[[i]]<-
+  varslice_resample(in_var,
+                      out_var,
+                      expectedin_var = milk_yields_to_sample[i],
+                      n_samples = 100000,
+  out_var_sampling = 1000)$resample
+ }
+
+decreased_emissions_probability <-
+  data.frame(Base_yield = NA,new_yield=NA,probability=NA)
+
+for (i in 1:(length(milk_yields_to_sample) - 1))
+{
+  for (j in (i + 1):length(milk_yields_to_sample))
+    {decreased_emissions_probability[nrow(decreased_emissions_probability)+1,"Base_yield"]<-milk_yields_to_sample[i]
+     decreased_emissions_probability$new_yield[nrow(decreased_emissions_probability)]<-milk_yields_to_sample[j]
+     decreased_emissions_probability$probability[nrow(decreased_emissions_probability)] <-
+      sum(slices[[i]] > slices[[j]]) / length(slices[[i]])
+  
+}
+}
+
+decreased_emissions_probability<-decreased_emissions_probability[which(!is.na(decreased_emissions_probability$Base_yield)),]
+
+decreased_emissions_probability[,"yield_increase"]<-decreased_emissions_probability$new_yield-decreased_emissions_probability$Base_yield
+
+
+
+
+ggplot(data = decreased_emissions_probability, aes(Base_yield, yield_increase, z =
+                                                      probability)) + geom_contour_filled() +
+  ggtitle("Probability that emission intensity reductions occurred") + 
+  xlab("Baseline milk yield per head and year (kg)") +
+  ylab("Milk yield increase per head and year (kg)") +
+  stat_contour(breaks = c(0.9),col="black")
+
+ggsave("Fig_X1_probability_of_intensity_reduction.png")
+
+
+
+```
+
+The 90% confidence contour is shown in the plot. The results indicate that whenever milk yields increase, the probability that emissions intensity decreased is usually greater than 50% (slightly lower values are due to randomness in the resampling procedure), but that large increases are needed to be sure of this. 
+
+
+
+
+# Testing interventions - strategy
+
+Farms may try to reduce their emissions intensity by making changes to their herd structure, feeding strategy or management practices. Programs aiming to effect emissions reductions in dairy production may want to reward such changes, and they may be looking to the milk production per capita as an indicator for the effectiveness of such measures. We now want explore whether this is a reasonable strategy.
+
+## Strategy
+
+Develop scenarios that implement innovations
+
+* breed adjustment
+* herd structure
+
+Quantify improvements on farms by comparing with the baseline.
+Plot improvements vs. the baseline on the above figure.
+Plot improvements vs. baseline in the emissions intensity figure.
+
+For each slice, and each level of confidence, calculate the percentage of farms that made changes that would be correctly rewarded vs. the ones that did not change (the baseline population). Make a figure showing the Type I and Type II errors resulting from each confidence level at each baseline yield.
+
+
+# Testing interventions
+
+## Single-run function
+
+To clearly characterize the impact of interventions, we should compare their impact with a counterfactual, i.e. with the same farms without the intervention. While this is usually impossible in practice, it is easy with a model. We just have to run the simulation again with identical inputs except for those that are affected by the intervention.
+
+We already simulated emissions for a large population of farms, and we can now apply our interventions to this population by modifying certain parameters of the input tables. What we don't want now, however, is to randomize all values again, since this would add additional noise to the results, which would mask the signal caused by the interventions.
+
+We now first need a function that can apply our greenhouse gas emissions model to a pre-defined set of input values. We can find syntax that can achieve this in the mcSimulation function. Here it is (with slight modifications):
+
+```{r}
+run_model<-function(x_data,model)
+  {
+  varnames<-colnames(x_data)[which(!colnames(x_data)=="Scenario")]
+  model_function_ <- function(x) {
+    
+    e <- as.list(sapply(X = varnames, FUN = function(i) as.numeric(unlist(x[i]))))
+    eval(expr = body(model), envir = e)
+  }
+  y <- do.call(what = rbind, args = lapply(X = apply(X = x_data, 
+                                                     MARGIN = 1, FUN = model_function_), FUN = unlist))
+  returnObject <- list(y = data.frame(y), x = data.frame(x_data))
+  returnObject$call <- match.call()
+  class(returnObject) <- cbind("mcSimulation", class(returnObject))
+  return(returnObject)
+}
+
+```
+
+The following code can precisely reproduce the results of the previous analysis:
+
+
+```{r, eval=FALSE}
+res<-run_model(GHG_simulation_scenarios$x,ghg_emissions)
+```
+
+To simulate interventions, we can now feed this function with modified x_data data.frames.
+
+
+
+## Breed intervention
+
+Introduction of higher-performance breeds may reduce greenhouse gas emissions. We simulate an intervention that replaces animals of low-performance breeds with animals of high-performance breeds.
+
+To retain the farm-specific performance levels obtained from the farm survey, we simulate these impacts in a relative manner. For this, we first need to determine the performance and characteristics of each of the breeds. We'll base this on the farm survey data (`Kenyaherds` dataset from above).
+
+```{r}
+cows<-Kenyaherds[which(Kenyaherds$animal_type %in% 4:6),]
+
+ggplot(cows, aes(factor(breed),milk_yield)) +
+  geom_violin(draw_quantiles=c(0.5),fill="light green") +
+  xlab("Breed") + ylab("Milk yield (kg per day)") + theme_bw()
+
+milk_summary<-cbind(aggregate(cows$milk_yield, by=list(cows$breed), FUN=median),table(cows$breed))
+milk_summary<-milk_summary[,c(1,4,2)]
+colnames(milk_summary)<-c("Breed","n","Median_milk_yield")
+milk_summary
+
+```
+
+This evaluation shows that the difference in median milk yields is relatively small, but that the milk yield distributions show a lot of variation that is apparently not explained by the breed. It is also apparent that the number of animals these estimates are based on varies considerably. Two breeds make up `r round(sum(milk_summary$n[1:2])/sum(milk_summary$n)*100,1)` % of the entire population, with others having very few animals, which means that the medians may be somewhat unreliable (especially for the single animal of breed 7).
+
+Let's define the intervention as follows:
+
+All animals are replaced by high-performance animals of breed 1, which increases milk yields proportionally to the median milk yield differences. This means that milk yields are multiplied by the following factors:
+
+
+
+```{r}
+milk_summary[,"Intervention_factor"]<-sapply(milk_summary$Median_milk_yield, function(x) min(x/milk_summary$Median_milk_yield[1],1))
+                                         
+milk_summary             
+```
+
+A change of the breed also causes changes in weight, mature weight and weight gain.
+
+```{r}
+live_weights<-aggregate(Kenyaherds$live_weight_LW, by=list(Kenyaherds$animal_type,Kenyaherds$breed), FUN=median)
+colnames(live_weights)<-c("animal_type","breed","median_live_weight")
+live_weights[,"Intervention_factor"]<-NA
+for(i in 1:nrow(live_weights))
+  live_weights$Intervention_factor[i]<-live_weights$median_live_weight[i]/
+     live_weights$median_live_weight[which(live_weights$animal_type==live_weights$animal_type[i] &                                                                                                            live_weights$breed==1)]
+
+# mature weight should probably be changed, and the code below does this. However, the mature weight is currently the same for all the breeds, so this accomplished nothing.
+
+mature_weights<-aggregate(Kenyaherds$mature_weight_MW, by=list(Kenyaherds$animal_type,Kenyaherds$breed), FUN=median)
+colnames(mature_weights)<-c("animal_type","breed","median_mature_weight")
+mature_weights[,"Intervention_factor"]<-NA
+for(i in 1:nrow(mature_weights))
+  mature_weights$Intervention_factor[i]<-mature_weights$median_mature_weight[i]/
+     mature_weights$median_mature_weight[which(mature_weights$animal_type==mature_weights$animal_type[i] &                                                                                                            mature_weights$breed==1)]
+
+# same for the weight gain - doesn't depend on the breed at the moment, so all the factors are 1
+
+weight_gains<-aggregate(Kenyaherds$weight_gain_WG, by=list(Kenyaherds$animal_type,Kenyaherds$breed), FUN=median)
+colnames(weight_gains)<-c("animal_type","breed","median_weight_gain")
+weight_gains[,"Intervention_factor"]<-NA
+for(i in 1:nrow(weight_gains))
+  weight_gains$Intervention_factor[i]<-weight_gains$median_weight_gain[i]/
+     weight_gains$median_weight_gain[which(weight_gains$animal_type==weight_gains$animal_type[i] &                                                                                                            weight_gains$breed==1)]
+weight_gains$Intervention_factor[which(weight_gains$median_weight_gain==0)]<-1
+
+
+```
+
+Now we can modify the input table accordingly.
+
+go through all the farms. Determine the 'improvement' coefficients (based on herd structure)
+
+```{r}
+farms<-unique(Kenyaherds$QQNO)
+breed_intervention<-data.frame(Farm=farms, milk_yield_4=1, milk_yield_5=1, milk_yield_6=1) 
+
+Kenyaherds_interventions<-Kenyaherds[,c("QQNO",
+                                        "system",
+                                        "animal_type",
+                                        "breed",
+                                        "live_weight_LW",
+                                        "mature_weight_MW",
+                                        "weight_gain_WG",
+                                        "milk_yield",
+                                        "dig_energy",
+                                        "CP.")]
+
+Kenyaherds_interventions[,"milk_change"]<-0
+cows<-which(Kenyaherds_interventions$animal_type %in% 4:6)
+Kenyaherds_interventions$milk_change[cows]<- sapply(cows,function(x) 1/milk_summary$Intervention_factor[milk_summary$Breed==Kenyaherds_interventions$breed[x]]  )
+  
+milk_change<-aggregate(Kenyaherds_interventions$milk_change[cows], by=list(Kenyaherds_interventions$QQNO[cows]), FUN=mean)
+
+breed_intervention$milk_yield_4[which(breed_intervention$Farm %in% milk_change[,1])]<-milk_change[,2]
+breed_intervention$milk_yield_5<-breed_intervention$milk_yield_4
+breed_intervention$milk_yield_6<-breed_intervention$milk_yield_4
+
+for(i in 1:nrow(Kenyaherds_interventions))
+  {Kenyaherds_interventions[i,"live_weight_change"]<-
+    1/live_weights$Intervention_factor[which(live_weights$animal_type==Kenyaherds_interventions$animal_type[i]&
+                                             live_weights$breed==Kenyaherds_interventions$breed[i])]
+#   Kenyaherds_interventions[i,"mature_weight_change"]<-
+#      1/mature_weights$Intervention_factor[which(mature_weights$animal_type==Kenyaherds_interventions$animal_type[i]&
+#                                                 mature_weights$breed==Kenyaherds_interventions$breed[i])]
+   Kenyaherds_interventions[i,"weight_gain_change"]<-
+     1/weight_gains$Intervention_factor[which(weight_gains$animal_type==Kenyaherds_interventions$animal_type[i]&
+                                              weight_gains$breed==Kenyaherds_interventions$breed[i])]
+}
+   
+live_weight_agg<-aggregate(Kenyaherds_interventions$live_weight_change,
+                           by=list(Kenyaherds_interventions$QQNO,Kenyaherds_interventions$animal_type), FUN=mean)
+#mature_weight_agg<-aggregate(Kenyaherds_interventions$mature_weight_change,
+#by=list(Kenyaherds_interventions$QQNO,Kenyaherds_interventions$animal_type), FUN=mean)
+weight_gain_agg<-aggregate(Kenyaherds_interventions$weight_gain_change,
+                           by=list(Kenyaherds_interventions$QQNO,Kenyaherds_interventions$animal_type), FUN=mean)
+
+colnames(live_weight_agg)<-c("farm","animal_type","conv_factor")
+#colnames(mature_weight_agg)<-c("farm","animal_type","conv_factor")
+colnames(weight_gain_agg)<-c("farm","animal_type","conv_factor")
+
+for(i in 1:nrow(live_weight_agg))
+  breed_intervention[which(breed_intervention$Farm==live_weight_agg$farm[i]),
+                     paste0("live_weight_LW_",live_weight_agg$animal_type[i])]<-
+    live_weight_agg$conv_factor[i]
+
+#for(i in 1:nrow(mature_weight_agg))
+#  breed_intervention[which(breed_intervention$Farm==mature_weight_agg$farm[i]),
+#                     paste0("mature_weight_LW_",mature_weight_agg$animal_type[i])]<-
+#    mature_weight_agg$conv_factor[i]
+
+for(i in 1:nrow(weight_gain_agg))
+  breed_intervention[which(breed_intervention$Farm==weight_gain_agg$farm[i]),
+                     paste0("weight_gain_WG_",weight_gain_agg$animal_type[i])]<-
+    weight_gain_agg$conv_factor[i]
+
+breed_intervention[is.na(breed_intervention)]<-1
+
+```
+
+
+go through the x file
+for each row take a random draw based on adoption rate (does farm adopt or not), then (possibly) apply factors. Actually, in this case we want to simulate full adoption, so we'll set this to 1.
+
+```{r, eval=FALSE}
+x_breed_intervention <- GHG_simulation_scenarios$x
+
+adoption_rate <- 1
+
+for (i in 1:nrow(x_breed_intervention))
+{
+  if (rbinom(1, 1, adoption_rate)) # if farmers adopt, make changes in x file
+    x_breed_intervention[i, colnames(breed_intervention)[2:ncol(breed_intervention)]] <-
+      x_breed_intervention[i, colnames(breed_intervention)[2:ncol(breed_intervention)]] *
+      breed_intervention[which(paste0("Farm_", breed_intervention$Farm) ==
+                                 x_breed_intervention$Scenario[i]),
+                         2:ncol(breed_intervention)]
+}
+# run model for modified x file
+breed_res <- run_model(x_breed_intervention, ghg_emissions)
+
+```
+
+
+```{r, include=FALSE, eval=FALSE}
+breed_res$call<-"multi-scenario call"
+save_temperature_scenarios(breed_res,"results","Breed_intervention")
+```
+
+```{r, include=FALSE}
+adoption_rate <- 1
+breed_res<-load_temperature_scenarios("results","Breed_intervention")
+class(breed_res)<-"mcSimulation"
+```
+
+# Compare outcomes of breed intervention with baseline
+
+```{r}
+breed_res$y[,"CO2eq_per_milk"]<-breed_res$y$pc_on_farm/breed_res$y$pc_milk_yield
+
+breed_res$y<-breed_res$y[which(GHG_simulation_scenarios$y$pc_milk_yield>500),]
+breed_res$x<-breed_res$x[which(GHG_simulation_scenarios$y$pc_milk_yield>500),]
+
+impact_of_breed<-data.frame(baseline=dairy_households$y$pc_milk_yield,breed_milk=breed_res$y$pc_milk_yield,CO2_intensity_baseline= dairy_households$y$CO2eq_per_milk,CO2_intensity_breed=breed_res$y$CO2eq_per_milk)
+impact_of_breed[,"milk_change"]<-round(impact_of_breed$breed_milk-impact_of_breed$baseline,2)
+impact_of_breed[,"emissions_intensity_change"]<-round(impact_of_breed$CO2_intensity_breed-impact_of_breed$CO2_intensity_baseline ,3)
+
+ggplot(data=impact_of_breed,aes(x=milk_change,y=emissions_intensity_change)) + geom_point() + theme_bw() + ylab("Change in emissions intensity (kg CO2-eq kg-1)") + xlab("Change in per capita milk yield (kg)")
+
+ggsave("Fig_XX_breed_reductions.png")
+
+```
+
+```{r}
+
+ggplot(data = decreased_emissions_probability, aes(Base_yield, yield_increase)) + geom_contour_filled(aes(z=probability)) +
+  stat_contour(breaks = c(0.9),aes(z=probability),col="black") +
+  geom_point(data=impact_of_breed[which(impact_of_breed$milk_change>0),],aes(x=baseline,y=milk_change)) +
+  ggtitle("Probability that emission intensity reductions occurred") + 
+  xlab("Baseline milk yield per head and year (kg)") +
+  ylab("Milk yield increase per head and year (kg)") 
+ggsave("Fig_XX1_breed_probability_of_intensity_reduction.png")
+
+
+```
+
+
+This plot shows a lot of linear patterns that result from the application of fixed factors to convert the milk yield between cows of different breeds. Not so pretty, but maybe ok.
 
 
 
 
 
+
+## Herd structure
+
+### Retiring unproductive bulls
+
+To simulate this scenario, we simply have to remove all animals of type 1 from the herds.
+
+```{r , warning=FALSE, eval=FALSE}
+x_nobull_intervention <- GHG_simulation_scenarios$x
+
+nobull_adoption_rate <- 1.0
+
+for (i in 1:nrow(x_nobull_intervention))
+{
+  if (rbinom(1, 1, nobull_adoption_rate)) # if farmers adopt, make changes in x file
+    x_nobull_intervention$N_animal_type_1[i]<-0
+}
+# run model for modified x file
+nobull_res <- run_model(x_nobull_intervention, ghg_emissions)
+
+```
+
+
+```{r, include=FALSE, eval=FALSE}
+nobull_res$call<-"multi-scenario call"
+save_temperature_scenarios(nobull_res,"results","noBull_intervention")
+```
+
+```{r, include=FALSE}
+nobull_res<-load_temperature_scenarios("results","noBull_intervention")
+class(nobull_res)<-"mcSimulation"
+```
+
+
+
+#### Evaluate impact of "Retiring unproductive bulls" intervention
+
+We're assuming that all bulls >36 months old have been removed.
+
+```{r, fig.show="hold", out.width="50%", fig.cap="No bulls intervention (left) vs. baseline (right)", message=FALSE}
+
+uncertainty::varscatter(in_var = nobull_res$y$pc_milk_yield,
+                        out_var = nobull_res$y$pc_on_farm,
+                        xlab = expression(Total~milk~yield~(kg~head^{-1}~year^{-1})),
+                        ylab = expression(Total~emissions~(kg~CO[2]-eq~head^{-1}~year^{-1}))) 
+
+uncertainty::varscatter(in_var = GHG_simulation_scenarios$y$pc_milk_yield,
+                        out_var = GHG_simulation_scenarios$y$pc_on_farm,
+                        xlab = expression(Total~milk~yield~(kg~head^{-1}~year^{-1})),
+                        ylab = expression(Total~emissions~(kg~CO[2]-eq~head^{-1}~year^{-1})))
+
+uncertainty::varkernel(in_var = nobull_res$y$pc_milk_yield,
+                        out_var = nobull_res$y$pc_on_farm,
+                        xlab = expression(Total~milk~yield~(kg~head^{-1}~year^{-1})),
+                        ylab = expression(Total~emissions~(kg~CO[2]-eq~head^{-1}~year^{-1})))
+
+uncertainty::varkernel(in_var = GHG_simulation_scenarios$y$pc_milk_yield,
+                        out_var = GHG_simulation_scenarios$y$pc_on_farm,
+                        xlab = expression(Total~milk~yield~(kg~head^{-1}~year^{-1})),
+                        ylab = expression(Total~emissions~(kg~CO[2]-eq~head^{-1}~year^{-1})))
+
+
+```
+
+### Reducing unproductive replacement males
+
+The idea is to raise the off-take rate of replacement males by 23% (not sure why this number). We'll implement this by eliminating replacement males on all adopting farms, with a 23% adoption rate. The result should be quite similar.
+
+```{r , warning=FALSE, eval=FALSE}
+x_lessReplace_intervention <- GHG_simulation_scenarios$x
+
+lessReplace_adoption_rate <- 0.23
+
+for (i in 1:nrow(x_lessReplace_intervention))
+{
+  if (rbinom(1, 1, lessReplace_adoption_rate)) # if farmers adopt, make changes in x file
+    x_lessReplace_intervention$N_animal_type_3[i]<-0
+}
+# run model for modified x file
+lessReplace_res <- run_model(x_lessReplace_intervention, ghg_emissions)
+
+```
+
+
+```{r, include=FALSE, eval=FALSE}
+lessReplace_res$call<-"multi-scenario call"
+save_temperature_scenarios(lessReplace_res,"results","lessReplace_intervention")
+```
+
+```{r, include=FALSE}
+lessReplace_res<-load_temperature_scenarios("results","lessReplace_intervention")
+class(lessReplace_res)<-"mcSimulation"
+```
+
+# Compare outcomes of herd intervention with baseline
+
+## No bulls scenario
+
+```{r}
+nobull_res$y[,"CO2eq_per_milk"]<-nobull_res$y$pc_on_farm/nobull_res$y$pc_milk_yield
+
+nobull_res$y<-nobull_res$y[which(GHG_simulation_scenarios$y$pc_milk_yield>500),]
+nobull_res$x<-nobull_res$x[which(GHG_simulation_scenarios$y$pc_milk_yield>500),]
+
+impact_of_nobull<-data.frame(baseline=dairy_households$y$pc_milk_yield,breed_milk=nobull_res$y$pc_milk_yield,CO2_intensity_baseline= dairy_households$y$CO2eq_per_milk,CO2_intensity_breed=nobull_res$y$CO2eq_per_milk)
+impact_of_nobull[,"milk_change"]<-round(impact_of_nobull$breed_milk-impact_of_nobull$baseline,2)
+impact_of_nobull[,"emissions_intensity_change"]<-round(impact_of_nobull$CO2_intensity_breed-impact_of_nobull$CO2_intensity_baseline ,3)
+
+ggplot(data=impact_of_nobull,aes(x=milk_change,y=emissions_intensity_change)) + geom_point() + theme_bw() + ylab("Change in emissions intensity (kg CO2-eq kg-1)") + xlab("Change in per capita milk yield (kg)")
+
+ggplot(data = decreased_emissions_probability, aes(Base_yield, yield_increase)) + geom_contour_filled(aes(z=probability)) +
+  stat_contour(breaks = c(0.9),aes(z=probability),col="black") +
+  geom_point(data=impact_of_nobull[which(impact_of_nobull$milk_change>0),],aes(x=baseline,y=milk_change)) +
+  ggtitle("Probability that emission intensity reductions occurred") + 
+  xlab("Baseline milk yield per head and year (kg)") +
+  ylab("Milk yield increase per head and year (kg)") 
+ggsave("Fig_XX1_breed_probability_of_intensity_reduction.png")
+
+ggsave("Fig_XX_impact_of_nobull_reductions.png")
+
+```
+
+## Fewer replacement males scenario
+
+```{r}
+
+lessReplace_res$y[,"CO2eq_per_milk"]<-lessReplace_res$y$pc_on_farm/lessReplace_res$y$pc_milk_yield
+
+lessReplace_res$y<-lessReplace_res$y[which(GHG_simulation_scenarios$y$pc_milk_yield>500),]
+lessReplace_res$x<-lessReplace_res$x[which(GHG_simulation_scenarios$y$pc_milk_yield>500),]
+
+impact_of_lessReplace<-data.frame(baseline=dairy_households$y$pc_milk_yield,breed_milk=lessReplace_res$y$pc_milk_yield,CO2_intensity_baseline= dairy_households$y$CO2eq_per_milk,CO2_intensity_breed=lessReplace_res$y$CO2eq_per_milk)
+impact_of_lessReplace[,"milk_change"]<-round(impact_of_lessReplace$breed_milk-impact_of_lessReplace$baseline,2)
+impact_of_lessReplace[,"emissions_intensity_change"]<-round(impact_of_lessReplace$CO2_intensity_breed-impact_of_lessReplace$CO2_intensity_baseline ,3)
+
+ggplot(data=impact_of_lessReplace,aes(x=milk_change,y=emissions_intensity_change)) + geom_point() + theme_bw() + ylab("Change in emissions intensity (kg CO2-eq kg-1)") + xlab("Change in per capita milk yield (kg)")
+
+ggplot(data = decreased_emissions_probability, aes(Base_yield, yield_increase)) + geom_contour_filled(aes(z=probability)) +
+  stat_contour(breaks = c(0.9),aes(z=probability),col="black") +
+  geom_point(data=impact_of_lessReplace[which(impact_of_lessReplace$milk_change>0),],aes(x=baseline,y=milk_change)) +
+  ggtitle("Probability that emission intensity reductions occurred") + 
+  xlab("Baseline milk yield per head and year (kg)") +
+  ylab("Milk yield increase per head and year (kg)") 
+ggsave("Fig_XX1_breed_probability_of_intensity_reduction.png")
+
+
+ggsave("Fig_XX_lessReplace_reductions.png")
 
 
