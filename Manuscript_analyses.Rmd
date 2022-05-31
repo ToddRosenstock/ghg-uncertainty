@@ -107,7 +107,9 @@ The .csv file for the `scenarios` option specifies variables that should be modi
 Here's an example `scenarios` file:
 
 ```{r}
-knitr::kable(read.table("data/scenarios.csv", sep = ",", fileEncoding = "UTF-8-BOM",header=TRUE))
+read.table("data/scenarios.csv", sep = ",", fileEncoding = "UTF-8-BOM",header=TRUE)   %>%
+    kableExtra::kbl(digits = 2)  %>%
+    kableExtra::kable_classic_2(full_width = F)
 
 ```
 
@@ -233,9 +235,160 @@ write.csv(scenarios,"data/farm_scenarios.csv",row.names = FALSE)
 Here's the resulting file (only the first 3 farms are shown, and only the first 20 rows):
 
 ```{r}
-knitr::kable(read.table("data/farm_scenarios.csv", sep = ",", fileEncoding = "UTF-8-BOM",header=TRUE)[1:20,1:5])
+read.table("data/farm_scenarios.csv", sep = ",", fileEncoding = "UTF-8-BOM",header=TRUE)[1:20,1:5]  %>%
+    kableExtra::kbl(digits = 2)  %>%
+    kableExtra::kable_classic_2(full_width = F)
 
 ```
+
+We'll also make precise scenarios that contain only the exact values that were observed in the survey.
+
+```{r}
+# count the number of animals for each type
+
+animals<-table(Kenyaherds[,c("QQNO","animal_type")])
+
+variables_to_update_posnorm<-c(paste0("milk_yield_",4:6),
+                             paste0("Cp_rate_",4:6),
+                             "feed_prod_CO2",
+                             "feed_trans_CO2",
+                             paste0("live_weight_LW_",1:12),
+                             paste0("weight_gain_WG_",1:12),
+                             "DE_perc",
+                             "perc_crude_protein_diet")
+
+precise_estimates<-c("Ca_pasture","Ca_large_grazing","C_intact_males","C_castrates","C_females","maintenance_coefficient_Cfi_other",
+                     "maintenance_coefficient_Cfi_lact_cow","maintenance_coefficient_Cfi_bulls","mature_weight_MW_female","mature_weight_MW_male",
+                     "milk_fat","Cp_rate_4","Cp_rate_5","Cp_rate_6","Y_m","Bo_animaltype_1","Bo_animaltype_2","Bo_animaltype_3","Bo_animaltype_4",
+                     "Bo_animaltype_5","Bo_animaltype_6","Bo_animaltype_7","Bo_animaltype_8","Bo_animaltype_9","Bo_animaltype_10","Bo_animaltype_11",
+                     "Bo_animaltype_12","MCFpasture","MCFspread","MCFdrylot","MCFsolidstore","MCFcomposted","MCFliquid","MCFbiogas","MCFburn","MCFsold",
+                     "mndec_pasture","mndec_spread","mndec_drylot","mndec_solidstore","mndec_composted","mndec_liquid","mnvc_pasture","mnvc_spread",
+                     "mnvc_drylot","mnvc_solidstore","mnvc_composted","mnvc_liquid","frac_leach_pasture","frac_leach_spread","frac_leach_drylot",
+                     "frac_leach_solidstore","frac_leach_composted","frac_leach_liquid")
+
+
+precise_scenarios<-data.frame(Variable=c(variables_to_update_const,variables_to_update_posnorm,precise_estimates),param="both")
+
+
+for(i in 1:nrow(animals))
+  {coln<-paste0("Farm_",row.names(animals)[i])
+   precise_scenarios[,coln]<-NA
+     precise_scenarios[which(precise_scenarios$Variable %in% paste0("N_animal_type_",1:12)),coln]<-animals[i,]
+}
+
+# farm-scale variables
+
+Farms<-unique(Kenyaherds$QQNO)
+  
+for (f in Farms)
+  {coln<-paste0("Farm_",f)
+  # update feeding system 
+  precise_scenarios[which(precise_scenarios$Variable == "feeding_system"),coln]<-
+     median(Kenyaherds[which(Kenyaherds$QQNO==f),"system"])
+  
+  # update digestible energy (mean for all animals for now) (with error)
+  precise_scenarios[which(precise_scenarios$Variable == "DE_perc"),coln]<-
+     mean(Kenyaherds[which(Kenyaherds$QQNO==f),"dig_energy"])
+  
+  # update crude protein (mean for all animals for now) (with error)
+  precise_scenarios[which(precise_scenarios$Variable == "perc_crude_protein_diet"),coln]<-
+     mean(Kenyaherds[which(Kenyaherds$QQNO==f),"CP."])
+  
+  # update feed production CO2 (with error)
+   precise_scenarios[which(precise_scenarios$Variable == "feed_prod_CO2"),coln]<-
+     mean(Kenyaherds[which(Kenyaherds$QQNO==f),"feed_kgCO2"])
+   
+  # update feed transport CO2 (with error)
+   precise_scenarios[which(precise_scenarios$Variable == "feed_trans_CO2"),coln]<-
+     mean(Kenyaherds[which(Kenyaherds$QQNO==f),"feed.transport_kgCO2"])
+  
+   # update milk yield for each cow type (animal type 4-6) (with error)
+   for(typ in 4:6)
+     if(sum(Kenyaherds$QQNO==f&Kenyaherds$animal_type==typ)>0)
+       {precise_scenarios[which(precise_scenarios$Variable==paste0("milk_yield_",typ)),coln]<-
+         mean(Kenyaherds[which(Kenyaherds$QQNO==f&Kenyaherds$animal_type==typ),
+                         "milk_yield"])
+       precise_scenarios[which(precise_scenarios$Variable==paste0("CP_rate_",typ)),coln]<-
+         mean(Kenyaherds[which(Kenyaherds$QQNO==f&Kenyaherds$animal_type==typ),
+                         "Cp"]/0.1)
+   
+     }
+  # update live weight and weight gain for each animal type (with error)
+   for(typ in 1:12)
+     if(sum(Kenyaherds$QQNO==f&Kenyaherds$animal_type==typ)>0)
+       {precise_scenarios[which(precise_scenarios$Variable==paste0("live_weight_LW_",typ)),coln]<-
+         mean(Kenyaherds[which(Kenyaherds$QQNO==f&Kenyaherds$animal_type==typ),
+                         "live_weight_LW"])
+       precise_scenarios[which(precise_scenarios$Variable==paste0("weight_gain_WG_",typ)),coln]<-
+         mean(Kenyaherds[which(Kenyaherds$QQNO==f&Kenyaherds$animal_type==typ),
+                         "weight_gain_WG"])
+     }
+   
+   # now add the best estimates from the IPCC guidelines to the precise scenarios
+   
+   precise_scenarios[which(precise_scenarios$Variable=="Ca_pasture"),coln]<-0.17
+   precise_scenarios[which(precise_scenarios$Variable=="Ca_large_grazing"),coln]<-0.36
+   precise_scenarios[which(precise_scenarios$Variable=="C_intact_males"),coln]<-1.2   
+   precise_scenarios[which(precise_scenarios$Variable=="C_castrates"),coln]<-1.0   
+   precise_scenarios[which(precise_scenarios$Variable=="C_females"),coln]<-0.8   
+   precise_scenarios[which(precise_scenarios$Variable=="maintenance_coefficient_Cfi_other"),coln]<-0.322   
+   precise_scenarios[which(precise_scenarios$Variable=="maintenance_coefficient_Cfi_lact_cow"),coln]<-0.386
+   precise_scenarios[which(precise_scenarios$Variable=="maintenance_coefficient_Cfi_bulls"),coln]<-0.370
+   precise_scenarios[which(precise_scenarios$Variable=="mature_weight_MW_female"),coln]<-349 
+   precise_scenarios[which(precise_scenarios$Variable=="mature_weight_MW_male"),coln]<-483   
+   precise_scenarios[which(precise_scenarios$Variable=="milk_fat"),coln]<-4 
+   precise_scenarios[which(precise_scenarios$Variable=="Cp_rate_4"),coln]<-0.1  
+   precise_scenarios[which(precise_scenarios$Variable=="Cp_rate_5"),coln]<-0.1   
+   precise_scenarios[which(precise_scenarios$Variable=="Cp_rate_6"),coln]<-0.1
+   precise_scenarios[which(precise_scenarios$Variable=="Y_m"),coln]<-0.06 
+
+   precise_scenarios[which(precise_scenarios$Variable=="Bo_animaltype_1"),coln]<-0.13
+   precise_scenarios[which(precise_scenarios$Variable=="Bo_animaltype_2"),coln]<-0.13
+   precise_scenarios[which(precise_scenarios$Variable=="Bo_animaltype_3"),coln]<-0.13
+   precise_scenarios[which(precise_scenarios$Variable=="Bo_animaltype_4"),coln]<-0.13   
+   precise_scenarios[which(precise_scenarios$Variable=="Bo_animaltype_5"),coln]<-0.13   
+   precise_scenarios[which(precise_scenarios$Variable=="Bo_animaltype_6"),coln]<-0.13   
+   precise_scenarios[which(precise_scenarios$Variable=="Bo_animaltype_7"),coln]<-0.13   
+   precise_scenarios[which(precise_scenarios$Variable=="Bo_animaltype_8"),coln]<-0.13   
+   precise_scenarios[which(precise_scenarios$Variable=="Bo_animaltype_9"),coln]<-0.13   
+   precise_scenarios[which(precise_scenarios$Variable=="Bo_animaltype_10"),coln]<-0.13   
+   precise_scenarios[which(precise_scenarios$Variable=="Bo_animaltype_11"),coln]<-0.13   
+   precise_scenarios[which(precise_scenarios$Variable=="Bo_animaltype_12"),coln]<-0.13   
+   precise_scenarios[which(precise_scenarios$Variable=="MCFpasture"),coln]<-0.0047   
+   precise_scenarios[which(precise_scenarios$Variable=="MCFspread"),coln]<-0.01
+   precise_scenarios[which(precise_scenarios$Variable=="MCFdrylot"),coln]<-0.02     
+   precise_scenarios[which(precise_scenarios$Variable=="MCFsolidstore"),coln]<-0.05
+   precise_scenarios[which(precise_scenarios$Variable=="MCFcomposted"),coln]<-0.025
+   precise_scenarios[which(precise_scenarios$Variable=="MCFliquid"),coln]<-0.8   
+   precise_scenarios[which(precise_scenarios$Variable=="MCFbiogas"),coln]<-0.1085   
+   precise_scenarios[which(precise_scenarios$Variable=="MCFburn"),coln]<-0.1   
+   precise_scenarios[which(precise_scenarios$Variable=="MCFsold"),coln]<-0   
+   precise_scenarios[which(precise_scenarios$Variable=="mndec_pasture"),coln]<-0.02   
+   precise_scenarios[which(precise_scenarios$Variable=="mndec_spread"),coln]<-0   
+   precise_scenarios[which(precise_scenarios$Variable=="mndec_drylot"),coln]<-0.02   
+   precise_scenarios[which(precise_scenarios$Variable=="mndec_solidstore"),coln]<-0.01   
+   precise_scenarios[which(precise_scenarios$Variable=="mndec_composted"),coln]<-0.01   
+   precise_scenarios[which(precise_scenarios$Variable=="mndec_liquid"),coln]<-0.01   
+   precise_scenarios[which(precise_scenarios$Variable=="mnvc_pasture"),coln]<-0.02
+   precise_scenarios[which(precise_scenarios$Variable=="mnvc_spread"),coln]<-0.07
+   precise_scenarios[which(precise_scenarios$Variable=="mnvc_drylot"),coln]<-0.3
+   precise_scenarios[which(precise_scenarios$Variable=="mnvc_solidstore"),coln]<-0.45   
+   precise_scenarios[which(precise_scenarios$Variable=="mnvc_composted"),coln]<-0.65   
+   precise_scenarios[which(precise_scenarios$Variable=="mnvc_liquid"),coln]<-0.3   
+   precise_scenarios[which(precise_scenarios$Variable=="frac_leach_pasture"),coln]<-0.24   
+   precise_scenarios[which(precise_scenarios$Variable=="frac_leach_spread"),coln]<-0.24   
+   precise_scenarios[which(precise_scenarios$Variable=="frac_leach_drylot"),coln]<-0.24   
+   precise_scenarios[which(precise_scenarios$Variable=="frac_leach_solidstore"),coln]<-0.24   
+   precise_scenarios[which(precise_scenarios$Variable=="frac_leach_composted"),coln]<-0.24  
+   precise_scenarios[which(precise_scenarios$Variable=="frac_leach_liquid"),coln]<-0.24
+
+   }
+  
+write.csv(precise_scenarios,"data/farm_scenarios_precise.csv",row.names = FALSE)
+
+```
+
+
 
 The first few rows in this table adjust the herd composition parameters, so that the scenario herd corresponds to the herd of the specific household. Other parameters including the milk yield per cow are also adjusted.
 
@@ -270,61 +423,75 @@ enteric_CH4_dist_plot <- plot_distributions(mcSimulation_object = GHG_simulation
                    vars = "enteric_CH4",
                    method = "boxplot_density",
                    old_names = "enteric_CH4",
-                   new_names = "CH4 Emissions from Enteric Fermentation per Farm") + 
+                   new_names = "CH[4]~Emissions~from~Enteric~Fermentation~(kg~CH[4])") + 
   theme(axis.title.x=element_blank(),
         axis.title.y=element_blank())
+
+enteric_CH4_dist_plot <- enteric_CH4_dist_plot + facet_wrap(. ~ name, labeller = label_parsed)
 
 # milk_yield=sum(total_milk),
 milk_yield_dist_plot <- plot_distributions(mcSimulation_object = GHG_simulation_scenarios,
                    vars = "milk_yield",
                    method = "boxplot_density",
                    old_names = "milk_yield",
-                   new_names = "Total Milk Yield") + 
+                   new_names = "Total~Milk~Yield~(kg)") + 
   theme(axis.title.x=element_blank(),
         axis.title.y=element_blank())
+
+milk_yield_dist_plot <- milk_yield_dist_plot + facet_wrap(. ~ name, labeller = label_parsed)
 
 # enteric_CH4_CO2eq=sum(enteric_CH4_CO2eq),
 enteric_CH4_CO2eq_dist_plot <- plot_distributions(mcSimulation_object = GHG_simulation_scenarios,
                    vars = "enteric_CH4_CO2eq",
                    method = "boxplot_density",
                    old_names = "enteric_CH4_CO2eq",
-                   new_names = "Carbon Dioxide Equivalent Enteric Methane Emissions from Livestock") + 
+                   new_names = "Enteric~CH[4]~Emissions~from~Livestock~(kg~CO[2]*'-eq')") + 
   theme(axis.title.x=element_blank())
+
+enteric_CH4_CO2eq_dist_plot <- enteric_CH4_CO2eq_dist_plot + facet_wrap(. ~ name, labeller = label_parsed)
 
 # mm_CH4_CO2eq=sum(mm_CH4_CO2eq),
 mm_CH4_CO2eq_dist_plot <- plot_distributions(mcSimulation_object = GHG_simulation_scenarios,
                    vars = "mm_CH4_CO2eq",
                    method = "boxplot_density",
                    old_names = "mm_CH4_CO2eq",
-                   new_names = "Carbon Dioxide Equivalent Methane Emissions from Livestock Manure") + 
+                   new_names = "CH[4]~Emissions~from~Livestock~Manure~(kg~CO[2]*'-eq')") + 
   theme(axis.title.x=element_blank(),
         axis.title.y=element_blank())
+
+mm_CH4_CO2eq_dist_plot <- mm_CH4_CO2eq_dist_plot + facet_wrap(. ~ name, labeller = label_parsed)
+
 
 # mm_N2O_CO2eq=sum(mm_N2O_CO2eq),
 mm_N2O_CO2eq_dist_plot <- plot_distributions(mcSimulation_object = GHG_simulation_scenarios,
                    vars = "mm_N2O_CO2eq",
                    method = "boxplot_density",
                    old_names = "mm_N2O_CO2eq",
-                   new_names = "Carbon Dioxide Equivalent Nitrous Oxide Emissions from Livestock Manure") + 
+                   new_names = "N[2]*O~Emissions~from~Livestock~Manure~(kg~CO[2]*'-eq')") + 
   theme(axis.title.x=element_blank(),
         axis.title.y=element_blank())
+
+mm_N2O_CO2eq_dist_plot <- mm_N2O_CO2eq_dist_plot + facet_wrap(. ~ name, labeller = label_parsed)
 
 # feed_CO2=feed_CO2,
 feed_CO2_dist_plot <- plot_distributions(mcSimulation_object = GHG_simulation_scenarios,
                    vars = "feed_CO2",
                    method = "boxplot_density",
                    old_names = "feed_CO2",
-                   new_names = "Carbon Dioxide Emissions from Livestock Feed Production and Transport") + 
+                   new_names = "CO[2]~Emissions~from~Livestock~Feed~Production~and~Transport~(kg)") + 
   theme(axis.title.x=element_blank(),
         axis.title.y=element_blank())
+feed_CO2_dist_plot <- feed_CO2_dist_plot + facet_wrap(. ~ name, labeller = label_parsed)
 
 # on_farm=sum(on_farm)
 on_farm_dist_plot <- plot_distributions(mcSimulation_object = GHG_simulation_scenarios,
                    vars = "on_farm",
                    method = "boxplot_density",
                    old_names = "on_farm",
-                   new_names = "Total Carbon Dioxide Equivalent Emissions from Livestock") + 
+                   new_names = "Total~Emissions~from~Livestock~(kg~CO[2]*'-eq')") + 
   theme(axis.title.y=element_blank())
+
+on_farm_dist_plot <- on_farm_dist_plot + facet_wrap(. ~ name, labeller = label_parsed)
 
 library(patchwork)
 # remove the axis marks from the two lefthand-most plots and the x-axis title from the left and right plots
@@ -343,10 +510,10 @@ enteric_CH4_dist_plot + milk_yield_dist_plot +
   on_farm_dist_plot + 
 plot_layout(guides = "collect", design = layout) 
 
-ggsave("Fig_1_GHG_simulation_outputs.png")
+ggsave("Fig_1_GHG_simulation_outputs.png",width=9,height=9)
 ```
 
-*# THIS STILL NEEDS IMPROVEMENT - e.g. units are missing, and plot titles don't fit (use concise symbols with subscripts etc.)*
+*# THIS STILL NEEDS CHECKING - are all the units correct?*
 
 # Possible errors resulting from input uncertainty
 
@@ -363,35 +530,51 @@ farm5_emissions<-scenario_mc(base_estimate = estimate_read_csv("data/livestock_g
                              numberOfModelRuns = 1000,
                              functionSyntax = "plainNames")
 
-plot_distributions(mcSimulation_object = farm5_emissions,
+
+precise_scenarios<-read.csv("data/farm_scenarios_precise.csv", fileEncoding = "UTF-8-BOM")
+
+farm5_precise<-precise_scenarios[,c(1,2,7)]
+  
+farm5_emissions_precise<-scenario_mc(base_estimate = estimate_read_csv("data/livestock_ghg_input_table.csv"),
+                             scenarios = farm5_precise,
+                             model_function = ghg_emissions,
+                             numberOfModelRuns = 10,
+                             functionSyntax = "plainNames")
+
+pd<-plot_distributions(mcSimulation_object = farm5_emissions,
                    vars = "on_farm",
                    method = "boxplot_density",
                    old_names = "on_farm",
-                   new_names = "Total Carbon Dioxide Equivalent Emissions from Livestock") + 
+                   new_names = "Total~Emissions~from~Livestock~(kg~CO[2]*'-eq')") + 
   theme(axis.title.y=element_blank())
 
-ggsave("Fig_2_uncertainty_illustration.png")
+pd + facet_wrap(. ~ name, labeller = label_parsed) + geom_vline(data=farm5_emissions_precise$y, aes(xintercept=on_farm),color="blue", lwd=3)
+
+ggsave("Fig_2_uncertainty_illustration.png",width=5,height=3)
 
 ```
 
-*# NEED TO ADD THE USUAL PRECISE VALUE HERE FOR COMPARISON (also need to add units and possibly fix up other things)*
+The blue line represents a classic best-bet estimate based on default values in the IPCC guidelines and some context-specific reasonable guesses.
 
-*This* 
 
 ```{r}
 farm5_emissions$y[,"CO2eq_per_milk"]<-farm5_emissions$y$pc_on_farm/farm5_emissions$y$pc_milk_yield
 
-ggplot(data=farm5_emissions$y, aes(CO2eq_per_milk)) +
+histo<-ggplot(data=farm5_emissions$y, aes(CO2eq_per_milk)) +
 geom_histogram(aes(y=..density..), colour="black", fill="white")+
  geom_density(alpha=.2, fill="#FF6666") +
   ylab("Relative probability") +
-    xlab(expression(Emission~density~of~milk~production~(kg~CO[2]-eq~kg^-1)))
+    xlab(expression(Emission~density~of~milk~production~(~kg~CO[2]*'-eq'~kg^-1)))
 
-ggsave("Fig_3_emission_density_farm5.png")
+farm5_emissions_precise$y[,"CO2eq_per_milk"]<-farm5_emissions_precise$y$pc_on_farm/farm5_emissions_precise$y$pc_milk_yield
+
+histo + geom_vline(data=farm5_emissions_precise$y, aes(xintercept=CO2eq_per_milk),color="blue", lwd=3)
+
+ggsave("Fig_3_emission_density_farm5.png",width=5,height=3)
 
 ```
 
-*# STILL NEED TO add the usual precise value estimate*
+Also here, the blue line represents a classic best-bet estimate based on default values in the IPCC guidelines and some context-specific reasonable guesses.
 
 # Population-wide emission density of milk production
 
