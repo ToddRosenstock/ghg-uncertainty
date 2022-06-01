@@ -585,15 +585,51 @@ We can illustrate this uncertainty using a scatter plot. The following figure sh
 As with the GHG Model, we apply the uncertainty functions on the `milk_yield` and `on_farm` variables. These come from the model results (`r nrow(GHG_simulation_scenarios$y)`) of the `GHG_simulation_scenarios` model results to the `in_var` (x) and an outcome variable `out_var` (y). In the model we defined `on_farm` as the sum of Carbon Dioxide Equivalent Enteric Methane Emissions from Livestock (`enteric_CH4_CO2eq`), Carbon Dioxide Equivalent Methane Emissions from Livestock Manure (`mm_CH4_CO2eq`), Carbon Dioxide Equivalent Nitrous Oxide Emissions from Livestock Manure (`mm_N2O_CO2eq`) and Carbon Dioxide Emissions from Livestock Feed Production and Transport (`feed_CO2`).
 
 
-```{r}
-uncertainty::varscatter(in_var = GHG_simulation_scenarios$y$pc_milk_yield,
-                        out_var = GHG_simulation_scenarios$y$pc_on_farm,
-                        xlab = expression(Total~milk~yield~(kg~head^{-1}~year^{-1})),
-                        ylab = expression(Total~emissions~(kg~CO[2]-eq~head^{-1}~year^{-1})))
+```{r, warning=FALSE, message=FALSE}
+#uncertainty::varscatter(in_var = GHG_simulation_scenarios$y$pc_milk_yield,
+#                        out_var = GHG_simulation_scenarios$y$pc_on_farm,
+#                        xlab = expression(Total~milk~yield~(kg~head^{-1}~year^{-1})),
+#                        ylab = expression(Total~emissions~(kg~CO[2]-eq~head^{-1}~year^{-1})))
+
+plotdata<-data.frame(in_var=GHG_simulation_scenarios$y$pc_milk_yield,
+                     out_var=GHG_simulation_scenarios$y$pc_on_farm,
+                     Group="just one")
+
+plot1 <- ggplot(plotdata, aes(x = in_var, y = out_var)) + 
+  geom_point(shape = 20, color = "blue", size = 2) + 
+  stat_smooth(method = "loessm", fullrange = TRUE) +
+  geom_density_2d() +
+  geom_rug(color="lightskyblue3") + 
+  labs(y=expression(Total~emissions~(kg~CO[2]*'-eq'~head^{-1}~year^{-1})),
+       x=expression(Total~milk~yield~(kg~head^{-1}~year^{-1}))) +
+  theme_bw() +
+  theme(legend.position = c(0.15, 0.9)) 
+
+dens1 <- ggplot(plotdata, aes(x = in_var)) + 
+  geom_histogram(aes(y = ..density..),
+                 colour = 1, fill = "white") +
+  geom_density(fill="lightskyblue3") + 
+  geom_histogram(aes(y = ..density..),
+                 colour = 1, alpha=0) + 
+  theme_void() + 
+  theme(legend.position = "none")
+
+dens2 <- ggplot(plotdata, aes(x = out_var)) + 
+  geom_histogram(aes(y = ..density..),
+                 colour = 1, fill = "white") +
+  geom_density(fill="lightskyblue3") + 
+  geom_histogram(aes(y = ..density..),
+                 colour = 1, alpha=0) + 
+  theme_void() + 
+  theme(legend.position = "none") + 
+  coord_flip()
+
+dens1 + plot_spacer() + plot1 + dens2 + 
+  plot_layout(ncol = 2, nrow = 2, widths = c(4, 1), heights = c(1, 4))
+
+ggsave("Fig_4_scatter_per_head_milk_emissions.png",width=5,height=3)
+
 ```
-
-*# NICE PLOT, but would be nicer still if this was also a ggplot figure. Kinda inconsistent if it isn't. Also can't save it with ggsave, so will need another way.*
-
 
 # Emissions intensity of milk production
 
@@ -613,21 +649,75 @@ dairy_households$y<-dairy_households$y[normal_milk_yield,]
 
 Now we can plot the emissions intensity vs. the milk yield.
 
-```{r}
+```{r, warning=FALSE, message=FALSE}
 
-uncertainty::varscatter(in_var = dairy_households$y$pc_milk_yield,
-                        out_var = dairy_households$y$CO2eq_per_milk,
-                        xlab = expression(Total~milk~yield~(kg~head^{-1}~year^{-1})),
-                        ylab = expression(Total~emissions~intensity~of~milk~production~(kg~CO[2]-eq~kg^{-1})))
+#uncertainty::varscatter(in_var = dairy_households$y$pc_milk_yield,
+#                        out_var = dairy_households$y$CO2eq_per_milk,
+#                        xlab = expression(Total~milk~yield~(kg~head^{-1}~year^{-1})),
+#                        ylab = expression(Total~emissions~intensity~of~milk~production~(kg~CO[2]-eq~kg^{-1})))
+
+plotdata<-data.frame(in_var=dairy_households$y$pc_milk_yield,
+                     out_var=dairy_households$y$CO2eq_per_milk,
+                     Group="just one")
+
+plot1 <- ggplot(plotdata, aes(x = in_var, y = out_var)) + 
+  geom_point(shape = 20, color = "blue", size = 2) + 
+  stat_smooth(method = "loess", fullrange = TRUE) +
+  geom_density_2d() +
+  geom_rug(color="lightskyblue3") + 
+  labs(y=expression(Total~emissions~intensity~of~milk~production~(kg~CO[2]*'-eq'~kg^{-1})),
+       x=expression(Total~milk~yield~(kg~head^{-1}~year^{-1}))) +
+  theme_bw() +
+  theme(legend.position = c(0.15, 0.9)) 
+
+dens1 <- ggplot(plotdata, aes(x = in_var)) + 
+  geom_histogram(aes(y = ..density..),
+                 colour = 1, fill = "white") +
+  geom_density(fill="lightskyblue3") + 
+  geom_histogram(aes(y = ..density..),
+                 colour = 1, alpha=0) + 
+  theme_void() + 
+  theme(legend.position = "none")
+
+dens2 <- ggplot(plotdata, aes(x = out_var)) + 
+  geom_histogram(aes(y = ..density..),
+                 colour = 1, fill = "white") +
+  geom_density(fill="lightskyblue3") + 
+  geom_histogram(aes(y = ..density..),
+                 colour = 1, alpha=0) + 
+  theme_void() + 
+  theme(legend.position = "none") + 
+  coord_flip()
+
+dens1 + plot_spacer() + plot1 + dens2 + 
+  plot_layout(ncol = 2, nrow = 2, widths = c(4, 1), heights = c(1, 4))
+
+ggsave("Fig_5_scatter_per_head_milk_emissions_intensity.png",width=7,height=7)
+
 ```
 
 This can also be illustrated by a density surface.
 
 ```{r varkernel}
-uncertainty::varkernel(in_var = dairy_households$y$pc_milk_yield,
-                        out_var = dairy_households$y$CO2eq_per_milk,
-                        xlab = expression(Total~milk~yield~(kg~head^{-1}~year^{-1})),
-                        ylab = expression(Total~emissions~intensity~of~milk~production~(kg~CO[2]-eq~kg^{-1})))
+#uncertainty::varkernel(in_var = dairy_households$y$pc_milk_yield,
+#                        out_var = dairy_households$y$CO2eq_per_milk,
+#                        xlab = expression(Total~milk~yield~(kg~head^{-1}~year^{-1})),
+#                        ylab = expression(Total~emissions~intensity~of~milk~production~(kg~CO[2]-eq~kg^{-1})))
+
+
+ggplot(plotdata, aes(x = in_var, y = out_var)) +
+  stat_density_2d(
+    geom = "raster",
+    aes(fill = after_stat(density)),
+    contour = FALSE
+    ) +
+  scale_fill_viridis_c() + 
+  labs(y=expression(Total~emissions~intensity~of~milk~production~(kg~CO[2]*'-eq'~kg^{-1})),
+       x=expression(Total~milk~yield~(kg~head^{-1}~year^{-1}))) +
+  theme_bw()
+  
+ggsave("Fig_6_surface_per_head_milk_emissions_intensity.png",width=7,height=7)
+
 ```
 
 The milk yield per capita is sometimes proposed as an indicator of greenhouse gas emissions. We can now examine the merits of this indicator. Essentially, its usefulness hinges on its relationship with greenhouse gas emission intensity. We can investigate this by taking slices through the density surface.
@@ -644,21 +734,21 @@ slice<-uncertainty::varslice_resample(in_var = dairy_households$y$pc_milk_yield,
                            n_samples = 1000,
                            out_var_sampling = 1000) 
 
-graphics::plot(x = slice$slice$Output_values, 
-                 y = slice$slice$Relative_probability, 
-                 type = "l", 
-                 ylab = "Relative probability", 
-                 xlab = "Emissions intensity", 
-                 col = "seagreen", 
-                 lwd = 2)
+#graphics::plot(x = slice$slice$Output_values, 
+#                 y = slice$slice$Relative_probability, 
+#                 type = "l", 
+#                 ylab = "Relative probability", 
+#                 xlab = "Emissions intensity", 
+#                 col = "seagreen", 
+#                 lwd = 2)
 
 ggplot(data=data.frame(CO2eq_per_milk=slice$resampled), aes(CO2eq_per_milk)) +
 geom_histogram(aes(y=..density..), colour="black", fill="white")+
  geom_density(alpha=.2, fill="#FF6666") +
   ylab("Relative probability") +
-    xlab(expression(Emission~density~of~milk~production~at~2000~kg~milk~per~capita~(XX~CO[2]-eq~kg^-1)))
+    xlab(expression(Emission~intensity~of~milk~production~at~2000~kg~milk~per~capita~(kg~CO[2]*'-eq'~kg^-1)))
 
-ggsave("Fig_X_emission_density_all_farms.png")
+ggsave("Fig_7_emission_density_all_farms.png")
 
 ```
 
@@ -742,7 +832,7 @@ ggplot(data = decreased_emissions_probability, aes(Base_yield, yield_increase, z
   ylab("Milk yield increase per head and year (kg)") +
   stat_contour(breaks = c(0.9),col="black")
 
-ggsave("Fig_X1_probability_of_intensity_reduction.png")
+ggsave("Fig_8_probability_of_intensity_reduction.png", width=7,height=5)
 
 
 
@@ -818,6 +908,8 @@ cows<-Kenyaherds[which(Kenyaherds$animal_type %in% 4:6),]
 ggplot(cows, aes(factor(breed),milk_yield)) +
   geom_violin(draw_quantiles=c(0.5),fill="light green") +
   xlab("Breed") + ylab("Milk yield (kg per day)") + theme_bw()
+
+ggsave("Fig_9_breeds.png", width=7,height=5)
 
 milk_summary<-cbind(aggregate(cows$milk_yield, by=list(cows$breed), FUN=median),table(cows$breed))
 milk_summary<-milk_summary[,c(1,4,2)]
@@ -988,7 +1080,7 @@ impact_of_breed[,"emissions_intensity_change"]<-round(impact_of_breed$CO2_intens
 
 ggplot(data=impact_of_breed,aes(x=milk_change,y=emissions_intensity_change)) + geom_point() + theme_bw() + ylab("Change in emissions intensity (kg CO2-eq kg-1)") + xlab("Change in per capita milk yield (kg)")
 
-ggsave("Fig_XX_breed_reductions.png")
+ggsave("Fig_10_breed_reductions.png", width=7,height=5)
 
 ```
 
@@ -1000,7 +1092,7 @@ ggplot(data = decreased_emissions_probability, aes(Base_yield, yield_increase)) 
   ggtitle("Probability that emission intensity reductions occurred") + 
   xlab("Baseline milk yield per head and year (kg)") +
   ylab("Milk yield increase per head and year (kg)") 
-ggsave("Fig_XX1_breed_probability_of_intensity_reduction.png")
+ggsave("Fig_11_breed_probability_of_intensity_reduction.png", width=7,height=5)
 
 
 ```
