@@ -79,7 +79,7 @@ This equation takes a wide range of inputs. Many of these are usually not known 
  input_table <- "data/livestock_ghg_input_table.csv"
 
 options(knitr.kable.NA = '', encoding = "Windows-1252")
- read.csv(input_table)[,c(1:2,4:6)]   %>%
+ read.csv(input_table)[,c(1:2,4,7,5:6)]   %>%
     kableExtra::kbl(digits = 2)  %>%
     kableExtra::kable_classic_2(full_width = F)
 
@@ -257,17 +257,13 @@ variables_to_update_posnorm<-c(paste0("milk_yield_",4:6),
                              "DE_perc",
                              "perc_crude_protein_diet")
 
-precise_estimates<-c("Ca_pasture","Ca_large_grazing","C_intact_males","C_castrates","C_females","maintenance_coefficient_Cfi_other",
-                     "maintenance_coefficient_Cfi_lact_cow","maintenance_coefficient_Cfi_bulls","mature_weight_MW_female","mature_weight_MW_male",
-                     "milk_fat","Cp_rate_4","Cp_rate_5","Cp_rate_6","Y_m","Bo_animaltype_1","Bo_animaltype_2","Bo_animaltype_3","Bo_animaltype_4",
-                     "Bo_animaltype_5","Bo_animaltype_6","Bo_animaltype_7","Bo_animaltype_8","Bo_animaltype_9","Bo_animaltype_10","Bo_animaltype_11",
-                     "Bo_animaltype_12","MCFpasture","MCFspread","MCFdrylot","MCFsolidstore","MCFcomposted","MCFliquid","MCFbiogas","MCFburn","MCFsold",
-                     "mndec_pasture","mndec_spread","mndec_drylot","mndec_solidstore","mndec_composted","mndec_liquid","mnvc_pasture","mnvc_spread",
-                     "mnvc_drylot","mnvc_solidstore","mnvc_composted","mnvc_liquid","frac_leach_pasture","frac_leach_spread","frac_leach_drylot",
-                     "frac_leach_solidstore","frac_leach_composted","frac_leach_liquid")
 
+precise_inputs<-read.csv(input_table)[,c(1:7)] 
+precise_vars<-precise_inputs[which(!is.na(precise_inputs$IPCC_default)),]
 
-precise_scenarios<-data.frame(Variable=c(variables_to_update_const,variables_to_update_posnorm,precise_estimates),param="both")
+precise_scenarios<-data.frame(Variable=c(variables_to_update_const,variables_to_update_posnorm,precise_vars$variable),param="both")
+                                         
+                                      #   precise_estimates),param="both")
 
 
 for(i in 1:nrow(animals))
@@ -326,63 +322,11 @@ for (f in Farms)
    
    # now add the best estimates from the IPCC guidelines to the precise scenarios
    
-   precise_scenarios[which(precise_scenarios$Variable=="Ca_pasture"),coln]<-0.17
-   precise_scenarios[which(precise_scenarios$Variable=="Ca_large_grazing"),coln]<-0.36
-   precise_scenarios[which(precise_scenarios$Variable=="C_intact_males"),coln]<-1.2   
-   precise_scenarios[which(precise_scenarios$Variable=="C_castrates"),coln]<-1.0   
-   precise_scenarios[which(precise_scenarios$Variable=="C_females"),coln]<-0.8   
-   precise_scenarios[which(precise_scenarios$Variable=="maintenance_coefficient_Cfi_other"),coln]<-0.322   
-   precise_scenarios[which(precise_scenarios$Variable=="maintenance_coefficient_Cfi_lact_cow"),coln]<-0.386
-   precise_scenarios[which(precise_scenarios$Variable=="maintenance_coefficient_Cfi_bulls"),coln]<-0.370
-   precise_scenarios[which(precise_scenarios$Variable=="mature_weight_MW_female"),coln]<-349 
-   precise_scenarios[which(precise_scenarios$Variable=="mature_weight_MW_male"),coln]<-483   
-   precise_scenarios[which(precise_scenarios$Variable=="milk_fat"),coln]<-4 
-   precise_scenarios[which(precise_scenarios$Variable=="Cp_rate_4"),coln]<-0.1  
-   precise_scenarios[which(precise_scenarios$Variable=="Cp_rate_5"),coln]<-0.1   
-   precise_scenarios[which(precise_scenarios$Variable=="Cp_rate_6"),coln]<-0.1
-   precise_scenarios[which(precise_scenarios$Variable=="Y_m"),coln]<-0.06 
+   for(vv in 1:nrow(precise_vars))
+     precise_scenarios[which(precise_scenarios$Variable==precise_vars$variable[vv]),coln]<-
+     precise_vars$IPCC_default[vv]
 
-   precise_scenarios[which(precise_scenarios$Variable=="Bo_animaltype_1"),coln]<-0.13
-   precise_scenarios[which(precise_scenarios$Variable=="Bo_animaltype_2"),coln]<-0.13
-   precise_scenarios[which(precise_scenarios$Variable=="Bo_animaltype_3"),coln]<-0.13
-   precise_scenarios[which(precise_scenarios$Variable=="Bo_animaltype_4"),coln]<-0.13   
-   precise_scenarios[which(precise_scenarios$Variable=="Bo_animaltype_5"),coln]<-0.13   
-   precise_scenarios[which(precise_scenarios$Variable=="Bo_animaltype_6"),coln]<-0.13   
-   precise_scenarios[which(precise_scenarios$Variable=="Bo_animaltype_7"),coln]<-0.13   
-   precise_scenarios[which(precise_scenarios$Variable=="Bo_animaltype_8"),coln]<-0.13   
-   precise_scenarios[which(precise_scenarios$Variable=="Bo_animaltype_9"),coln]<-0.13   
-   precise_scenarios[which(precise_scenarios$Variable=="Bo_animaltype_10"),coln]<-0.13   
-   precise_scenarios[which(precise_scenarios$Variable=="Bo_animaltype_11"),coln]<-0.13   
-   precise_scenarios[which(precise_scenarios$Variable=="Bo_animaltype_12"),coln]<-0.13   
-   precise_scenarios[which(precise_scenarios$Variable=="MCFpasture"),coln]<-0.0047   
-   precise_scenarios[which(precise_scenarios$Variable=="MCFspread"),coln]<-0.01
-   precise_scenarios[which(precise_scenarios$Variable=="MCFdrylot"),coln]<-0.02     
-   precise_scenarios[which(precise_scenarios$Variable=="MCFsolidstore"),coln]<-0.05
-   precise_scenarios[which(precise_scenarios$Variable=="MCFcomposted"),coln]<-0.025
-   precise_scenarios[which(precise_scenarios$Variable=="MCFliquid"),coln]<-0.8   
-   precise_scenarios[which(precise_scenarios$Variable=="MCFbiogas"),coln]<-0.1085   
-   precise_scenarios[which(precise_scenarios$Variable=="MCFburn"),coln]<-0.1   
-   precise_scenarios[which(precise_scenarios$Variable=="MCFsold"),coln]<-0   
-   precise_scenarios[which(precise_scenarios$Variable=="mndec_pasture"),coln]<-0.02   
-   precise_scenarios[which(precise_scenarios$Variable=="mndec_spread"),coln]<-0   
-   precise_scenarios[which(precise_scenarios$Variable=="mndec_drylot"),coln]<-0.02   
-   precise_scenarios[which(precise_scenarios$Variable=="mndec_solidstore"),coln]<-0.01   
-   precise_scenarios[which(precise_scenarios$Variable=="mndec_composted"),coln]<-0.01   
-   precise_scenarios[which(precise_scenarios$Variable=="mndec_liquid"),coln]<-0.01   
-   precise_scenarios[which(precise_scenarios$Variable=="mnvc_pasture"),coln]<-0.02
-   precise_scenarios[which(precise_scenarios$Variable=="mnvc_spread"),coln]<-0.07
-   precise_scenarios[which(precise_scenarios$Variable=="mnvc_drylot"),coln]<-0.3
-   precise_scenarios[which(precise_scenarios$Variable=="mnvc_solidstore"),coln]<-0.45   
-   precise_scenarios[which(precise_scenarios$Variable=="mnvc_composted"),coln]<-0.65   
-   precise_scenarios[which(precise_scenarios$Variable=="mnvc_liquid"),coln]<-0.3   
-   precise_scenarios[which(precise_scenarios$Variable=="frac_leach_pasture"),coln]<-0.24   
-   precise_scenarios[which(precise_scenarios$Variable=="frac_leach_spread"),coln]<-0.24   
-   precise_scenarios[which(precise_scenarios$Variable=="frac_leach_drylot"),coln]<-0.24   
-   precise_scenarios[which(precise_scenarios$Variable=="frac_leach_solidstore"),coln]<-0.24   
-   precise_scenarios[which(precise_scenarios$Variable=="frac_leach_composted"),coln]<-0.24  
-   precise_scenarios[which(precise_scenarios$Variable=="frac_leach_liquid"),coln]<-0.24
-
-   }
+    }
   
 write.csv(precise_scenarios,"data/farm_scenarios_precise.csv",row.names = FALSE)
 
@@ -1134,28 +1078,86 @@ class(nobull_res)<-"mcSimulation"
 
 We're assuming that all bulls >36 months old have been removed.
 
-```{r, fig.show="hold", out.width="50%", fig.cap="No bulls intervention (left) vs. baseline (right)", message=FALSE}
+```{r, fig.show="hold", fig.cap="No bulls intervention (left) vs. baseline (right)", message=FALSE, warning=FALSE}
 
-uncertainty::varscatter(in_var = nobull_res$y$pc_milk_yield,
-                        out_var = nobull_res$y$pc_on_farm,
-                        xlab = expression(Total~milk~yield~(kg~head^{-1}~year^{-1})),
-                        ylab = expression(Total~emissions~(kg~CO[2]-eq~head^{-1}~year^{-1}))) 
+nobull_res$y[,"CO2eq_per_milk"]<-nobull_res$y$pc_on_farm/nobull_res$y$pc_milk_yield
 
-uncertainty::varscatter(in_var = GHG_simulation_scenarios$y$pc_milk_yield,
-                        out_var = GHG_simulation_scenarios$y$pc_on_farm,
-                        xlab = expression(Total~milk~yield~(kg~head^{-1}~year^{-1})),
-                        ylab = expression(Total~emissions~(kg~CO[2]-eq~head^{-1}~year^{-1})))
+#uncertainty::varscatter(in_var = nobull_res$y$pc_milk_yield,
+#                        out_var = nobull_res$y$CO2eq_per_milk,
+#                        xlab = expression(Total~milk~yield~(kg~head^{-1}~year^{-1})),
+#                        ylab = expression(Total~emissions~(kg~CO[2]-eq~head^{-1}~year^{-1}))) 
 
-uncertainty::varkernel(in_var = nobull_res$y$pc_milk_yield,
-                        out_var = nobull_res$y$pc_on_farm,
-                        xlab = expression(Total~milk~yield~(kg~head^{-1}~year^{-1})),
-                        ylab = expression(Total~emissions~(kg~CO[2]-eq~head^{-1}~year^{-1})))
+#uncertainty::varscatter(in_var = GHG_simulation_scenarios$y$pc_milk_yield,
+#                        out_var = GHG_simulation_scenarios$y$CO2eq_per_milk,
+#                        xlab = expression(Total~milk~yield~(kg~head^{-1}~year^{-1})),
+#                        ylab = expression(Total~emissions~(kg~CO[2]-eq~head^{-1}~year^{-1})))
 
-uncertainty::varkernel(in_var = GHG_simulation_scenarios$y$pc_milk_yield,
-                        out_var = GHG_simulation_scenarios$y$pc_on_farm,
-                        xlab = expression(Total~milk~yield~(kg~head^{-1}~year^{-1})),
-                        ylab = expression(Total~emissions~(kg~CO[2]-eq~head^{-1}~year^{-1})))
+#uncertainty::varkernel(in_var = nobull_res$y$pc_milk_yield,
+#                        out_var = nobull_res$y$pc_on_farm,
+#                        xlab = expression(Total~milk~yield~(kg~head^{-1}~year^{-1})),
+#                        ylab = expression(Total~emissions~(kg~CO[2]-eq~head^{-1}~year^{-1})))
 
+#uncertainty::varkernel(in_var = GHG_simulation_scenarios$y$pc_milk_yield,
+#                        out_var = GHG_simulation_scenarios$y$pc_on_farm,
+#                        xlab = expression(Total~milk~yield~(kg~head^{-1}~year^{-1})),
+#                        ylab = expression(Total~emissions~(kg~CO[2]-eq~head^{-1}~year^{-1})))
+
+
+
+plotdata_nobull<-data.frame(in_var=nobull_res$y$pc_milk_yield,
+                     out_var=nobull_res$y$CO2eq_per_milk)
+
+plotdata_baseline<-data.frame(in_var=GHG_simulation_scenarios$y$pc_milk_yield,
+                     out_var=GHG_simulation_scenarios$y$CO2eq_per_milk)
+
+plot_nobull <- ggplot(plotdata_nobull, aes(x = in_var, y = out_var)) + 
+  geom_point(shape = 20, color = "blue", size = 2) + 
+  stat_smooth(method = "loess", fullrange = TRUE) +
+  geom_density_2d() +
+  geom_rug(color="lightskyblue3") + 
+  labs(y=expression(Emissions~intensity~of~milk~production~(kg~CO[2]*'-eq'~kg^{-1})),
+       x=expression(Total~milk~yield~(kg~head^{-1}~year^{-1}))) +
+  theme_bw() +
+  theme(legend.position = c(0.15, 0.9)) + ggtitle("'No bulls' scenario")
+
+plot_baseline <- ggplot(plotdata_baseline, aes(x = in_var, y = out_var)) + 
+  geom_point(shape = 20, color = "blue", size = 2) + 
+  stat_smooth(method = "loess", fullrange = TRUE) +
+  geom_density_2d() +
+  scale_y_continuous(position = "right") +
+  geom_rug(color="lightskyblue3", sides="bl") + 
+  labs(y=expression(Emissions~intensity~of~milk~production~(kg~CO[2]*'-eq'~kg^{-1})),
+       x=expression(Total~milk~yield~(kg~head^{-1}~year^{-1}))) +
+  theme_bw() +
+  theme(legend.position = c(0.15, 0.9)) + ggtitle("Baseline scenario")
+
+dens_nobull<-ggplot(plotdata_nobull, aes(x = in_var, y = out_var)) +
+  stat_density_2d(
+    geom = "raster",
+    aes(fill = after_stat(density)),
+    contour = FALSE
+    ) +
+  scale_fill_viridis_c() + 
+  labs(y=expression(Total~emissions~intensity~of~milk~production~(kg~CO[2]*'-eq'~kg^{-1})),
+       x=expression(Total~milk~yield~(kg~head^{-1}~year^{-1}))) +
+  theme_bw()
+  
+dens_baseline<-ggplot(plotdata_baseline, aes(x = in_var, y = out_var)) +
+  stat_density_2d(
+    geom = "raster",
+    aes(fill = after_stat(density)),
+    contour = FALSE
+    ) +
+    scale_y_continuous(position = "right") +
+  scale_fill_viridis_c() + 
+  labs(y=expression(Total~emissions~intensity~of~milk~production~(kg~CO[2]*'-eq'~kg^{-1})),
+       x=expression(Total~milk~yield~(kg~head^{-1}~year^{-1}))) +
+  theme_bw()
+
+plot_nobull + plot_baseline + dens_nobull + dens_baseline +
+  plot_layout(ncol = 2, nrow = 2) + guides(fill="none")
+
+ggsave("Fig_12_no_bulls_scatter_per_head_milk_emissions_intensity.png",width=9,height=9)
 
 ```
 
@@ -1211,9 +1213,8 @@ ggplot(data = decreased_emissions_probability, aes(Base_yield, yield_increase)) 
   ggtitle("Probability that emission intensity reductions occurred") + 
   xlab("Baseline milk yield per head and year (kg)") +
   ylab("Milk yield increase per head and year (kg)") 
-ggsave("Fig_XX1_breed_probability_of_intensity_reduction.png")
 
-ggsave("Fig_XX_impact_of_nobull_reductions.png")
+ggsave("Fig_13_impact_of_nobull_reductions.png")
 
 ```
 
@@ -1238,10 +1239,8 @@ ggplot(data = decreased_emissions_probability, aes(Base_yield, yield_increase)) 
   ggtitle("Probability that emission intensity reductions occurred") + 
   xlab("Baseline milk yield per head and year (kg)") +
   ylab("Milk yield increase per head and year (kg)") 
-ggsave("Fig_XX1_breed_probability_of_intensity_reduction.png")
 
-
-ggsave("Fig_XX_lessReplace_reductions.png")
+ggsave("Fig_14_lessReplace_reductions.png")
 
 ```
 
