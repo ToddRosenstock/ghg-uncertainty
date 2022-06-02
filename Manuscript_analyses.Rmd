@@ -10,6 +10,7 @@ output:
     toc: true
     toc_float: true
     number_sections: true
+    code_folding: hide
 ---
 
 # Set up
@@ -365,7 +366,7 @@ class(GHG_simulation_scenarios)<-"mcSimulation"
 
 Given these results we can now plot distributions of the various outputs from the model, using the `plot_distributions` function. 
 
-```{r plot_distributions, fig.width=10, fig.height=10}
+```{r plot_distributions, fig.width=10, fig.height=10, message=FALSE, warning=FALSE}
 # enteric_CH4=enteric_CH4,
 enteric_CH4_dist_plot <- plot_distributions(mcSimulation_object = GHG_simulation_scenarios,
                    vars = "enteric_CH4",
@@ -668,7 +669,7 @@ The milk yield per capita is sometimes proposed as an indicator of greenhouse ga
 
 The following plot shows the emissions intensity that corresponds to a milk yield of 2000 kg per capita per year, based on the population of households covered in the survey.
 
-```{r varkernelslicerange}
+```{r varkernelslicerange, message=FALSE, warning=FALSE}
 slice<-uncertainty::varslice_resample(in_var = dairy_households$y$pc_milk_yield,
                                  out_var = dairy_households$y$CO2eq_per_milk, 
                                  expectedin_var=2000,
@@ -692,7 +693,7 @@ We see considerable uncertainty about the emissions at this particular level of 
 
 To derive the level of certainty, with which a change in milk yield is associated with an increase or decrease in emissions intensity, we have to investigate the probability distributions (as shown in Fig. X) of emissions intensity at two levels of milk production. This can be achieved using the `varslice_resample` function for both production levels.
 
-Let's look at this for production of 2000 and 3000 kg milk per capita per year. We'll take 1000 random draws of the emissions intensities that associated with both levels and compare values among these samples.
+Let's look at this for production of 2000 and 3000 kg milk per capita per year. We'll take 1000 random draws of the emissions intensities that are associated with both levels and compare values among these samples.
 
 ```{r}
 slice_2000<-uncertainty::varslice_resample(in_var = dairy_households$y$pc_milk_yield,
@@ -708,7 +709,7 @@ slice_3000<-uncertainty::varslice_resample(in_var = dairy_households$y$pc_milk_y
                            n_samples = 1000,
                            out_var_sampling = 1000) 
 
-sum(slice_3000$resampled < slice_2000$resampled) / length(slice_2000$resampled)
+# sum(slice_3000$resampled < slice_2000$resampled) / length(slice_2000$resampled)
 
 ```
 
@@ -833,7 +834,7 @@ Introduction of higher-performance breeds may reduce greenhouse gas emissions. W
 
 To retain the farm-specific performance levels obtained from the farm survey, we simulate these impacts in a relative manner. For this, we first need to determine the performance and characteristics of each of the breeds. We'll base this on the farm survey data (`Kenyaherds` dataset from above).
 
-```{r}
+```{r, warning=FALSE}
 cows<-Kenyaherds[which(Kenyaherds$animal_type %in% 4:6),]
 
 ggplot(cows, aes(factor(breed),milk_yield)) +
@@ -999,7 +1000,7 @@ class(breed_res)<-"mcSimulation"
 
 ## Emissions intensity response to introduction of high-performance breeds
 
-```{r}
+```{r, fig.dim = c(8, 8)}
 breed_res$y[,"CO2eq_per_milk"]<-breed_res$y$pc_on_farm/breed_res$y$pc_milk_yield
 
 breed_res$y<-breed_res$y[which(GHG_simulation_scenarios$y$pc_milk_yield>500),]
@@ -1075,7 +1076,7 @@ class(nobull_res)<-"mcSimulation"
 
 We're assuming that all bulls >36 months old have been removed.
 
-```{r, message=FALSE, warning=FALSE}
+```{r, message=FALSE, warning=FALSE, fig.dim = c(8, 8)}
 
 nobull_res$y[,"CO2eq_per_milk"]<-nobull_res$y$pc_on_farm/nobull_res$y$pc_milk_yield
 
@@ -1170,7 +1171,7 @@ class(lessReplace_res)<-"mcSimulation"
 
 ### No bulls scenario
 
-```{r}
+```{r, fig.dim = c(8, 8)}
 nobull_res$y[,"CO2eq_per_milk"]<-nobull_res$y$pc_on_farm/nobull_res$y$pc_milk_yield
 
 nobull_res$y<-nobull_res$y[which(GHG_simulation_scenarios$y$pc_milk_yield>500),]
@@ -1213,7 +1214,7 @@ ggsave("Fig_12_impact_of_nobull_reductions.png", width=9,height=5)
 
 ### Fewer replacement males scenario
 
-```{r}
+```{r, fig.dim = c(8, 8)}
 
 lessReplace_res$y[,"CO2eq_per_milk"]<-lessReplace_res$y$pc_on_farm/lessReplace_res$y$pc_milk_yield
 
