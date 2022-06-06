@@ -35,6 +35,7 @@ library(rmarkdown)
 library(uncertainty)
 library(chillR)
 library(raster)
+library(reshape2)
 
 #Automatically write R package citation entries to a .bib file
 knitr::write_bib(c(.packages(), 
@@ -66,6 +67,7 @@ library(rmarkdown)
 library(uncertainty)
 library(chillR)
 library(raster)
+library(reshape2)
 ```
 
 ## Load emission calculation function
@@ -811,7 +813,7 @@ geom_histogram(aes(y=..density..), colour="black", fill="white")+
 
 farm5_emissions_precise$y[,"CO2eq_per_milk"]<-farm5_emissions_precise$y$pc_on_farm/farm5_emissions_precise$y$pc_milk_yield
 
-histo + geom_vline(data=farm5_emissions_precise$y, aes(xintercept=CO2eq_per_milk),color="blue", lwd=3)
+histo + geom_vline(data=farm5_emissions_precise$y, aes(xintercept=CO2eq_per_milk),color="blue", lwd=3) + theme_bw()
 
 ggsave("Fig_3_emission_density_farm5.png",width=5,height=3)
 
@@ -964,7 +966,7 @@ ggplot(data=data.frame(CO2eq_per_milk=slice$resampled), aes(CO2eq_per_milk)) +
 geom_histogram(aes(y=..density..), colour="black", fill="white")+
  geom_density(alpha=.2, fill="#FF6666") +
   ylab("Relative probability") +
-    xlab(expression(Emission~intensity~of~milk~production~at~2000~kg~milk~per~capita~(kg~CO[2]*'-eq'~kg^-1)))
+    xlab(expression(Emission~intensity~of~milk~production~at~2000~kg~milk~per~capita~(kg~CO[2]*'-eq'~kg^-1))) + theme_bw()
 
 ggsave("Fig_7_emission_density_all_farms.png")
 
@@ -997,7 +999,7 @@ slices<-rbind(data.frame(Values=slice_2000$resampled, Level="2000 kg"), data.fra
 ggplot(data=slices, aes(Values, fill=Level)) +
  geom_density(alpha=.2) +
   ylab("Relative probability") +
-    xlab(expression(Emission~intensity~of~milk~production~at~specific~milk~yield~per~capita~(kg~CO[2]*'-eq'~kg^-1))) + labs(fill='Production level') 
+    xlab(expression(Emission~intensity~of~milk~production~at~specific~milk~yield~per~capita~(kg~CO[2]*'-eq'~kg^-1))) + labs(fill='Production level') + theme_bw()  
 
 
 
@@ -1060,7 +1062,7 @@ ggplot(data = decreased_emissions_probability, aes(Base_yield, new_yield, z =
   labs(y=expression(Milk~yield~of~'higher-productivity'~farm~(kg~head^{-1}~year^{-1})),
        x=expression(Milk~yield~of~'lower-productivity'~farm~(kg~head^{-1}~year^{-1})),
        fill="Probability of \nlower emissions \nintensity") +
-  stat_contour(breaks = c(0.9),col="black")
+  stat_contour(breaks = c(0.9),col="black") + theme_bw()
   
 ggsave("Fig_9_probability_of_lower_emissions_intensity.png", width=7,height=5)
 
@@ -1316,7 +1318,7 @@ plotdata_breed<-data.frame(in_var=breed_res$y$pc_milk_yield,
 plotdata_baseline<-data.frame(in_var=GHG_simulation_scenarios$y$pc_milk_yield,
                      out_var=GHG_simulation_scenarios$y$CO2eq_per_milk)
 
-plot_nobull <- ggplot(plotdata_breed, aes(x = in_var, y = out_var)) + 
+plot_breed <- ggplot(plotdata_breed, aes(x = in_var, y = out_var)) + 
   geom_point(shape = 20, color = "blue", size = 2) + 
   stat_smooth(method = "loess", fullrange = TRUE) +
   geom_density_2d() +
@@ -1337,7 +1339,7 @@ plot_baseline <- ggplot(plotdata_baseline, aes(x = in_var, y = out_var)) +
   theme_bw() +
   theme(legend.position = c(0.15, 0.9)) + ggtitle("Baseline scenario")
 
-dens_nobull<-ggplot(plotdata_breed, aes(x = in_var, y = out_var)) +
+dens_breed<-ggplot(plotdata_breed, aes(x = in_var, y = out_var)) +
   stat_density_2d(
     geom = "raster",
     aes(fill = after_stat(density)),
@@ -1360,7 +1362,7 @@ dens_baseline<-ggplot(plotdata_baseline, aes(x = in_var, y = out_var)) +
        x=expression(Total~milk~yield~(kg~head^{-1}~year^{-1}))) +
   theme_bw() + guides(fill="none")
 
-plot_nobull + plot_baseline + dens_nobull + dens_baseline +
+plot_breed + plot_baseline + dens_breed + dens_baseline +
   plot_layout(ncol = 2, nrow = 2) 
 
 ggsave("Fig_11_breed_scatter_per_head_milk_emissions_intensity.png",width=9,height=9)
@@ -1374,8 +1376,8 @@ To put these results into perspective, we can plot them on top of the probabilit
 ```{r, fig.dim = c(8, 8)}
 breed_res$y[,"CO2eq_per_milk"]<-breed_res$y$pc_on_farm/breed_res$y$pc_milk_yield
 
-breed_res$y<-breed_res$y[which(GHG_simulation_scenarios$y$pc_milk_yield>500),]
-breed_res$x<-breed_res$x[which(GHG_simulation_scenarios$y$pc_milk_yield>500),]
+breed_res$y<-breed_res$y[normal_milk_yield,]
+breed_res$x<-breed_res$x[normal_milk_yield,]
 
 impact_of_breed<-data.frame(baseline=dairy_households$y$pc_milk_yield,breed_milk=breed_res$y$pc_milk_yield,CO2_intensity_baseline= dairy_households$y$CO2eq_per_milk,CO2_intensity_breed=breed_res$y$CO2eq_per_milk)
 impact_of_breed[,"milk_change"]<-round(impact_of_breed$breed_milk-impact_of_breed$baseline,2)
@@ -1399,7 +1401,7 @@ breed_probs<-ggplot(data = decreased_emissions_probability,
   ggtitle("Probability of lower emissions intensity on higher-productivity farm") + 
 labs(y=expression(Milk~yield~of~'higher-productivity'~farm~(kg~head^{-1}~year^{-1})),
        x=expression(Milk~yield~of~'lower-productivity'~farm~(kg~head^{-1}~year^{-1})),
-       fill="Probability of \nlower emissions \nintensity")
+       fill="Probability of \nlower emissions \nintensity") + theme_bw()
 
 breed_scatter + breed_probs +
   plot_layout(ncol = 1, nrow = 2) 
@@ -1409,6 +1411,96 @@ ggsave("Fig_12_breed_reductions.png", width=9,height=9)
 ```
 
 Note that the linear patterns (of ten points each) in this plot result from the 10 replicates that were considered for each farm in the original Monte Carlo simulation. The originally random milk yields increased by the same factor in all these replicates, leading to linear relationships.
+
+### Characteristics of sensitive farms
+
+The figure above shows the probability of detecting changes in greenhouse gas emissions intensity by comparing milk yields, for farms that have implemented the breed upgrade intervention. We can now extract the most likely probability of such detection for each of the farms (based on the nearest data point on the probability surface). This allows us to detect farms that are associated with particularly high probabilities (e.g. 90%). We can then look in detail at the characteristics of these farms to identify farms that are particularly likely to benefit (in terms of reducing emissions intensities) from the breed upgrade intervention.
+
+```{r}
+
+breed_diagnosis<-breed_res
+breed_diagnosis$y[,"baseline_pc_milk_yield"]<-dairy_households$y$pc_milk_yield
+
+# get closest probability value
+
+for(i in 1:nrow(breed_diagnosis$x))
+  {decreased_emissions_probability[,"diff"]<-
+    abs(decreased_emissions_probability$Base_yield-breed_diagnosis$y$baseline_pc_milk_yield[i]) +
+    abs(decreased_emissions_probability$new_yield-breed_diagnosis$y$pc_milk_yield[i])
+  breed_diagnosis$y[i,"confidence_level"]<-decreased_emissions_probability$probability[which(decreased_emissions_probability$diff==min(decreased_emissions_probability$diff))][1]
+}
+
+breed_90_farms<-breed_diagnosis$x$Scenario[which(breed_diagnosis$y$confidence_level>0.9)]
+
+
+```
+
+The only farm characteristics that we modified in this intervention is the breed composition, so the success of the intervention can only depend on the array of dairy cow breeds present on the farms. We can plot the breed composition of the farms against the probability that higher per-capita milk production is associated with lower emissions intensity.
+
+```{r}
+
+farm_structures<-data.frame(Farm=unique(Kenyaherds$QQNO))
+
+for(f in farm_structures$Farm)
+  {samp<-Kenyaherds[which(Kenyaherds$QQNO==f),]
+   cows<-samp[which(samp$animal_type %in% 4:6),]
+   farm_structures[which(farm_structures$Farm==f),"breed_1"]<-length(which(cows$breed==1))/nrow(cows)
+   farm_structures[which(farm_structures$Farm==f),"breed_2"]<-length(which(cows$breed==2))/nrow(cows)
+   farm_structures[which(farm_structures$Farm==f),"breed_3"]<-length(which(cows$breed==3))/nrow(cows)
+   farm_structures[which(farm_structures$Farm==f),"breed_4"]<-length(which(cows$breed==4))/nrow(cows)
+   farm_structures[which(farm_structures$Farm==f),"breed_5"]<-length(which(cows$breed==5))/nrow(cows)
+   farm_structures[which(farm_structures$Farm==f),"breed_6"]<-length(which(cows$breed==6))/nrow(cows)
+   farm_structures[which(farm_structures$Farm==f),"breed_7"]<-length(which(cows$breed==7))/nrow(cows)
+   farm_structures[which(farm_structures$Farm==f),"breed_8"]<-length(which(cows$breed==8))/nrow(cows)
+   farm_structures[which(farm_structures$Farm==f),"unproductive_bulls"]<-
+     length(which(samp$animal_type==1))/nrow(samp)
+   farm_structures[which(farm_structures$Farm==f),"replacement_males"]<-
+     length(which(samp$animal_type==3))/nrow(samp)
+
+}
+  
+breed_diagnosis$x["Farm"]<-sapply(breed_diagnosis$x$Scenario,
+                                  function(x) as.numeric(strsplit(x,"_")[[1]][2]))
+
+breed_structures<-merge(breed_diagnosis$x,farm_structures)
+breed_structures<-list(x=breed_structures, y=breed_diagnosis$y)
+
+to_plot<-cbind(Farm=breed_structures$x$Farm,Confidence_level=breed_structures$y$confidence_level,
+               breed_structures$x[,c(paste0("breed_",1:8),"unproductive_bulls","replacement_males")])
+
+melted<-melt(to_plot, id.vars=c("Farm","Confidence_level","unproductive_bulls","replacement_males"))
+melted<-melted[which(!is.na(melted$value)),]
+
+melted$Confidence_level_rounded<-round(melted$Confidence_level,2)*100
+
+breedcol<-palette.colors(n = 8, palette = "Okabe-Ito", alpha=1, recycle = FALSE)
+
+ggplot(melted, aes(group=variable, fill=variable, y=value, x=Confidence_level_rounded)) + 
+    geom_bar(position="fill", stat="identity") + coord_flip() +
+  labs(y="Cumulative share of breed in herd",
+       x="Probability of lower emissions intensity (%)",
+       fill="Breed of \ndairy cows") + scale_fill_manual(values= c("breed_1" = breedcol[1],
+                                                                   "breed_2" = breedcol[2],
+                                                                   "breed_3" = breedcol[3],
+                                                                   "breed_4" = breedcol[4],
+                                                                   "breed_5" = breedcol[5],
+                                                                   "breed_6" = breedcol[6],
+                                                                   "breed_7" = breedcol[7],
+                                                                   "breed_8" = breedcol[8]),
+                                               labels = c("Holstein Friesian (pure/improved)",
+                                                          "Ayrshire (pure/improved)",
+                                                          "Jersey (pure/improved)",
+                                                          "Guernsey (pure/improved)",
+                                                          "Cross-bred unknown",
+                                                          "Sahiwal",
+                                                          "Boran",
+                                                          "Local zebu")) +
+  theme_bw()
+
+ggsave("Fig_13_breed_diagnostics.png",width=5,height=5)
+
+```
+
 
 # Herd structure intervention 1 - retiring unproductive bulls
 
@@ -1500,7 +1592,7 @@ dens_baseline<-ggplot(plotdata_baseline, aes(x = in_var, y = out_var)) +
 plot_nobull + plot_baseline + dens_nobull + dens_baseline +
   plot_layout(ncol = 2, nrow = 2) 
 
-ggsave("Fig_13_no_bulls_scatter_per_head_milk_emissions_intensity.png",width=9,height=9)
+ggsave("Fig_14_no_bulls_scatter_per_head_milk_emissions_intensity.png",width=9,height=9)
 
 ```
 
@@ -1509,8 +1601,8 @@ Also for this intervention, we can verify that emissions intensity has actually 
 ```{r, fig.dim = c(8, 8)}
 nobull_res$y[,"CO2eq_per_milk"]<-nobull_res$y$pc_on_farm/nobull_res$y$pc_milk_yield
 
-nobull_res$y<-nobull_res$y[which(GHG_simulation_scenarios$y$pc_milk_yield>500),]
-nobull_res$x<-nobull_res$x[which(GHG_simulation_scenarios$y$pc_milk_yield>500),]
+nobull_res$y<-nobull_res$y[normal_milk_yield,]
+nobull_res$x<-nobull_res$x[normal_milk_yield,]
 
 impact_of_nobull<-data.frame(baseline=dairy_households$y$pc_milk_yield,nobull_milk=nobull_res$y$pc_milk_yield,CO2_intensity_baseline= dairy_households$y$CO2eq_per_milk,CO2_intensity_nobull=nobull_res$y$CO2eq_per_milk)
 impact_of_nobull[,"milk_change"]<-round(impact_of_nobull$nobull_milk-impact_of_nobull$baseline,2)
@@ -1534,14 +1626,66 @@ nobull_probs<-ggplot(data = decreased_emissions_probability,
   ggtitle("Probability of lower emissions intensity on higher-productivity farm") + 
 labs(y=expression(Milk~yield~of~'higher-productivity'~farm~(kg~head^{-1}~year^{-1})),
        x=expression(Milk~yield~of~'lower-productivity'~farm~(kg~head^{-1}~year^{-1})),
-       fill="Probability of \nlower emissions \nintensity")
+       fill="Probability of \nlower emissions \nintensity") + theme_bw()
 
 nobull_scatter + nobull_probs +
   plot_layout(ncol = 1, nrow = 2) 
 
-ggsave("Fig_14_nobull_reductions.png", width=9,height=9)
+ggsave("Fig_15_nobull_reductions.png", width=9,height=9)
 
 ```
+
+
+The confidence level depends on the farms' herd structure, specifically on the share of unproductive males with the farms' herds.
+
+```{r}
+
+
+nobull_diagnosis<-nobull_res
+nobull_diagnosis$y[,"baseline_pc_milk_yield"]<-dairy_households$y$pc_milk_yield
+
+# get closest probability value
+
+for(i in 1:nrow(nobull_diagnosis$x))
+  {decreased_emissions_probability[,"diff"]<-
+    abs(decreased_emissions_probability$Base_yield-nobull_diagnosis$y$baseline_pc_milk_yield[i]) +
+    abs(decreased_emissions_probability$new_yield-nobull_diagnosis$y$pc_milk_yield[i])
+  nobull_diagnosis$y[i,"confidence_level"]<-decreased_emissions_probability$probability[which(decreased_emissions_probability$diff==min(decreased_emissions_probability$diff))][1]
+}
+
+nobull_90_farms<-nobull_diagnosis$x$Scenario[which(nobull_diagnosis$y$confidence_level>0.9)]
+
+
+nobull_diagnosis$x["Farm"]<-sapply(nobull_diagnosis$x$Scenario,
+                                  function(x) as.numeric(strsplit(x,"_")[[1]][2]))
+
+nobull_structures<-merge(nobull_diagnosis$x,farm_structures)
+nobull_structures<-list(x=nobull_structures, y=nobull_diagnosis$y)
+
+to_plot<-cbind(Farm=nobull_structures$x$Farm,Confidence_level=nobull_structures$y$confidence_level,
+               nobull_structures$x[,c(paste0("breed_",1:8),"unproductive_bulls","replacement_males")])
+to_plot$other_animals<-1-to_plot$unproductive_bulls
+
+melted<-melt(to_plot[,c("Farm","Confidence_level","other_animals","unproductive_bulls")], id.vars=c("Farm","Confidence_level"))
+melted<-melted[which(!is.na(melted$value)),]
+
+melted$Confidence_level_rounded<-round(to_plot$Confidence_level,2)*100
+
+
+ggplot(melted, aes(group=variable, fill=variable, y=value , x=Confidence_level_rounded)) + 
+    geom_bar(position="fill", stat="identity") + coord_flip() +
+  labs(y="Share of animal type in the herd",
+       x="Probability of lower emissions intensity (%)",
+       fill="Animal type") + scale_fill_manual(values= c("unproductive_bulls" = "burlywood",
+                                                         "other_animals" = "darkslategrey"),
+                                               labels = c("Unproductive bulls","Other animals")) +
+  theme_bw()
+ 
+
+ggsave("Fig_16_nobull_diagnostics.png",width=5,height=5)
+
+```
+
 
 # Herd structure intervention 2 - fewer unproductive replacement males
 
@@ -1583,8 +1727,8 @@ As for the other interventions, the impact of reducing the number of unproductiv
 
 lessReplace_res$y[,"CO2eq_per_milk"]<-lessReplace_res$y$pc_on_farm/lessReplace_res$y$pc_milk_yield
 
-lessReplace_res$y<-lessReplace_res$y[which(GHG_simulation_scenarios$y$pc_milk_yield>500),]
-lessReplace_res$x<-lessReplace_res$x[which(GHG_simulation_scenarios$y$pc_milk_yield>500),]
+lessReplace_res$y<-lessReplace_res$y[normal_milk_yield,]
+lessReplace_res$x<-lessReplace_res$x[normal_milk_yield,]
 
 impact_of_lessReplace<-data.frame(baseline=dairy_households$y$pc_milk_yield,
                                   lessReplace_milk=lessReplace_res$y$pc_milk_yield,
@@ -1612,15 +1756,66 @@ lessRep_probs<-ggplot(data = decreased_emissions_probability,
   ggtitle("Probability of lower emissions intensity on higher-productivity farm") + 
   labs(y=expression(Milk~yield~of~'higher-productivity'~farm~(kg~head^{-1}~year^{-1})),
        x=expression(Milk~yield~of~'lower-productivity'~farm~(kg~head^{-1}~year^{-1})),
-       fill="Probability of \nlower emissions \nintensity")
+       fill="Probability of \nlower emissions \nintensity") + theme_bw()
 
 lessRep_scatter + lessRep_probs +
   plot_layout(ncol = 1, nrow = 2) 
 
-ggsave("Fig_15_lessReplace_reductions.png", width=9,height=9)
+ggsave("Fig_17_lessReplace_reductions.png", width=9,height=9)
 
 
 ```
+
+Also with this intervention, the level of confidence we can have in higher per-capita milk yields being associated with lower emissions intensity is related to the farms' herd structures. In this case, the share of replacement males within the herds is a key determinant.
+
+```{r}
+
+
+lessReplace_diagnosis<-lessReplace_res
+lessReplace_diagnosis$y[,"baseline_pc_milk_yield"]<-dairy_households$y$pc_milk_yield
+
+# get closest probability value
+
+for(i in 1:nrow(lessReplace_diagnosis$x))
+  {decreased_emissions_probability[,"diff"]<-
+    abs(decreased_emissions_probability$Base_yield-lessReplace_diagnosis$y$baseline_pc_milk_yield[i]) +
+    abs(decreased_emissions_probability$new_yield-lessReplace_diagnosis$y$pc_milk_yield[i])
+  lessReplace_diagnosis$y[i,"confidence_level"]<-decreased_emissions_probability$probability[which(decreased_emissions_probability$diff==min(decreased_emissions_probability$diff))][1]
+}
+
+lessReplace_90_farms<-lessReplace_diagnosis$x$Scenario[which(lessReplace_diagnosis$y$confidence_level>0.9)]
+
+
+lessReplace_diagnosis$x["Farm"]<-sapply(lessReplace_diagnosis$x$Scenario,
+                                  function(x) as.numeric(strsplit(x,"_")[[1]][2]))
+
+lessReplace_structures<-merge(lessReplace_diagnosis$x,farm_structures)
+lessReplace_structures<-list(x=lessReplace_structures, y=lessReplace_diagnosis$y)
+
+to_plot<-cbind(Farm=lessReplace_structures$x$Farm,Confidence_level=lessReplace_structures$y$confidence_level,
+               lessReplace_structures$x[,c(paste0("breed_",1:8),"unproductive_bulls","replacement_males")])
+to_plot$other_animals<-1-to_plot$replacement_males
+
+melted<-melt(to_plot[,c("Farm","Confidence_level","other_animals","replacement_males")], id.vars=c("Farm","Confidence_level"))
+melted<-melted[which(!is.na(melted$value)),]
+
+melted$Confidence_level_rounded<-round(to_plot$Confidence_level,2)*100
+
+
+ggplot(melted, aes(group=variable, fill=variable, y=value , x=Confidence_level_rounded)) + 
+    geom_bar(position="fill", stat="identity") + coord_flip() +
+  labs(y="Share of animal type in the herd",
+       x="Probability of lower emissions intensity (%)",
+       fill="Animal type") + scale_fill_manual(values= c("replacement_males" = "burlywood",
+                                                         "other_animals" = "darkslategrey"),
+                                               labels = c("Replacement males","Other animals")) +
+  theme_bw()
+ 
+
+ggsave("Fig_18_lessReplace_diagnostics.png",width=5,height=5)
+
+```
+
 
 # Discussion
 
