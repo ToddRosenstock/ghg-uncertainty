@@ -809,21 +809,21 @@ histo<-ggplot(data=farm5_emissions$y, aes(CO2eq_per_milk)) +
 geom_histogram(aes(y=..density..), colour="black", fill="white")+
  geom_density(alpha=.2, fill="#FF6666") +
   ylab("Relative probability") +
-    xlab(expression(Emission~density~of~milk~production~(~kg~CO[2]*'-eq'~kg^-1)))
+    xlab(expression(Emissions~intensity~of~milk~production~(kg~CO[2]*'-eq'~kg^-1)))
 
 farm5_emissions_precise$y[,"CO2eq_per_milk"]<-farm5_emissions_precise$y$pc_on_farm/farm5_emissions_precise$y$pc_milk_yield
 
 histo + geom_vline(data=farm5_emissions_precise$y, aes(xintercept=CO2eq_per_milk),color="blue", lwd=3) + theme_bw()
 
-ggsave("Fig_3_emission_density_farm5.png",width=5,height=3)
+ggsave("Fig_3_emissions_intensity_farm5.png",width=5,height=3)
 
 ```
 
 Also here, the blue line represents a classic best-bet estimate based on default values in the IPCC guidelines and some context-specific reasonable guesses.
 
-## Population-wide emission density of milk production
+## Population-wide emissions intensity of milk production
 
-Since the emission density of each household thus involves considerable uncertainty, such uncertainty should also be expected at the population level.
+Since the emissions intensity of each household thus involves considerable uncertainty, such uncertainty should also be expected at the population level.
 
 We can illustrate this uncertainty using a scatter plot. The following figure shows all combinations of total milk yield and total greenhouse gas emissions across all households. Total emissions are the sum of methane emissions from enteric fermentation and livestock manure, nitrous oxide emissions from manure and carbon dioxide emissions from livestock feed production and transport. 
 
@@ -968,7 +968,7 @@ geom_histogram(aes(y=..density..), colour="black", fill="white")+
   ylab("Relative probability") +
     xlab(expression(Emission~intensity~of~milk~production~at~2000~kg~milk~per~capita~(kg~CO[2]*'-eq'~kg^-1))) + theme_bw()
 
-ggsave("Fig_7_emission_density_all_farms.png")
+ggsave("Fig_7_emissions_intensity_all_farms.png")
 
 ```
 
@@ -999,11 +999,11 @@ slices<-rbind(data.frame(Values=slice_2000$resampled, Level="2000 kg"), data.fra
 ggplot(data=slices, aes(Values, fill=Level)) +
  geom_density(alpha=.2) +
   ylab("Relative probability") +
-    xlab(expression(Emission~intensity~of~milk~production~at~specific~milk~yield~per~capita~(kg~CO[2]*'-eq'~kg^-1))) + labs(fill='Production level') + theme_bw()  
+    xlab(expression(Emissions~intensity~of~milk~production~at~specific~milk~yield~per~capita~(kg~CO[2]*'-eq'~kg^-1))) + labs(fill='Production level') + theme_bw()  
 
 
 
-ggsave("Fig_8_emission_density_all_farms.png", width=7,height=5)
+ggsave("Fig_8_emissions_intensity_all_farms.png", width=7,height=5)
 
 
 # sum(slice_3000$resampled < slice_2000$resampled) / length(slice_2000$resampled)
@@ -2230,6 +2230,26 @@ ggsave("Fig_24_lessReplace_endline_errors.png", width=5,height=5)
 
 ```
 
+# Sensitivity analysis - which uncertainties matter?
+
+To identify influential variables in the population that are particularly strongly related to emissions intensity, we can use the statistical procedure of Projection-to-Latent-Structures (PLS) regression. Based on the Variable-Importance-in-the-Projection (VIP) score, we can see, for which uncertain variables knowledge gains would be particularly fruitful.
+
+
+```{r}
+
+pls_GHG<-dairy_households
+pls_GHG$x<-pls_GHG$x[,which(!colnames(pls_GHG$x)=="Scenario")]
+
+pls_out<-plsr.mcSimulation(object=pls_GHG, resultName = "CO2eq_per_milk")
+
+legend_table<-read.csv("data/legend.csv", fileEncoding = "UTF-8-BOM")
+
+plot_pls(pls_out,input_table=legend_table)
+ggsave("Fig_25_PLS_dairy_households.png", width=8,height=5)
+```
+
+
+
 
 
 
@@ -2243,13 +2263,16 @@ ggsave("Fig_24_lessReplace_endline_errors.png", width=5,height=5)
 * it seems likely that a milk yield-based emissions reduction scheme might miss measures taken by farmers, at least if the reward scheme wants to be really sure that emissions reductions have in fact occurred.
 * it seems the information content in milk yields isn't sufficient to base mitigation reward schemes on them
 * might be a better idea after all to observe farmers' practices - did they implement any measures? Then they should be rewarded
-* maybe rewarding measures taken is a better idea than evaluating emissions intensity based on milk yield alone.
+* maybe rewarding measures taken is a better idea than evaluating emissions intensity based on milk yield alone
+* sensitivity analysis highlights the need to gain more clarity on milk yields - we specified a 90% confidence interval of mean +- 27.5%
+* Improving reliability of milk yield measurements might make this indicator more viable
 
 
 
-# some remaining notes
+# Remaining jobs
 
-For each slice, and each level of confidence, calculate the percentage of farms that made changes that would be correctly rewarded vs. the ones that did not change (the baseline population). Make a figure showing the Type I and Type II errors resulting from each confidence level at each baseline yield.
+- Feed intervention (how exactly?)
+- Select what to present in the manuscript and the supplement
 
 
 # References
