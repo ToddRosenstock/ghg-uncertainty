@@ -1901,7 +1901,7 @@ class(breed_res_endline)<-"mcSimulation"
 
 We can make scatter and probability plots as above. The results are richer now, because the second Monte Carlo simulation introduced additional variation. We can now also visually distinguish between changes that occurred on adopting farms and those occurring on non-adopting farms.
 
-```{r}
+```{r, fig.dim = c(8, 8)}
 breed_res_endline$y$breed_adopter[breed_adopters]<-"Adopter"
 breed_res_endline$y$breed_adopter[is.na(breed_res_endline$y$breed_adopter)]<-"Non-adopter"
 
@@ -2023,7 +2023,7 @@ class(nobull_res_endline)<-"mcSimulation"
 ```
 
 
-```{r}
+```{r, fig.dim = c(8, 8)}
 nobull_res_endline$y$nobull_adopters<-NA
 nobull_res_endline$y$nobull_adopters[nobull_adopters]<-"Adopter"
 nobull_res_endline$y$nobull_adopters[is.na(nobull_res_endline$y$nobull_adopters)]<-"Non-adopter"
@@ -2143,7 +2143,7 @@ class(lessReplace_res_endline)<-"mcSimulation"
 
 Now we can compare the performance of adopters and non-adopters and plot this against the confidence level for recognizing that emissions reductions have occurred.
 
-```{r}
+```{r, fig.dim = c(8, 8)}
 lessReplace_res_endline$y$lessReplace_adopters<-NA
 lessReplace_res_endline$y$lessReplace_adopters[lessReplace_adopters]<-"Adopter"
 lessReplace_res_endline$y$lessReplace_adopters[is.na(lessReplace_res_endline$y$lessReplace_adopters)]<-"Non-adopter"
