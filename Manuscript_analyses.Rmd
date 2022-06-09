@@ -477,12 +477,12 @@ for (f in Farms)
   
   # update feed production CO2 (with error)
    scenarios[which(scenarios$Variable == "feed_prod_CO2"),coln][1:2]<-
-     mean(Kenyaherds[which(Kenyaherds$QQNO==f),"feed_kgCO2"])*
+     sum(Kenyaherds[which(Kenyaherds$QQNO==f),"feed_kgCO2"])*
                            c(1-feed_prod_error,1+feed_prod_error)
    
   # update feed transport CO2 (with error)
    scenarios[which(scenarios$Variable == "feed_trans_CO2"),coln][1:2]<-
-     mean(Kenyaherds[which(Kenyaherds$QQNO==f),"feed.transport_kgCO2"])*
+     sum(Kenyaherds[which(Kenyaherds$QQNO==f),"feed.transport_kgCO2"])*
                            c(1-feed_trans_error,1+feed_trans_error)
   
    # update milk yield for each cow type (animal type 4-6) (with error)
@@ -552,7 +552,7 @@ variables_to_update_posnorm<-c(paste0("milk_yield_",4:6),
                              "perc_crude_protein_diet")
 
 
-precise_inputs<-read.csv(input_table)[,c(1:7)] 
+precise_inputs<-read.csv(input_table)[,c(1:8)] 
 precise_vars<-precise_inputs[which(!is.na(precise_inputs$IPCC_default)),]
 
 precise_scenarios<-data.frame(Variable=c(variables_to_update_const,variables_to_update_posnorm,precise_vars$variable),param="both")
@@ -586,11 +586,11 @@ for (f in Farms)
   
   # update feed production CO2 (with error)
    precise_scenarios[which(precise_scenarios$Variable == "feed_prod_CO2"),coln]<-
-     mean(Kenyaherds[which(Kenyaherds$QQNO==f),"feed_kgCO2"])
+     sum(Kenyaherds[which(Kenyaherds$QQNO==f),"feed_kgCO2"])
    
   # update feed transport CO2 (with error)
    precise_scenarios[which(precise_scenarios$Variable == "feed_trans_CO2"),coln]<-
-     mean(Kenyaherds[which(Kenyaherds$QQNO==f),"feed.transport_kgCO2"])
+     sum(Kenyaherds[which(Kenyaherds$QQNO==f),"feed.transport_kgCO2"])
   
    # update milk yield for each cow type (animal type 4-6) (with error)
    for(typ in 4:6)
@@ -749,7 +749,6 @@ plot_layout(guides = "collect", design = layout)
 ggsave("Fig_1_GHG_simulation_outputs.png",width=9,height=9)
 ```
 
-*# THIS STILL NEEDS CHECKING - are all the units correct?*
 
 # Possible errors resulting from input uncertainty
 
@@ -1592,7 +1591,7 @@ dens_baseline<-ggplot(plotdata_baseline, aes(x = in_var, y = out_var)) +
 plot_nobull + plot_baseline + dens_nobull + dens_baseline +
   plot_layout(ncol = 2, nrow = 2) 
 
-ggsave("Fig_14_no_bulls_scatter_per_head_milk_emissions_intensity.png",width=9,height=9)
+ggsave("Fig_14_nobull_scatter_per_head_milk_emissions_intensity.png",width=9,height=9)
 
 ```
 
@@ -1816,6 +1815,300 @@ ggsave("Fig_18_lessReplace_diagnostics.png",width=5,height=5)
 
 ```
 
+# Feed intervention 1 - Supplementary legume fodder
+
+Animal feeds are supplemented with cuttings from the legumious tree Calliandra. This expected to have the following impacts:
+
+- milk yield of non-dry cows (i.e. animal types 5 and 6) rises by 0.156 kg per day
+- the digestible energy (DE) of the diet rises by 0.14 percentage points
+- the crude protein content of the diet (CP) drops by 0.07 percentage points
+- feed emissions drop by 0.726 kg CO2 per animal and year
+
+We assume that 30% of households adopt this intervention.
+
+```{r}
+x_Calliandra_intervention <- GHG_simulation_scenarios$x
+
+Calliandra_adoption_rate <- 0.3
+
+for (i in 1:nrow(x_Calliandra_intervention))
+{
+  if (rbinom(1, 1, Calliandra_adoption_rate)) # if farmers adopt, make changes in x file
+    {x_Calliandra_intervention$milk_yield_5[i]<-x_Calliandra_intervention$milk_yield_5[i]+0.156
+     x_Calliandra_intervention$milk_yield_6[i]<-x_Calliandra_intervention$milk_yield_6[i]+0.156
+     x_Calliandra_intervention$DE_perc[i]<-x_Calliandra_intervention$DE_perc[i]+0.14
+     x_Calliandra_intervention$perc_crude_protein_diet[i]<-x_Calliandra_intervention$perc_crude_protein_diet[i]-0.07
+     x_Calliandra_intervention$feed_prod_CO2[i]<-x_Calliandra_intervention$feed_prod_CO2[i]- (0.726 *
+                                        sum(x_Calliandra_intervention[i,paste0("N_animal_type_",1:12)]))
+
+  }
+}
+# run model for modified x file
+Calliandra_res <- run_model(x_Calliandra_intervention, ghg_emissions)
+
+```
+
+
+```{r, include=FALSE}
+Calliandra_res$call<-"multi-scenario call"
+save_temperature_scenarios(Calliandra_res,"results","Calliandra_intervention")
+```
+
+```{r, include=FALSE}
+Calliandra_res<-load_temperature_scenarios("results","Calliandra_intervention")
+class(Calliandra_res)<-"mcSimulation"
+```
+
+
+## Emissions intensity response to introducing legume fodder
+
+As for the other interventions, the impact of reducing the number of unproductive replacement males is clearly reflected in a drop in emissions intensity (see scatter plot below). However, also here few data points were located in the high-confidence region of the probability-of-difference plot, so that a milk yield-based reward scheme may easily fail to recognize the efforts of the respective farms.
+
+
+```{r, fig.dim = c(8, 8)}
+
+Calliandra_res$y[,"CO2eq_per_milk"]<-Calliandra_res$y$pc_on_farm/Calliandra_res$y$pc_milk_yield
+
+Calliandra_res$y<-Calliandra_res$y[normal_milk_yield,]
+Calliandra_res$x<-Calliandra_res$x[normal_milk_yield,]
+
+impact_of_Calliandra<-data.frame(baseline=dairy_households$y$pc_milk_yield,
+                                  Calliandra_milk=Calliandra_res$y$pc_milk_yield,
+                                  CO2_intensity_baseline= dairy_households$y$CO2eq_per_milk,
+                                  CO2_intensity_Calliandra=Calliandra_res$y$CO2eq_per_milk)
+impact_of_Calliandra[,"milk_change"]<-
+  round(impact_of_Calliandra$Calliandra_milk-impact_of_Calliandra$baseline,2)
+impact_of_Calliandra[,"emissions_intensity_change"]<-
+  round(impact_of_Calliandra$CO2_intensity_Calliandra-impact_of_Calliandra$CO2_intensity_baseline ,3)
+
+lessRep_scatter<-ggplot(data=impact_of_Calliandra,
+                        aes(x=milk_change,y=emissions_intensity_change)) +
+  geom_point() +
+  theme_bw() +
+  ggtitle("Intervention impact on milk yield and emissions") + 
+  labs(y=expression(Change~'in'~emission~intensity~(kg~CO[2]*'-eq'~kg^-1)),
+       x="Change in per capita milk yield (kg)")
+
+lessRep_probs<-ggplot(data = decreased_emissions_probability,
+                      aes(Base_yield, new_yield)) +
+  geom_contour_filled(aes(z=probability)) +
+  stat_contour(breaks = c(0.9),aes(z=probability),col="black") +
+  geom_point(data=impact_of_Calliandra[which(impact_of_Calliandra$milk_change>0),],
+             aes(x=baseline,y=Calliandra_milk)) +
+  ggtitle("Probability of lower emissions intensity on higher-productivity farm") + 
+  labs(y=expression(Milk~yield~of~'higher-productivity'~farm~(kg~head^{-1}~year^{-1})),
+       x=expression(Milk~yield~of~'lower-productivity'~farm~(kg~head^{-1}~year^{-1})),
+       fill="Probability of \nlower emissions \nintensity") + theme_bw()
+
+lessRep_scatter + lessRep_probs +
+  plot_layout(ncol = 1, nrow = 2) 
+
+ggsave("Fig_19_Calliandra_reductions.png", width=9,height=9)
+
+
+```
+
+Still need to define something adequate for the next section.
+
+```{r}
+
+
+Calliandra_diagnosis<-Calliandra_res
+Calliandra_diagnosis$y[,"baseline_pc_milk_yield"]<-dairy_households$y$pc_milk_yield
+
+# get closest probability value
+
+for(i in 1:nrow(Calliandra_diagnosis$x))
+  {decreased_emissions_probability[,"diff"]<-
+    abs(decreased_emissions_probability$Base_yield-Calliandra_diagnosis$y$baseline_pc_milk_yield[i]) +
+    abs(decreased_emissions_probability$new_yield-Calliandra_diagnosis$y$pc_milk_yield[i])
+  Calliandra_diagnosis$y[i,"confidence_level"]<-decreased_emissions_probability$probability[which(decreased_emissions_probability$diff==min(decreased_emissions_probability$diff))][1]
+}
+
+Calliandra_90_farms<-Calliandra_diagnosis$x$Scenario[which(Calliandra_diagnosis$y$confidence_level>0.9)]
+
+
+Calliandra_diagnosis$x["Farm"]<-sapply(Calliandra_diagnosis$x$Scenario,
+                                  function(x) as.numeric(strsplit(x,"_")[[1]][2]))
+
+Calliandra_structures<-merge(Calliandra_diagnosis$x,farm_structures)
+Calliandra_structures<-list(x=Calliandra_structures, y=Calliandra_diagnosis$y)
+
+to_plot<-cbind(Farm=Calliandra_structures$x$Farm,Confidence_level=Calliandra_structures$y$confidence_level,
+               Calliandra_structures$x[,c(paste0("breed_",1:8),"unproductive_bulls","replacement_males")])
+to_plot$other_animals<-1-to_plot$replacement_males
+
+melted<-melt(to_plot[,c("Farm","Confidence_level","other_animals","replacement_males")], id.vars=c("Farm","Confidence_level"))
+melted<-melted[which(!is.na(melted$value)),]
+
+melted$Confidence_level_rounded<-round(to_plot$Confidence_level,2)*100
+
+
+ggplot(melted, aes(group=variable, fill=variable, y=value , x=Confidence_level_rounded)) + 
+    geom_bar(position="fill", stat="identity") + coord_flip() +
+  labs(y="Share of animal type in the herd",
+       x="Probability of lower emissions intensity (%)",
+       fill="Animal type") + scale_fill_manual(values= c("replacement_males" = "burlywood",
+                                                         "other_animals" = "darkslategrey"),
+                                               labels = c("Replacement males","Other animals")) +
+  theme_bw()
+ 
+
+ggsave("Fig_20_Calliandra_diagnostics.png",width=5,height=5)
+
+```
+
+**This needs change - sensitive factors not analyzed so far**
+
+
+# Feed intervention 2 - Balanced diets
+
+
+
+- milk yield per cow rises by 0.75 kg per day
+- feed emissions drop by 328.5 kg CO2 per animal and year
+
+We assume that 14% of farms adopt this intervention.
+
+```{r}
+x_balance_intervention <- GHG_simulation_scenarios$x
+
+balance_adoption_rate <- 0.14
+
+for (i in 1:nrow(x_balance_intervention))
+{
+  if (rbinom(1, 1, balance_adoption_rate)) # if farmers adopt, make changes in x file
+    {x_balance_intervention$milk_yield_5[i]<-x_balance_intervention$milk_yield_5[i]+0.75
+     x_balance_intervention$milk_yield_6[i]<-x_balance_intervention$milk_yield_6[i]+0.75
+     x_balance_intervention$feed_prod_CO2[i]<-x_balance_intervention$feed_prod_CO2[i]-(328.5 * 
+                    sum(x_Calliandra_intervention[i,paste0("N_animal_type_",1:12)]))
+  }
+}
+# run model for modified x file
+balance_res <- run_model(x_balance_intervention, ghg_emissions)
+
+```
+
+
+```{r, include=FALSE}
+balance_res$call<-"multi-scenario call"
+save_temperature_scenarios(balance_res,"results","balance_intervention")
+```
+
+```{r, include=FALSE}
+balance_res<-load_temperature_scenarios("results","balance_intervention")
+class(balance_res)<-"mcSimulation"
+```
+
+
+## Emissions intensity response to introduction of balanced diets
+
+As for the other interventions, the impact of reducing the number of unproductive replacement males is clearly reflected in a drop in emissions intensity (see scatter plot below). However, also here few data points were located in the high-confidence region of the probability-of-difference plot, so that a milk yield-based reward scheme may easily fail to recognize the efforts of the respective farms.
+
+
+```{r, fig.dim = c(8, 8)}
+
+balance_res$y[,"CO2eq_per_milk"]<-balance_res$y$pc_on_farm/balance_res$y$pc_milk_yield
+
+balance_res$y<-balance_res$y[normal_milk_yield,]
+balance_res$x<-balance_res$x[normal_milk_yield,]
+
+impact_of_balance<-data.frame(baseline=dairy_households$y$pc_milk_yield,
+                                  balance_milk=balance_res$y$pc_milk_yield,
+                                  CO2_intensity_baseline= dairy_households$y$CO2eq_per_milk,
+                                  CO2_intensity_balance=balance_res$y$CO2eq_per_milk)
+impact_of_balance[,"milk_change"]<-
+  round(impact_of_balance$balance_milk-impact_of_balance$baseline,2)
+impact_of_balance[,"emissions_intensity_change"]<-
+  round(impact_of_balance$CO2_intensity_balance-impact_of_balance$CO2_intensity_baseline ,3)
+
+balance_scatter<-ggplot(data=impact_of_balance,
+                        aes(x=milk_change,y=emissions_intensity_change)) +
+  geom_point() +
+  theme_bw() +
+  ggtitle("Intervention impact on milk yield and emissions") + 
+  labs(y=expression(Change~'in'~emission~intensity~(kg~CO[2]*'-eq'~kg^-1)),
+       x="Change in per capita milk yield (kg)")
+
+balance_probs<-ggplot(data = decreased_emissions_probability,
+                      aes(Base_yield, new_yield)) +
+  geom_contour_filled(aes(z=probability)) +
+  stat_contour(breaks = c(0.9),aes(z=probability),col="black") +
+  geom_point(data=impact_of_balance[which(impact_of_balance$milk_change>0),],
+             aes(x=baseline,y=balance_milk)) +
+  ggtitle("Probability of lower emissions intensity on higher-productivity farm") + 
+  labs(y=expression(Milk~yield~of~'higher-productivity'~farm~(kg~head^{-1}~year^{-1})),
+       x=expression(Milk~yield~of~'lower-productivity'~farm~(kg~head^{-1}~year^{-1})),
+       fill="Probability of \nlower emissions \nintensity") + theme_bw()
+
+balance_scatter + balance_probs +
+  plot_layout(ncol = 1, nrow = 2) 
+
+ggsave("Fig_21_balance_reductions.png", width=9,height=9)
+
+
+```
+
+Still need to define something adequate for the next section.
+
+```{r}
+
+
+balance_diagnosis<-balance_res
+balance_diagnosis$y[,"baseline_pc_milk_yield"]<-dairy_households$y$pc_milk_yield
+
+# get closest probability value
+
+for(i in 1:nrow(balance_diagnosis$x))
+  {decreased_emissions_probability[,"diff"]<-
+    abs(decreased_emissions_probability$Base_yield-balance_diagnosis$y$baseline_pc_milk_yield[i]) +
+    abs(decreased_emissions_probability$new_yield-balance_diagnosis$y$pc_milk_yield[i])
+  balance_diagnosis$y[i,"confidence_level"]<-decreased_emissions_probability$probability[which(decreased_emissions_probability$diff==min(decreased_emissions_probability$diff))][1]
+}
+
+balance_90_farms<-balance_diagnosis$x$Scenario[which(balance_diagnosis$y$confidence_level>0.9)]
+
+
+balance_diagnosis$x["Farm"]<-sapply(balance_diagnosis$x$Scenario,
+                                  function(x) as.numeric(strsplit(x,"_")[[1]][2]))
+
+balance_structures<-merge(balance_diagnosis$x,farm_structures)
+balance_structures<-list(x=balance_structures, y=balance_diagnosis$y)
+
+to_plot<-cbind(Farm=balance_structures$x$Farm,Confidence_level=balance_structures$y$confidence_level,
+               balance_structures$x[,c(paste0("breed_",1:8),"unproductive_bulls","replacement_males")])
+to_plot$other_animals<-1-to_plot$replacement_males
+
+melted<-melt(to_plot[,c("Farm","Confidence_level","other_animals","replacement_males")], id.vars=c("Farm","Confidence_level"))
+melted<-melted[which(!is.na(melted$value)),]
+
+melted$Confidence_level_rounded<-round(to_plot$Confidence_level,2)*100
+
+
+ggplot(melted, aes(group=variable, fill=variable, y=value , x=Confidence_level_rounded)) + 
+    geom_bar(position="fill", stat="identity") + coord_flip() +
+  labs(y="Share of animal type in the herd",
+       x="Probability of lower emissions intensity (%)",
+       fill="Animal type") + scale_fill_manual(values= c("replacement_males" = "burlywood",
+                                                         "other_animals" = "darkslategrey"),
+                                               labels = c("Replacement males","Other animals")) +
+  theme_bw()
+ 
+
+ggsave("Fig_22_balance_diagnostics.png",width=5,height=5)
+
+```
+
+**This needs change - sensitive factors not analyzed so far**
+
+
+
+
+
+
+
+
+
 # Reliability of effort detection via milk yield per capity
 
 - run another Monte Carlo
@@ -1889,12 +2182,12 @@ breed_res_endline <- run_model(x_breed_intervention_endline, ghg_emissions)
 
 ```{r, include=FALSE}
 breed_res_endline$call<-"multi-scenario call"
-save_temperature_scenarios(breed_res_endline,"results","Breed_intervention_endline")
+save_temperature_scenarios(breed_res_endline,"results","End_Breed_intervention")
 ```
 
 ```{r, include=FALSE}
 adoption_rate <- 1
-breed_res_endline<-load_temperature_scenarios("results","Breed_intervention_endline")
+breed_res_endline<-load_temperature_scenarios("results","End_Breed_intervention")
 class(breed_res_endline)<-"mcSimulation"
 ```
 
@@ -1943,7 +2236,7 @@ breed_endline_probs<-ggplot(data = decreased_emissions_probability,
 breed_endline_scatter + breed_endline_probs +
   plot_layout(ncol = 1, nrow = 2) 
 
-ggsave("Fig_19_breed_endline.png", width=9,height=9)
+ggsave("Fig_23_breed_endline.png", width=9,height=9)
 
 
 ```
@@ -1983,7 +2276,7 @@ toplot$variable <- factor(toplot$variable, levels = c("Type1error", "Type2error"
 ggplot(toplot, aes(x=confidence,y=value)) + geom_bar(stat="identity", fill="darkolivegreen") + facet_wrap(~ variable,nrow=2) + theme_bw() +
   labs(y="Error probability (%)", x="Required confidence that emission reductions have occurred (%)")
 
-ggsave("Fig_20_breed_endline_errors.png", width=5,height=5)
+ggsave("Fig_24_breed_endline_errors.png", width=5,height=5)
 
 ```
 
@@ -2013,12 +2306,12 @@ nobull_res_endline <- run_model(x_nobull_intervention_endline, ghg_emissions)
 
 ```{r, include=FALSE, eval=FALSE}
 nobull_res_endline$call<-"multi-scenario call"
-save_temperature_scenarios(nobull_res_endline,"results","Nobull_intervention_endline")
+save_temperature_scenarios(nobull_res_endline,"results","End_nobull_intervention")
 ```
 
 ```{r, include=FALSE}
 adoption_rate <- 1
-nobull_res_endline<-load_temperature_scenarios("results","Nobull_intervention_endline")
+nobull_res_endline<-load_temperature_scenarios("results","End_nobull_intervention")
 class(nobull_res_endline)<-"mcSimulation"
 ```
 
@@ -2066,7 +2359,7 @@ nobull_endline_probs<-ggplot(data = decreased_emissions_probability,
 nobull_endline_scatter + nobull_endline_probs +
   plot_layout(ncol = 1, nrow = 2) 
 
-ggsave("Fig_21_nobull_endline.png", width=9,height=9)
+ggsave("Fig_25_nobull_endline.png", width=9,height=9)
 
 
 
@@ -2106,7 +2399,7 @@ toplot$variable <- factor(toplot$variable, levels = c("Type1error", "Type2error"
 ggplot(toplot, aes(x=confidence,y=value)) + geom_bar(stat="identity", fill="darkolivegreen") + facet_wrap(~ variable,nrow=2) + theme_bw() +
   labs(y="Error probability (%)", x="Required confidence that emission reductions have occurred (%)")
 
-ggsave("Fig_22_nobull_endline_errors.png", width=5,height=5)
+ggsave("Fig_26_nobull_endline_errors.png", width=5,height=5)
 
 ```
 
@@ -2132,11 +2425,11 @@ lessReplace_res_endline <- run_model(x_lessReplace_intervention_endline, ghg_emi
 
 ```{r, include=FALSE, eval=FALSE}
 lessReplace_res_endline$call<-"multi-scenario call"
-save_temperature_scenarios(lessReplace_res_endline,"results","lessReplace_intervention_endline")
+save_temperature_scenarios(lessReplace_res_endline,"results","End_lessReplace_intervention")
 ```
 
 ```{r, include=FALSE}
-lessReplace_res_endline<-load_temperature_scenarios("results","lessReplace_intervention_endline")
+lessReplace_res_endline<-load_temperature_scenarios("results","End_lessReplace_intervention")
 class(lessReplace_res_endline)<-"mcSimulation"
 ```
 
@@ -2186,7 +2479,7 @@ lessReplace_endline_probs<-ggplot(data = decreased_emissions_probability,
 lessReplace_endline_scatter + lessReplace_endline_probs +
   plot_layout(ncol = 1, nrow = 2) 
 
-ggsave("Fig_23_lessReplace_endline.png", width=9,height=9)
+ggsave("Fig_27_lessReplace_endline.png", width=9,height=9)
 
 
 ```
@@ -2226,9 +2519,270 @@ toplot$variable <- factor(toplot$variable, levels = c("Type1error", "Type2error"
 ggplot(toplot, aes(x=confidence,y=value)) + geom_bar(stat="identity", fill="darkolivegreen") + facet_wrap(~ variable,nrow=2) + theme_bw() +
   labs(y="Error probability (%)", x="Required confidence that emission reductions have occurred (%)")
 
-ggsave("Fig_24_lessReplace_endline_errors.png", width=5,height=5)
+ggsave("Fig_28_lessReplace_endline_errors.png", width=5,height=5)
 
 ```
+
+
+
+
+## Feed intervention 1 - Supplementary legume fodder
+
+We can do the same analysis for supplementing cow nutrition with Calliandra.
+
+```{r}
+
+# Calliandra intervention
+Calliandra_adopters<-which(!x_Calliandra_intervention$DE_perc==GHG_simulation_scenarios$x$DE_perc)
+
+x_Calliandra_intervention_endline <- GHG_simulation_scenarios_time2$x
+
+x_Calliandra_intervention_endline$N_animal_type_3[Calliandra_adopters]<-0
+
+
+x_Calliandra_intervention$milk_yield_5[Calliandra_adopters]<-x_Calliandra_intervention$milk_yield_5[Calliandra_adopters]+0.156
+x_Calliandra_intervention$milk_yield_6[Calliandra_adopters]<-x_Calliandra_intervention$milk_yield_6[Calliandra_adopters]+0.156
+x_Calliandra_intervention$DE_perc[Calliandra_adopters]<-x_Calliandra_intervention$DE_perc[Calliandra_adopters]+0.14
+x_Calliandra_intervention$perc_crude_protein_diet[Calliandra_adopters]<-x_Calliandra_intervention$perc_crude_protein_diet[Calliandra_adopters]-0.07
+x_Calliandra_intervention$feed_prod_CO2[Calliandra_adopters]<-x_Calliandra_intervention$feed_prod_CO2[Calliandra_adopters]- (0.726 *
+                                  sum(x_Calliandra_intervention[Calliandra_adopters,paste0("N_animal_type_",1:12)]))
+
+# run model for modified x file
+Calliandra_res_endline <- run_model(x_Calliandra_intervention_endline, ghg_emissions)
+
+```
+
+
+```{r, include=FALSE, eval=FALSE}
+Calliandra_res_endline$call<-"multi-scenario call"
+save_temperature_scenarios(Calliandra_res_endline,"results","End_Calliandra_intervention")
+```
+
+```{r, include=FALSE}
+Calliandra_res_endline<-load_temperature_scenarios("results","End_Calliandra_intervention")
+class(Calliandra_res_endline)<-"mcSimulation"
+```
+
+
+Now we can compare the performance of adopters and non-adopters and plot this against the confidence level for recognizing that emissions reductions have occurred.
+
+```{r, fig.dim = c(8, 8)}
+Calliandra_res_endline$y$Calliandra_adopters<-NA
+Calliandra_res_endline$y$Calliandra_adopters[Calliandra_adopters]<-"Adopter"
+Calliandra_res_endline$y$Calliandra_adopters[is.na(Calliandra_res_endline$y$Calliandra_adopters)]<-"Non-adopter"
+
+Calliandra_res_endline$y[,"CO2eq_per_milk"]<-Calliandra_res_endline$y$pc_on_farm/Calliandra_res_endline$y$pc_milk_yield
+
+Calliandra_res_endline$y<-Calliandra_res_endline$y[normal_milk_yield,]
+Calliandra_res_endline$x<-Calliandra_res_endline$x[normal_milk_yield,]
+
+impact_of_Calliandra_endline<-data.frame(baseline=dairy_households$y$pc_milk_yield,
+                                  Calliandra_endline_milk=Calliandra_res_endline$y$pc_milk_yield,
+                                  CO2_intensity_baseline= dairy_households$y$CO2eq_per_milk,
+                                  CO2_intensity_Calliandra=Calliandra_res_endline$y$CO2eq_per_milk,
+                                  Adopter=Calliandra_res_endline$y$Calliandra_adopters)
+impact_of_Calliandra_endline[,"milk_change"]<-
+  round(impact_of_Calliandra_endline$Calliandra_endline_milk-impact_of_Calliandra_endline$baseline,2)
+impact_of_Calliandra_endline[,"emissions_intensity_change"]<-
+  round(impact_of_Calliandra_endline$CO2_intensity_Calliandra-impact_of_Calliandra_endline$CO2_intensity_baseline ,3)
+
+Calliandra_endline_scatter<-ggplot(data=impact_of_Calliandra_endline,
+                        aes(x=milk_change,y=emissions_intensity_change,color=Adopter)) +
+  geom_point(size=0.5) +
+  theme_bw() +
+  ggtitle("Intervention impact on milk yield and emissions") + 
+  labs(y=expression(Change~'in'~emission~intensity~(kg~CO[2]*'-eq'~kg^-1)),
+       x="Change in per capita milk yield (kg)") + scale_color_manual(values=c("Adopter" = "darkslategrey", "Non-adopter" = "burlywood"))
+
+
+Calliandra_endline_probs<-ggplot(data = decreased_emissions_probability,
+                      aes(Base_yield, new_yield)) +
+  geom_contour_filled(aes(z=probability)) +
+  stat_contour(breaks = c(0.9),aes(z=probability),col="black") +
+  geom_point(data=impact_of_Calliandra_endline[which(impact_of_Calliandra_endline$milk_change>0),],
+             aes(x=baseline,y=Calliandra_endline_milk,color=Adopter), size=0.5) +
+  ggtitle("Probability of lower emissions intensity on higher-productivity farm") + 
+  labs(y=expression(Milk~yield~of~'higher-productivity'~farm~(kg~head^{-1}~year^{-1})),
+       x=expression(Milk~yield~of~'lower-productivity'~farm~(kg~head^{-1}~year^{-1})),
+       fill="Probability of \nlower emissions \nintensity") + theme_bw() + scale_color_manual(values=c("Adopter" = "darkslategrey", "Non-adopter" = "burlywood"))
+
+Calliandra_endline_scatter + Calliandra_endline_probs +
+  plot_layout(ncol = 1, nrow = 2) 
+
+ggsave("Fig_29_Calliandra_endline.png", width=9,height=9)
+
+
+```
+
+Finally, we can evaluate the Type 1 and Type 2 errors of a reward scheme based on per-capita milk yield.
+
+```{r}
+Calliandra_endline_diagnosis<-Calliandra_res_endline
+Calliandra_endline_diagnosis$y[,"baseline_pc_milk_yield"]<-dairy_households$y$pc_milk_yield
+
+# get closest probability value
+
+for(i in 1:nrow(Calliandra_endline_diagnosis$x))
+  {decreased_emissions_probability[,"diff"]<-
+    abs(decreased_emissions_probability$Base_yield-Calliandra_endline_diagnosis$y$baseline_pc_milk_yield[i]) +
+    abs(decreased_emissions_probability$new_yield-Calliandra_endline_diagnosis$y$pc_milk_yield[i])
+  Calliandra_endline_diagnosis$y[i,"confidence_level"]<-decreased_emissions_probability$probability[which(decreased_emissions_probability$diff==min(decreased_emissions_probability$diff))][1]
+}
+
+confidence_level_analysis_Calliandra<-data.frame(confidence=seq(0.5,1,0.01))
+n_adopt<-length(which(Calliandra_endline_diagnosis$y$Calliandra_adopter=="Adopter"))
+n_nonadopt<-length(which(Calliandra_endline_diagnosis$y$Calliandra_adopter=="Non-adopter"))
+for(i in 1:nrow(confidence_level_analysis_Calliandra))
+{confidence_level_analysis_Calliandra$Type1error[i]<-length(which(Calliandra_endline_diagnosis$y$Calliandra_adopter=="Adopter" &
+                                                 Calliandra_endline_diagnosis$y$confidence_level<confidence_level_analysis_Calliandra$confidence[i])) / n_adopt * 100
+ confidence_level_analysis_Calliandra$Type2error[i]<-length(which(Calliandra_endline_diagnosis$y$Calliandra_adopter=="Non-adopter" &
+                                                 Calliandra_endline_diagnosis$y$confidence_level>confidence_level_analysis_Calliandra$confidence[i])) / n_nonadopt * 100
+
+}
+confidence_level_analysis_Calliandra$confidence<-confidence_level_analysis_Calliandra$confidence*100
+
+
+toplot<-melt(confidence_level_analysis_Calliandra,id.vars = "confidence")
+toplot$variable <- factor(toplot$variable, levels = c("Type1error", "Type2error"),
+                  labels = c("Type I error - failure to reward adopters", "Type II error - rewarding non-adopters"))
+
+ggplot(toplot, aes(x=confidence,y=value)) + geom_bar(stat="identity", fill="darkolivegreen") + facet_wrap(~ variable,nrow=2) + theme_bw() +
+  labs(y="Error probability (%)", x="Required confidence that emission reductions have occurred (%)")
+
+ggsave("Fig_30_Calliandra_endline_errors.png", width=5,height=5)
+
+```
+
+
+
+## Feed intervention 2 - Balanced diets
+
+We can do the same analysis for a balanced diet.
+
+```{r}
+
+# balance intervention
+balance_adopters<-which(!x_balance_intervention$feed_prod_CO2==GHG_simulation_scenarios$x$feed_prod_CO2)
+
+x_balance_intervention_endline <- GHG_simulation_scenarios_time2$x
+
+x_balance_intervention$milk_yield_5[balance_adopters]<-x_balance_intervention$milk_yield_5[balance_adopters]+0.75
+x_balance_intervention$milk_yield_6[balance_adopters]<-x_balance_intervention$milk_yield_6[balance_adopters]+0.75
+x_balance_intervention$feed_prod_CO2[balance_adopters]<-x_balance_intervention$feed_prod_CO2[balance_adopters]-(328.5 * 
+                    sum(x_Calliandra_intervention[balance_adopters,paste0("N_animal_type_",1:12)]))
+
+# run model for modified x file
+balance_res_endline <- run_model(x_balance_intervention_endline, ghg_emissions)
+
+```
+
+
+```{r, include=FALSE, eval=FALSE}
+balance_res_endline$call<-"multi-scenario call"
+save_temperature_scenarios(balance_res_endline,"results","End_balance_intervention")
+```
+
+```{r, include=FALSE}
+balance_res_endline<-load_temperature_scenarios("results","End_balance_intervention")
+class(balance_res_endline)<-"mcSimulation"
+```
+
+
+Now we can compare the performance of adopters and non-adopters and plot this against the confidence level for recognizing that emissions reductions have occurred.
+
+```{r, fig.dim = c(8, 8)}
+balance_res_endline$y$balance_adopters<-NA
+balance_res_endline$y$balance_adopters[balance_adopters]<-"Adopter"
+balance_res_endline$y$balance_adopters[is.na(balance_res_endline$y$balance_adopters)]<-"Non-adopter"
+
+balance_res_endline$y[,"CO2eq_per_milk"]<-balance_res_endline$y$pc_on_farm/balance_res_endline$y$pc_milk_yield
+
+balance_res_endline$y<-balance_res_endline$y[normal_milk_yield,]
+balance_res_endline$x<-balance_res_endline$x[normal_milk_yield,]
+
+impact_of_balance_endline<-data.frame(baseline=dairy_households$y$pc_milk_yield,
+                                  balance_endline_milk=balance_res_endline$y$pc_milk_yield,
+                                  CO2_intensity_baseline= dairy_households$y$CO2eq_per_milk,
+                                  CO2_intensity_balance=balance_res_endline$y$CO2eq_per_milk,
+                                  Adopter=balance_res_endline$y$balance_adopters)
+impact_of_balance_endline[,"milk_change"]<-
+  round(impact_of_balance_endline$balance_endline_milk-impact_of_balance_endline$baseline,2)
+impact_of_balance_endline[,"emissions_intensity_change"]<-
+  round(impact_of_balance_endline$CO2_intensity_balance-impact_of_balance_endline$CO2_intensity_baseline ,3)
+
+balance_endline_scatter<-ggplot(data=impact_of_balance_endline,
+                        aes(x=milk_change,y=emissions_intensity_change,color=Adopter)) +
+  geom_point(size=0.5) +
+  theme_bw() +
+  ggtitle("Intervention impact on milk yield and emissions") + 
+  labs(y=expression(Change~'in'~emission~intensity~(kg~CO[2]*'-eq'~kg^-1)),
+       x="Change in per capita milk yield (kg)") + scale_color_manual(values=c("Adopter" = "darkslategrey", "Non-adopter" = "burlywood"))
+
+
+balance_endline_probs<-ggplot(data = decreased_emissions_probability,
+                      aes(Base_yield, new_yield)) +
+  geom_contour_filled(aes(z=probability)) +
+  stat_contour(breaks = c(0.9),aes(z=probability),col="black") +
+  geom_point(data=impact_of_balance_endline[which(impact_of_balance_endline$milk_change>0),],
+             aes(x=baseline,y=balance_endline_milk,color=Adopter), size=0.5) +
+  ggtitle("Probability of lower emissions intensity on higher-productivity farm") + 
+  labs(y=expression(Milk~yield~of~'higher-productivity'~farm~(kg~head^{-1}~year^{-1})),
+       x=expression(Milk~yield~of~'lower-productivity'~farm~(kg~head^{-1}~year^{-1})),
+       fill="Probability of \nlower emissions \nintensity") + theme_bw() + scale_color_manual(values=c("Adopter" = "darkslategrey", "Non-adopter" = "burlywood"))
+
+balance_endline_scatter + balance_endline_probs +
+  plot_layout(ncol = 1, nrow = 2) 
+
+ggsave("Fig_31_balance_endline.png", width=9,height=9)
+
+
+```
+
+Finally, we can evaluate the Type 1 and Type 2 errors of a reward scheme based on per-capita milk yield.
+
+```{r}
+balance_endline_diagnosis<-balance_res_endline
+balance_endline_diagnosis$y[,"baseline_pc_milk_yield"]<-dairy_households$y$pc_milk_yield
+
+# get closest probability value
+
+for(i in 1:nrow(balance_endline_diagnosis$x))
+  {decreased_emissions_probability[,"diff"]<-
+    abs(decreased_emissions_probability$Base_yield-balance_endline_diagnosis$y$baseline_pc_milk_yield[i]) +
+    abs(decreased_emissions_probability$new_yield-balance_endline_diagnosis$y$pc_milk_yield[i])
+  balance_endline_diagnosis$y[i,"confidence_level"]<-decreased_emissions_probability$probability[which(decreased_emissions_probability$diff==min(decreased_emissions_probability$diff))][1]
+}
+
+confidence_level_analysis_balance<-data.frame(confidence=seq(0.5,1,0.01))
+n_adopt<-length(which(balance_endline_diagnosis$y$balance_adopter=="Adopter"))
+n_nonadopt<-length(which(balance_endline_diagnosis$y$balance_adopter=="Non-adopter"))
+for(i in 1:nrow(confidence_level_analysis_balance))
+{confidence_level_analysis_balance$Type1error[i]<-length(which(balance_endline_diagnosis$y$balance_adopter=="Adopter" &
+                                                 balance_endline_diagnosis$y$confidence_level<confidence_level_analysis_balance$confidence[i])) / n_adopt * 100
+ confidence_level_analysis_balance$Type2error[i]<-length(which(balance_endline_diagnosis$y$balance_adopter=="Non-adopter" &
+                                                 balance_endline_diagnosis$y$confidence_level>confidence_level_analysis_balance$confidence[i])) / n_nonadopt * 100
+
+}
+confidence_level_analysis_balance$confidence<-confidence_level_analysis_balance$confidence*100
+
+
+toplot<-melt(confidence_level_analysis_balance,id.vars = "confidence")
+toplot$variable <- factor(toplot$variable, levels = c("Type1error", "Type2error"),
+                  labels = c("Type I error - failure to reward adopters", "Type II error - rewarding non-adopters"))
+
+ggplot(toplot, aes(x=confidence,y=value)) + geom_bar(stat="identity", fill="darkolivegreen") + facet_wrap(~ variable,nrow=2) + theme_bw() +
+  labs(y="Error probability (%)", x="Required confidence that emission reductions have occurred (%)")
+
+ggsave("Fig_32_balance_endline_errors.png", width=5,height=5)
+
+```
+
+
+
+
+
+
+
 
 # Sensitivity analysis - which uncertainties matter?
 
@@ -2245,7 +2799,7 @@ pls_out<-plsr.mcSimulation(object=pls_GHG, resultName = "CO2eq_per_milk")
 legend_table<-read.csv("data/legend.csv", fileEncoding = "UTF-8-BOM")
 
 plot_pls(pls_out,input_table=legend_table)
-ggsave("Fig_25_PLS_dairy_households.png", width=8,height=5)
+ggsave("Fig_33_PLS_dairy_households.png", width=8,height=5)
 ```
 
 
@@ -2271,7 +2825,6 @@ ggsave("Fig_25_PLS_dairy_households.png", width=8,height=5)
 
 # Remaining jobs
 
-- Feed intervention (how exactly?)
 - Select what to present in the manuscript and the supplement
 
 
