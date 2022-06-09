@@ -1,0 +1,884 @@
+---
+title: "Accounting for uncertainty in simulating greenhouse gas emissions from dairy cattle in Kenya"
+author: "Eike Luedeling, Cory Whitney, Andreas Wilkes, Todd Rosenstock"
+bibliography:
+ - references/packages.bib
+ - references/papers.bib
+output:
+  html_document:
+    theme: united
+    toc: true
+    toc_float: true
+    number_sections: true
+    code_folding: hide
+---
+
+# Setting up
+
+Note that the code for all operations is hidden, so that it doesn't clutter the document. You can make it appear by clicking the code button on the right.
+
+We first need to install and load all required packages.
+
+```{r setup, warning=FALSE, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+
+#install and load packages
+# devtools::install_github("CWWhitney/uncertainty")
+library(DiagrammeR)
+library(decisionSupport)
+library(ggplot2)
+library(kableExtra)
+library(magrittr)
+library(plyr)
+library(rmarkdown)
+library(uncertainty)
+library(chillR)
+library(raster)
+library(reshape2)
+library(patchwork)
+
+knitr::write_bib(c(.packages(), 
+                   'DiagrammeR',
+                   'decisionSupport',
+                   'ggplot2',
+                   'kableExtra',
+                   'magrittr',
+                   'plyr',
+                   'rmarkdown',
+                   'uncertainty',
+                   'chillR',
+                   'raster',
+                   'reshape2',
+                   'patchwork'), 'references/packages.bib')
+#resolves an issue with the scientific style of numbers,answer from @Paul Hiemstra: https://stackoverflow.com/a/25947542/4061993 
+#from the documentation of ?options:
+options(scipen=999)
+```
+
+```{r, warning=FALSE, eval=FALSE}
+devtools::install_github("CWWhitney/uncertainty")
+library(DiagrammeR)
+library(decisionSupport)
+library(ggplot2)
+library(kableExtra)
+library(magrittr)
+library(plyr)
+library(rmarkdown)
+library(uncertainty)
+library(chillR)
+library(raster)
+library(reshape2)
+library(patchwork)
+```
+
+## Load emission calculation function
+
+Greenhouse gas emissions from livestock are calculated according to Chapter 10 of the *2006 IPCC Guidelines for National Greenhouse Gas Inventories* [@dong_ipcc_2006] (Volume 4 - Agriculture, Forestry and Other Land Use). The document can be found on [the IPCC website](https://www.ipcc-nggip.iges.or.jp/public/2006gl/pdf/4_Volume4/V4_10_Ch10_Livestock.pdf). The chapter is part of the book *Good Practice Guidance and Uncertainty Management in National Greenhouse Gas Inventories* [@ipcc_good_2021], also on the [the IPCC website](https://www.ipcc-nggip.iges.or.jp/public/gp/english/). Many variables are based on the work done in *Variation in the carbon footprint of milk production on smallholder dairy farms in central Kenya* [@wilkes_variation_2020] and in *Methods and guidance to support MRV of livestock emissions* [@wilkes_methods_2019]. We also draw on recommendations provided in Chapter 10 of Volume 4 of the *2019 Refinement to the 2006 IPCC Guidelines for National Greenhouse Gas Inventories* [@ipcc_2019], which is also accessible via [the IPCC website](https://www.ipcc-nggip.iges.or.jp/public/2019rf/vol4.html).
+
+The equations provided in these documents, in particular in the 2006 guideline document [@dong_ipcc_2006] were converted into an R function called `ghg_emissions`, which is defined here (hit the `Code` button on the right).
+
+```{r ghg_emissions_function}
+# Generate the GHG emissions function 
+ghg_emissions<-function(x, varnames){
+  
+  # Enteric fermentation emissions ($CH_4$)
+  
+  # The main source of all this is Chapter 10 of the *2006 IPCC Guidelines 
+  # for National Greenhouse Gas Inventories* 
+  # (Volume 4 - Agriculture, Forestry and Other Land Use). 
+  # The document can be found on the IPCC web 
+  # https://www.ipcc-nggip.iges.or.jp/public/2006gl/pdf/4_Volume4/V4_10_Ch10_Livestock.pdf
+  
+  # We start with the net energy for maintenance (NE_m; in MJ/day)
+  # This includes a maintenance coefficient, 
+  # for which different values are recommended depending on animal type
+  
+  # The following animal types were used in the example:
+  
+  # animal type 1 - 'intact' grown-up males >=36 months
+  # animal type 2 - castrated grown-up males >=36 months
+  # animal type 3 - males 12-36 months
+  # animal type 4 - lactating cows
+  # animal type 5 - lactating cows
+  # animal type 6 - lactating cows
+  # animal type 7 - weaned young females <= 12 months
+  # animal type 8 - weaned young males <= 12 months
+  # animal type 9 - females 12-36 months
+  # animal type 10 - pre-weaned female calves (<12 months)
+  # animal type 11 - pre-weaned male calves (<12 months)
+  # animal type 12 - first-time pregnant cows
+  
+  # animal types 4, 5 and 6 are all lactating cows - 
+  # important to note here that the original data table 
+  # appears to have worked with the actual number of months 
+  # that cows were pregnant. This resulted in a weighted mean 
+  # of the various maintenance coefficients. 
+  # We're not sure where we could get such data. 
+  # In the original dataset, types 4, 5 and 6 
+  # referred to different pregnancy/lactation states, 
+  # but it doesn't seem like this scheme was rigorously followed.
+  
+  # We make placeholder vectors to collect emissions data 
+  # for all animal types
+  mm_N2O_CO2eq<-c()
+  mm_CH4_CO2eq<-c()
+  enteric_CH4_CO2eq<-c()
+  total_milk<-c()
+  
+  # Now we start a long loop, 
+  # where emissions are calculated for each animal type
+  
+  for (animal_type in 1:12)
+  {
+    # define C and Cfi based on sex (Page 10.17, below Equation 10.6)
+    if(animal_type %in% c(1,3,8,11)) growth_coefficient_C<-C_intact_males # males (1.2)
+    if(animal_type %in% c(2)) growth_coefficient_C<-C_castrates # castrates (1.0)
+    if(animal_type %in% c(4,5,6,7,9,10,12)) growth_coefficient_C<-C_females # females (0.8)
+    
+    if(animal_type %in% c(4,5,6)) Cfi<-maintenance_coefficient_Cfi_lact_cow # lactating cows (0.386)
+    if(animal_type %in% c(1)) Cfi<-maintenance_coefficient_Cfi_bulls # bulls (0.37)
+    if(animal_type %in% c(2,3,7,8,9,10,11,12)) Cfi<-maintenance_coefficient_Cfi_other # others (0.322)
+    
+    # define mature body weight (assuming this needs to be disaggregated by sex, for Eqation 10.6)
+    if(animal_type %in% c(1,2,3,8,11)) mature_weight_MW<-mature_weight_MW_male
+    if(animal_type %in% c(4,5,6,7,9,10,12)) mature_weight_MW<-mature_weight_MW_female
+    
+    # define milk yield
+    if(animal_type %in% c(1,2,3,7,8,9,10,11,12)) milk_yield<-0
+    if(animal_type %in% c(4,5,6)) milk_yield<-eval(parse(text=paste0("milk_yield_",animal_type)))
+    
+    #define pregnancy coefficient (full Cp for first-time pregnant, lower for later in most cases)
+    if(animal_type==12) Cp<-Cp_0
+    if(animal_type==4) Cp<-Cp_0*Cp_rate_4
+    if(animal_type==5) Cp<-Cp_0*Cp_rate_5
+    if(animal_type==6) Cp<-Cp_0*Cp_rate_6
+    if(animal_type %in% c(1,2,3,7,8,9,10,11)) Cp<-0
+    
+    N_animal_type<-eval(parse(text=paste0("N_animal_type_",animal_type)))
+    
+    # define activity coefficient Ca (Table 10.5)
+    # Stall 0.00 - Animals are confined to a small area 
+    #     (i.e., tethered, pen, barn) with the result that they expend 
+    #     very little or no energy to acquire feed.
+    # Pasture 0.17 - Animals are confined in areas with sufficient forage 
+    #     requiring modest energy expense to acquire feed.
+    # Grazing large areas 0.36 - Animals graze in open range land 
+    #     or hilly terrain and expend significant energy to acquire feed.
+    
+
+    if(feeding_system==1) C_activity<-Ca_stall # Stall (0.0)
+    if(feeding_system==2) C_activity<-Ca_pasture # Stall (0.17)
+    if(feeding_system==3) C_activity<-Ca_large_grazing # Stall (0.36)
+    
+    # Mean live weight (kg) of animals surely varies by animal type, 
+    # so we need separate estimates for them
+    live_weight_LW<-eval(parse(text=paste0("live_weight_LW_",animal_type)))
+    
+    # Mean weight gain of animal type (kg/day)
+    weight_gain_WG<-eval(parse(text=paste0("weight_gain_WG_",animal_type)))
+    
+    # Calculate the Net Energy for Maintenance (NE_m) (MJ/day) (Equation 10.3)
+    NE_m<-Cfi*(live_weight_LW^0.75)
+    
+    # Calculate the Net Energy for Activity (NE_activity) (MJ/day) (Equation 10.4)
+    NE_activity<-C_activity*NE_m
+    
+    #Net energy for growth (NE_growth) (MJ/day) (Equation 10.6)
+    NE_growth<-22.02*
+      ((live_weight_LW/(growth_coefficient_C*mature_weight_MW))^0.75)*
+      (weight_gain_WG^1.097)
+    
+    # Net energy for lactation
+    NE_lactation<-milk_yield*(1.47+0.40*milk_fat)
+    
+    #Energy need during pregnancy (Equation 10.13)
+    NE_pregnancy<-Cp*NE_m
+    
+    # Ratio of net energy available in a diet for maintenance 
+    # to digestible energy consumed (Equation 10.14)
+    REM<-1.123-(4.092/1000*DE_perc)+(1.126/100000*DE_perc^2)-(25.4/DE_perc)
+    
+    # Ratio of net energy available for growth in a diet 
+    # to digestible energy consumed (Equation 10.15)
+    REG<-1.164-(5.160/1000*DE_perc)+(1.308/100000*DE_perc^2)-(37.4/DE_perc)
+    
+    # Gross Energy (GE) MJ/day
+    NE_work<-0 # work animals aren't covered here, so we set this to zero
+    GE<-(((NE_m+NE_activity+NE_lactation+NE_work+NE_pregnancy)/REM)+
+           (NE_growth/REG))/(DE_perc/100)
+    
+    # CH4 emission factors for enteric fermentation from a livestock category 
+    # (Equation 10.21)
+    enteric_CH4<-(GE*Y_m*365)/55.65 # kg CH4 per animal per year
+    
+    # Compute the CO2-equivalent of methane emissions for enteric methane
+    # This converts methane emissions to their Global Warming Potential 
+    # (CO2-equivalent of CH4 is 25)
+    enteric_CH4_CO2eq[animal_type]<-N_animal_type*enteric_CH4*25
+    
+    # Manure management methane ($CH_4$) and nitrous oxide ($N_2O$)
+    # daily volatile solid excreted (Equation 10.24)
+    
+    volsol<-(GE*
+               (1-(DE_perc/100))+
+               (urinary_energy*GE))*
+      ((1-ash_content)/18.45) 
+    
+    # The maximum methane emission from manure (Bo) depends on the animal type. 
+    # In the input table, we treat these as constants for each animal type. 
+    # The following line assigns the corresponding Bo value
+    
+    Bo<-eval(parse(text=paste0("Bo_animaltype_",animal_type)))
+    
+    # CH4 emission factor from manure management (Equation 10.23)
+    mm_ch4<-(volsol*365)*
+      (Bo*0.67*
+         ((mms_pasture*MCFpasture)+
+            (mms_spread*MCFspread)+
+            (mms_drylot*MCFdrylot)+
+            (mms_solidstore*MCFsolidstore)+
+            (mms_composted*MCFcomposted)+
+            (mms_liquid*MCFliquid)+
+            (mms_biogas*MCFbiogas)+
+            (mms_burn*MCFburn)+
+          # the original code was lacking the 'sold' fraction - 
+          # we added this for completeness
+          (mms_sold*MCFsold)))
+    
+    # Estimate CO2eq for manure methane
+    mm_CH4_CO2eq[animal_type]<-N_animal_type*mm_ch4*25
+    
+    # Calculate Nitrous oxide emissions from manure and urine on pasture
+    
+    # estimate N intake (kg/animal/day) (Equation 10.32)
+    N_intake<-(GE/18.45)*((perc_crude_protein_diet/100)/6.25)
+    
+    # estimate N retention (kg/animal/day) (Equation 10.33)
+    
+    if(weight_gain_WG==0)
+      N_retention <- ((milk_yield*(1.9+0.4*milk_fat)/100)/6.38)
+        
+    if(!weight_gain_WG==0)
+      N_retention<-((milk_yield*(1.9+0.4*milk_fat)/100)/6.38)+
+      ((weight_gain_WG*(268-(7.03*NE_growth/weight_gain_WG)))/(1000*6.25))
+    
+    # estimate N excretion 
+    # (kg N/animal/yr) (Equation 10.31)
+    N_excretion<-N_intake*(1-N_retention)*365
+    
+    # Direct nitrous oxide emissions 
+    # (kg N2O/animal/yr) (Eq 10.25 from IPCC guidelines)
+    mm_direct_n2o<-N_excretion*((mms_pasture*mndec_pasture)+
+                                  (mms_spread*mndec_spread)+
+                                  (mms_drylot*mndec_drylot)+
+                                  (mms_solidstore*mndec_solidstore)+
+                                  (mms_composted*mndec_composted)+
+                                  (mms_liquid*mndec_liquid)+
+                                  (mms_biogas*mndec_biogas)+
+                                  (mms_burn*mndec_burn)+
+                                  (mms_sold*mndec_sold))*(44/28)
+    
+    # N losses from volatilization 
+    # (kg N/animal/yr) (Eq 10.26 from IPCC guidelines)
+    mm_vol_n<-N_excretion*((mms_pasture*mnvc_pasture)+
+                             (mms_spread*mnvc_spread)+
+                             (mms_drylot*mnvc_drylot)+
+                             (mms_solidstore*mnvc_solidstore)+
+                             (mms_composted*mnvc_composted)+
+                             (mms_liquid*mnvc_liquid)+
+                             (mms_biogas*mnvc_biogas)+
+                             (mms_burn*mnvc_burn)+
+                             (mms_sold*mnvc_sold))
+    
+    # indirect N2O emissions due to volatilization of N from manure management 
+    # (kg N2O/animal/year) (Equation 10.27)
+    mm_vol_n2o<-mm_vol_n*EF4*(44/28)
+    
+    # Nitrous oxide (N2O) from leaching (kg N/animal/year) (equation 10.28)
+    mm_leach_n<-N_excretion*((mms_pasture*frac_leach_pasture)+
+                               (mms_spread*frac_leach_spread)+
+                               (mms_drylot*frac_leach_drylot)+
+                               (mms_solidstore*frac_leach_solidstore)+
+                               (mms_composted*frac_leach_composted)+
+                               (mms_liquid*frac_leach_liquid)+
+                               (mms_biogas*frac_leach_biogas)+
+                               (mms_burn*frac_leach_burn)+
+                               (mms_sold*frac_leach_sold))
+    
+    # indirect N2O emissions due to leaching of N from manure management 
+    # (kg N2O/animal/year) (Equation 10.29)
+    mm_leach_n2o<-mm_leach_n*EF5*(44/28)
+    
+    # CW EL Comment ####
+    # # comment: we removed this, it was probably wrong, 
+    # since leached nitrogen doesn't emit (much) nitrous oxide
+    #mm_leach_n2o<-n_excretion*((mms_pasture*0.3)+(mms_spread*0.3)+(mms_drylot*0.3)+(mms_solidstore*0.3)+
+    #              (mms_composted*0.3)+(mms_liquid*0.3)+(mms_biogas*0)+(mms_burn*0))*0.0075*(44/28)
+    
+    # Estimate CO2eq for manure nitrous
+    mm_N2O_CO2eq[animal_type]<-N_animal_type*(mm_direct_n2o+mm_vol_n2o+mm_leach_n2o)*298 # (298 is the CO2-equivalent of N2O)
+    
+    total_milk[animal_type]<-N_animal_type*milk_yield*365
+    
+  }
+  
+  # Emissions from feed production and transport. 
+
+  feed_CO2<-feed_prod_CO2+feed_trans_CO2
+  
+  # Total emissions 
+
+  on_farm<-sum(enteric_CH4_CO2eq+mm_CH4_CO2eq+mm_N2O_CO2eq)+feed_CO2
+  
+  total_animals<-sum(sapply(1:12,function(x) eval(parse(text=paste0("N_animal_type_",x)))))
+
+  return(list(enteric_CH4=enteric_CH4,
+              milk_yield=sum(total_milk),
+              enteric_CH4_CO2eq=sum(enteric_CH4_CO2eq),
+              mm_CH4_CO2eq=sum(mm_CH4_CO2eq),
+              mm_N2O_CO2eq=sum(mm_N2O_CO2eq),
+              feed_CO2=feed_CO2,
+              on_farm=on_farm,
+              pc_enteric_CH4=enteric_CH4/total_animals,
+              pc_milk_yield=sum(total_milk)/total_animals,
+              pc_enteric_CH4_CO2eq=sum(enteric_CH4_CO2eq)/total_animals,
+              pc_mm_CH4_CO2eq=sum(mm_CH4_CO2eq)/total_animals,
+              pc_mm_N2O_CO2eq=sum(mm_N2O_CO2eq)/total_animals,
+              pc_feed_CO2=feed_CO2/total_animals,
+              pc_on_farm=on_farm/total_animals
+              
+              
+              ))
+}
+
+```
+
+This equation takes a wide range of inputs. Many of these are usually not known precisely, yet the classic IPCC equation does not account for potential errors and uncertainties. Here, we express this uncertainty by defining distributions for each variable. The following table (**data/livestock_ghg_input_table.csv**) shows all the variables, as well as examples of distributions that may describe their quantities. Distributions are defined according to the distribution shape, as well as upper and lower bounds of 90% confidence intervals. We use the following distribution shapes:
+
+* const - constants (upper and lower bounds are the same)
+* posnorm - positive normal distribution; this is a normal distribution that is truncated at 0.
+
+The decisionSupport package [@R-decisionSupport], which we use to run the simulations, also accommodates other distribution types, but we did not consider these appropriate here. The positive normal distribution (and other distributions such as normal or lognormal distributions) are defined based on the 5% and 95% quantiles. Note that it isn't always possible to fit a positive normal distribution based on such specifications, especially if the 5% quantile is set so close to zero that the remaining 5% of the data do not **fit** in the space between zero and the lower bound. In such cases, decisionSupport [@R-decisionSupport] returns a warning message, but it still does its best to generate the requested distribution. It is worth being on the lookout for the respective warning messages and try to adjust the bounds of the distribution to **possible** values.
+
+
+```{r load_data, include=FALSE}
+
+input_table <- "data/livestock_ghg_input_table.csv"
+
+options(knitr.kable.NA = '', encoding = "Windows-1252")
+ read.csv(input_table)[,c(1:2,4,7,5:6)]   %>%
+    kableExtra::kbl(digits = 2)  %>%
+    kableExtra::kable_classic_2(full_width = F) %>% 
+ scroll_box(height = "300px")
+
+```
+
+# Monte Carlo simulation
+
+With the model equation and the input table defined above, we can run a Monte Carlo simulation that returns a probability distribution for the greenhouse gas emissions resulting from the particular herd that is specified in the input table. We use the functions provided by the decisionSupport package [@R-decisionSupport] in the R programming language [@R-base].
+
+```{r, warning=FALSE,eval=FALSE}
+input_table <- "data/livestock_ghg_input_table.csv"
+GHG_emissions<-mcSimulation(estimate=estimate_read_csv(input_table),
+                            model_function=ghg_emissions,
+                            numberOfModelRuns=1000,
+                            functionSyntax="plainNames")
+```
+
+## Running a Monte Carlo simulation with scenarios
+
+The `mcSimulation` function takes random draws for each of the input variables from the distributions specified in the input table. The distributions that are used are the same for every run of the Monte Carlo simulation. This may be desirable in homogeneous populations where all combinations of random values are plausible, but it often misses the mark where populations are composed of particular member types with specific characteristics. To account for populations that are heterogeneous, which is the case for livestock-keeping households in Kenya, we use the `scenario_mc` function, which allows specifying particular subgroups. Defining such scenarios can be desirable when it's necessary to simulate outcomes for particular farm types, climate scenarios etc. To do this, we would normally have to define separate input tables and run separate simulations. This is quite inconvenient. Here, we use a function that can do this job automatically.
+
+The `scenario_mc` function in the `decisionSupport` package [@R-decisionSupport] consists of a wrapper around the `mcSimulation` function. The function can modify the input table according to a scenario file we provide. This file contains information on which variables should be modified for each scenario and how many model runs should be included in the simulation. The function call is essentially the same as for the `mcSimulation` function, but with an additional `scenarios` option which imports the contents of a .csv file. 
+
+The .csv file for the `scenarios` option specifies variables that should be modified for each of the scenarios, as well as the number of model runs for it. Each column beyond the first two columns in the file contains information for a particular scenario. This is restricted to the parameters that *should be changed* for this scenario (all others don't have to be included). 
+
+Here's an example `scenarios` file:
+
+```{r}
+read.table("data/scenarios.csv", sep = ",", fileEncoding = "UTF-8-BOM",header=TRUE)   %>%
+    kableExtra::kbl(digits = 2)  %>%
+    kableExtra::kable_classic_2(full_width = F)
+
+```
+
+The first row ("Runs" in the first column) indicates the number of runs. Each subsequent row indicates which value from the input table should be modified, so the string in the first column has to correspond to a variable name in the input table. The second column indicates which values should be changed, with options being "lower", "upper", "distribution" and "both". If "both" is selected, both the lower and upper bounds are modified (this should only be done for variables with a constant distribution, since the replacement will be for both the upper and lower bound). 
+
+We define subgroups based on the populations of households described by a household survey in Kenya [@wilkes_variation_2020; @wilkes_methods_2019]. Each of the farms encountered in this survey was converted into one scenario, for which Monte Carlo simulation is then used to produce multiple replicates.
+
+## Household-based scenarios
+
+The information for the household is extracted from a spreadsheet that contains all the survey responses [@wilkes_variation_2020; @wilkes_methods_2019].
+
+### Probabilistic scenarios
+
+Extracting all relevant information from the survey results spreadsheet is a slightly complex task, which is accomplished by the following code. The code includes specification of lower and upper bounds of probability distributions for most of the variables. We keep the herd composition constant, but all variables that in all likelihood weren't determined with high precision and accuracy are equipped with such uncertainty estimates. Estimates of the uncertainty for model input variables were extracted from the IPCC documents, or, if no such indications were available, based on our expert judgement.
+
+```{r}
+# import the data from the survey and ensure that the .csv encoding can be read by R
+
+Kenyaherds<-read.table("data/Kenya_baseline_individual_cow_wNotes.csv", sep = ",",
+                       fileEncoding = "UTF-8-BOM", header=TRUE)
+
+# count the number of animals for each type
+
+animals<-table(Kenyaherds[,c("QQNO","animal_type")])
+
+variables_to_update_const<-c(paste0("N_animal_type_",1:12),
+                             "feeding_system")
+
+scenarios<-data.frame(Variable=variables_to_update_const,param="both")
+
+variables_to_update_posnorm<-c(paste0("milk_yield_",4:6),
+                             paste0("Cp_rate_",4:6),
+                             "feed_prod_CO2",
+                             "feed_trans_CO2",
+                             paste0("live_weight_LW_",1:12),
+                             paste0("weight_gain_WG_",1:12),
+                             "DE_perc",
+                             "perc_crude_protein_diet")
+
+scenarios<-rbind(scenarios,data.frame(Variable=rep(variables_to_update_posnorm,each=3),param=c("lower","upper","distribution")))
+
+for(i in 1:nrow(animals))
+  {coln<-paste0("Farm_",row.names(animals)[i])
+   scenarios[,coln]<-NA
+     scenarios[which(scenarios$Variable %in% paste0("N_animal_type_",1:12)),coln]<-animals[i,]
+}
+
+# for some animal-scale variables (e.g. milk yield), we need averages per farm
+
+### error estimates for variables
+milk_yield_error<-0.275 # Migose et al. (2020, https://www.sciencedirect.com/science/article/abs/pii/S1871141319307371 )
+feed_trans_error<-0.25 # Vellinga et al (2013, https://edepot.wur.nl/254098)
+feed_prod_error<-0.25 # Vellinga et al (2013, https://edepot.wur.nl/254098)
+live_weight_error<-0.145 # Goopy et al. (2018, https://www.publish.csiro.au/an/an16577 ) 
+weight_gain_error<-0.145 # Goopy et al. (2018, https://www.publish.csiro.au/an/an16577 ) 
+digestible_energy_error<-0.1
+crude_protein_error<-0.1
+
+# farm-scale variables
+
+Farms<-unique(Kenyaherds$QQNO)
+  
+for (f in Farms)
+  {coln<-paste0("Farm_",f)
+  # update feeding system 
+  scenarios[which(scenarios$Variable == "feeding_system"),coln]<-
+     median(Kenyaherds[which(Kenyaherds$QQNO==f),"system"])
+  
+  # update digestible energy (mean for all animals for now) (with error)
+  scenarios[which(scenarios$Variable == "DE_perc"),coln][1:2]<-
+     mean(Kenyaherds[which(Kenyaherds$QQNO==f),"dig_energy"])*
+                           c(1-digestible_energy_error,1+digestible_energy_error)
+  
+  # update crude protein (mean for all animals for now) (with error)
+  scenarios[which(scenarios$Variable == "perc_crude_protein_diet"),coln][1:2]<-
+     mean(Kenyaherds[which(Kenyaherds$QQNO==f),"CP."])*
+                           c(1-crude_protein_error,1+crude_protein_error)
+  
+  # update feed production CO2 (with error)
+   scenarios[which(scenarios$Variable == "feed_prod_CO2"),coln][1:2]<-
+     sum(Kenyaherds[which(Kenyaherds$QQNO==f),"feed_kgCO2"])*
+                           c(1-feed_prod_error,1+feed_prod_error)
+   
+  # update feed transport CO2 (with error)
+   scenarios[which(scenarios$Variable == "feed_trans_CO2"),coln][1:2]<-
+     sum(Kenyaherds[which(Kenyaherds$QQNO==f),"feed.transport_kgCO2"])*
+                           c(1-feed_trans_error,1+feed_trans_error)
+  
+   # update milk yield for each cow type (animal type 4-6) (with error)
+   for(typ in 4:6)
+     if(sum(Kenyaherds$QQNO==f&Kenyaherds$animal_type==typ)>0)
+       {scenarios[which(scenarios$Variable==paste0("milk_yield_",typ)),coln][1:2]<-
+         mean(Kenyaherds[which(Kenyaherds$QQNO==f&Kenyaherds$animal_type==typ),
+                         "milk_yield"])*c(1-milk_yield_error,1+milk_yield_error)
+       scenarios[which(scenarios$Variable==paste0("CP_rate_",typ)),coln][1:2]<-
+         mean(Kenyaherds[which(Kenyaherds$QQNO==f&Kenyaherds$animal_type==typ),
+                         "Cp"]/0.1) *c(1,1)
+   
+     }
+  # update live weight and weight gain for each animal type (with error)
+   for(typ in 1:12)
+     if(sum(Kenyaherds$QQNO==f&Kenyaherds$animal_type==typ)>0)
+       {scenarios[which(scenarios$Variable==paste0("live_weight_LW_",typ)),coln][1:2]<-
+         mean(Kenyaherds[which(Kenyaherds$QQNO==f&Kenyaherds$animal_type==typ),
+                         "live_weight_LW"])*c(1-live_weight_error,1+live_weight_error)
+       scenarios[which(scenarios$Variable==paste0("weight_gain_WG_",typ)),coln][1:2]<-
+         mean(Kenyaherds[which(Kenyaherds$QQNO==f&Kenyaherds$animal_type==typ),
+                         "weight_gain_WG"])*c(1-weight_gain_error,1+weight_gain_error)
+     }
+   
+   for(varia in variables_to_update_posnorm)
+   if(sum(is.na(scenarios[which(scenarios$Variable==varia),coln][1:2]))==0)   
+     if(!equals(scenarios[which(scenarios$Variable==varia),coln][1],
+               scenarios[which(scenarios$Variable==varia),coln][2]))
+        scenarios[which(scenarios$Variable==varia&
+                   scenarios$param=="distribution"),coln]<-"posnorm" else
+            scenarios[which(scenarios$Variable==varia&
+                   scenarios$param=="distribution"),coln]<-"const"         
+   
+   }
+  
+write.csv(scenarios,"data/farm_scenarios.csv",row.names = FALSE)
+
+read.table("data/farm_scenarios.csv", sep = ",", fileEncoding = "UTF-8-BOM",header=TRUE)[1:20,1:5]  %>%
+    kableExtra::kbl(digits = 2)  %>%
+    kableExtra::kable_classic_2(full_width = F)
+
+```
+
+This is the resulting file (only the first 3 farms are shown, and only the first 20 rows):
+
+The first few rows in this table adjust the herd composition parameters, so that the scenario herd corresponds to the herd of the specific household. Other parameters including the milk yield per cow are also adjusted.
+
+### Precise scenarios
+
+We also make precise scenarios that contain only the exact values that were observed in the survey. This is needed for illustrating the impact of accounting for uncertainty later. For these scenarios, we follow the commonly used practice of applying default values recommended by the various IPCC documents mentioned above [@dong_ipcc_2006;@ipcc_2019;@ipcc_good_2021].
+
+```{r}
+# count the number of animals for each type
+
+animals<-table(Kenyaherds[,c("QQNO","animal_type")])
+
+variables_to_update_posnorm<-c(paste0("milk_yield_",4:6),
+                             paste0("Cp_rate_",4:6),
+                             "feed_prod_CO2",
+                             "feed_trans_CO2",
+                             paste0("live_weight_LW_",1:12),
+                             paste0("weight_gain_WG_",1:12),
+                             "DE_perc",
+                             "perc_crude_protein_diet")
+
+
+precise_inputs<-read.csv(input_table)[,c(1:8)] 
+precise_vars<-precise_inputs[which(!is.na(precise_inputs$IPCC_default)),]
+
+precise_scenarios<-data.frame(Variable=c(variables_to_update_const,variables_to_update_posnorm,precise_vars$variable),param="both")
+                                         
+                                      #   precise_estimates),param="both")
+
+
+for(i in 1:nrow(animals))
+  {coln<-paste0("Farm_",row.names(animals)[i])
+   precise_scenarios[,coln]<-NA
+     precise_scenarios[which(precise_scenarios$Variable %in% paste0("N_animal_type_",1:12)),coln]<-animals[i,]
+}
+
+# farm-scale variables
+
+Farms<-unique(Kenyaherds$QQNO)
+  
+for (f in Farms)
+  {coln<-paste0("Farm_",f)
+  # update feeding system 
+  precise_scenarios[which(precise_scenarios$Variable == "feeding_system"),coln]<-
+     median(Kenyaherds[which(Kenyaherds$QQNO==f),"system"])
+  
+  # update digestible energy (mean for all animals for now) (with error)
+  precise_scenarios[which(precise_scenarios$Variable == "DE_perc"),coln]<-
+     mean(Kenyaherds[which(Kenyaherds$QQNO==f),"dig_energy"])
+  
+  # update crude protein (mean for all animals for now) (with error)
+  precise_scenarios[which(precise_scenarios$Variable == "perc_crude_protein_diet"),coln]<-
+     mean(Kenyaherds[which(Kenyaherds$QQNO==f),"CP."])
+  
+  # update feed production CO2 (with error)
+   precise_scenarios[which(precise_scenarios$Variable == "feed_prod_CO2"),coln]<-
+     sum(Kenyaherds[which(Kenyaherds$QQNO==f),"feed_kgCO2"])
+   
+  # update feed transport CO2 (with error)
+   precise_scenarios[which(precise_scenarios$Variable == "feed_trans_CO2"),coln]<-
+     sum(Kenyaherds[which(Kenyaherds$QQNO==f),"feed.transport_kgCO2"])
+  
+   # update milk yield for each cow type (animal type 4-6) (with error)
+   for(typ in 4:6)
+     if(sum(Kenyaherds$QQNO==f&Kenyaherds$animal_type==typ)>0)
+       {precise_scenarios[which(precise_scenarios$Variable==paste0("milk_yield_",typ)),coln]<-
+         mean(Kenyaherds[which(Kenyaherds$QQNO==f&Kenyaherds$animal_type==typ),
+                         "milk_yield"])
+       precise_scenarios[which(precise_scenarios$Variable==paste0("CP_rate_",typ)),coln]<-
+         mean(Kenyaherds[which(Kenyaherds$QQNO==f&Kenyaherds$animal_type==typ),
+                         "Cp"]/0.1)
+   
+     }
+  # update live weight and weight gain for each animal type (with error)
+   for(typ in 1:12)
+     if(sum(Kenyaherds$QQNO==f&Kenyaherds$animal_type==typ)>0)
+       {precise_scenarios[which(precise_scenarios$Variable==paste0("live_weight_LW_",typ)),coln]<-
+         mean(Kenyaherds[which(Kenyaherds$QQNO==f&Kenyaherds$animal_type==typ),
+                         "live_weight_LW"])
+       precise_scenarios[which(precise_scenarios$Variable==paste0("weight_gain_WG_",typ)),coln]<-
+         mean(Kenyaherds[which(Kenyaherds$QQNO==f&Kenyaherds$animal_type==typ),
+                         "weight_gain_WG"])
+     }
+   
+   # now add the best estimates from the IPCC guidelines to the precise scenarios
+   
+   for(vv in 1:nrow(precise_vars))
+     precise_scenarios[which(precise_scenarios$Variable==precise_vars$variable[vv]),coln]<-
+     precise_vars$IPCC_default[vv]
+
+    }
+  
+write.csv(precise_scenarios,"data/farm_scenarios_precise.csv",row.names = FALSE)
+
+```
+
+## Running the simulation
+
+Now we can run the Monte Carlo simulation with these scenarios.
+
+```{r monte_carlo_simulation, warning=FALSE, eval=FALSE}
+
+GHG_simulation_scenarios<-scenario_mc(base_estimate = estimate_read_csv("data/livestock_ghg_input_table.csv"),
+                                 scenarios = read.csv("data/farm_scenarios.csv",
+                                                      fileEncoding = "UTF-8-BOM"),
+                                 model_function = ghg_emissions,
+                                 numberOfModelRuns = 10,
+                                 functionSyntax = "plainNames")
+GHG_simulation_scenarios$y[,"CO2eq_per_milk"]<-GHG_simulation_scenarios$y$pc_on_farm/GHG_simulation_scenarios$y$pc_milk_yield
+dir.create("results")
+save_temperature_scenarios(GHG_simulation_scenarios,"results","Baseline")
+
+```
+
+```{r, include=FALSE}
+GHG_simulation_scenarios<-load_temperature_scenarios("results","Baseline")
+class(GHG_simulation_scenarios)<-"mcSimulation"
+```
+
+Before we explore the results for the full population of farms, let's first look at one example. The following figure shows the greenhouse gas emissions, per farm and per head of cattle, for farm #5, which holds 12 head of cattle.
+
+
+```{r, warning=FALSE, message=FALSE,fig.dim = c(8, 4)}
+
+scenarios<-read.csv("data/farm_scenarios.csv", fileEncoding = "UTF-8-BOM")
+farm_5<-scenarios[,c(1,2,7)]
+
+farm5_emissions<-scenario_mc(base_estimate = estimate_read_csv("data/livestock_ghg_input_table.csv"),
+                             scenarios = farm_5,
+                             model_function = ghg_emissions,
+                             numberOfModelRuns = 1000,
+                             functionSyntax = "plainNames")
+
+
+precise_scenarios<-read.csv("data/farm_scenarios_precise.csv", fileEncoding = "UTF-8-BOM")
+
+farm5_precise<-precise_scenarios[,c(1,2,7)]
+  
+farm5_emissions_precise<-scenario_mc(base_estimate = estimate_read_csv("data/livestock_ghg_input_table.csv"),
+                             scenarios = farm5_precise,
+                             model_function = ghg_emissions,
+                             numberOfModelRuns = 10,
+                             functionSyntax = "plainNames")
+
+farm5a<-ggplot(data=farm5_emissions$y, aes(on_farm)) +
+geom_histogram(aes(y=..density..), colour="black", fill="white")+
+ geom_density(alpha=.2, fill="#FF6666") +
+  ylab("Relative probability") +
+    xlab(expression(Total~emissions~from~livestock~(kg~CO[2]*'-eq'~year^-1))) + theme_bw() + ggtitle("a) Total emissions")
+
+farm5_total <- farm5a + geom_vline(data=farm5_emissions_precise$y, aes(xintercept=on_farm),color="blue", lwd=3)
+
+farm5_emissions$y[,"CO2eq_per_milk"]<-farm5_emissions$y$pc_on_farm/farm5_emissions$y$pc_milk_yield
+
+farm5b<-ggplot(data=farm5_emissions$y, aes(CO2eq_per_milk)) +
+geom_histogram(aes(y=..density..), colour="black", fill="white")+
+ geom_density(alpha=.2, fill="#FF6666") +
+  ylab("Relative probability") +
+    xlab(expression(Emissions~intensity~(kg~CO[2]*'-eq'~kg^-1))) + ggtitle("b) Emissions intensity")
+
+farm5_emissions_precise$y[,"CO2eq_per_milk"]<-farm5_emissions_precise$y$pc_on_farm/farm5_emissions_precise$y$pc_milk_yield
+
+farm5_intensity<-farm5b + geom_vline(data=farm5_emissions_precise$y, aes(xintercept=CO2eq_per_milk),color="blue", lwd=3) + theme_bw()
+
+farm5_total+farm5_intensity
+
+ggsave("figures/Fig_1_emissions_from_farm_5.png",width=9,height=5)
+
+```
+
+Now we look at the overall population.
+
+```{r, warning=FALSE, message=FALSE, fig.dim = c(8, 4)}
+
+
+all_farms_total<-ggplot(data=GHG_simulation_scenarios$y, aes(on_farm)) +
+geom_histogram(aes(y=..density..), colour="black", fill="white")+
+ geom_density(alpha=.2, fill="#FF6666") +
+  ylab("Relative probability") +
+    xlab(expression(Total~emissions~from~livestock~(kg~CO[2]*'-eq'~year^-1))) + theme_bw() + ggtitle("a) Total emissions")
+
+all_farms_intensity<-ggplot(data=farm5_emissions$y, aes(CO2eq_per_milk)) +
+geom_histogram(aes(y=..density..), colour="black", fill="white")+
+ geom_density(alpha=.2, fill="#FF6666") +
+  ylab("Relative probability") + theme_bw() +
+    xlab(expression(Emissions~intensity~(kg~CO[2]*'-eq'~kg^-1))) + ggtitle("b) Emissions intensity")
+
+all_farms_total+all_farms_intensity
+
+ggsave("figures/Fig_2_emissions_from_all_farms.png",width=9,height=5)
+```
+
+We're interested in the suitability of total per capita milk production per year as an indicator of the greenhouse gas emissions intensity of milk production.
+
+Here's the relationship between these two variables. We exclude farms with a per capita milk yield of <500 kg per year, since such farms can't be considered dairy farms and they would create outliers in many analysis.
+
+```{r, warning=FALSE, message=FALSE, fig.dim = c(8, 6)}
+normal_milk_yield<-which(GHG_simulation_scenarios$y$pc_milk_yield>500)
+
+dairy_households<-GHG_simulation_scenarios
+dairy_households$x<-dairy_households$x[normal_milk_yield,]
+dairy_households$y<-dairy_households$y[normal_milk_yield,]
+
+plot1 <- ggplot(dairy_households$y, aes(x = pc_milk_yield, y = CO2eq_per_milk)) + 
+  geom_point(shape = 20, color = "blue", size = 2) + 
+  stat_smooth(method = "loess", fullrange = TRUE) +
+  geom_density_2d() +
+  geom_rug(color="lightskyblue3") + 
+  labs(y=expression(Emissions~intensity~of~milk~production~(kg~CO[2]*'-eq'~kg^{-1})),
+       x=expression(Milk~yield~per~capita~(kg~head^{-1}~year^{-1})))+
+  theme_bw() +
+  theme(legend.position = c(0.15, 0.9)) 
+
+dens1 <- ggplot(dairy_households$y, aes(x = pc_milk_yield)) + 
+  geom_histogram(aes(y = ..density..),
+                 colour = 1, fill = "white") +
+  geom_density(fill="lightskyblue3") + 
+  geom_histogram(aes(y = ..density..),
+                 colour = 1, alpha=0) + 
+  theme_void() + 
+  theme(legend.position = "none")
+
+dens2 <- ggplot(dairy_households$y, aes(x = CO2eq_per_milk)) + 
+  geom_histogram(aes(y = ..density..),
+                 colour = 1, fill = "white") +
+  geom_density(fill="lightskyblue3") + 
+  geom_histogram(aes(y = ..density..),
+                 colour = 1, alpha=0) + 
+  theme_void() + 
+  theme(legend.position = "none") + 
+  coord_flip()
+
+scatt<-dens1 + plot_spacer() + plot1 + dens2 + 
+  plot_layout(ncol = 2, nrow = 2, widths = c(4, 1), heights = c(1, 4))
+
+
+densi<-ggplot(dairy_households$y, aes(x = pc_milk_yield, y = CO2eq_per_milk)) +
+  stat_density_2d(
+    geom = "raster",
+    aes(fill = after_stat(density)),
+    contour = FALSE
+    ) +
+  scale_fill_viridis_c() + 
+  labs(y=expression(Emissions~intensity~of~milk~production~(kg~CO[2]*'-eq'~kg^{-1})),
+       x=expression(Milk~yield~per~capita~(kg~head^{-1}~year^{-1}))) +
+  theme_bw()
+  
+dens1 + plot_spacer() + plot_spacer() + plot1 + dens2 + densi + 
+  plot_layout(ncol = 3, nrow = 2, widths = c(4, 1), heights = c(1, 4))
+
+
+
+ggsave("figures/Fig_3_scatter_and_surface_per_head_milk_emissions_intensity.png",width=10,height=6)
+```
+
+According to these distributions, the emissions intensity at a particular per capita milk yield can be described by a slice through the probability surface.
+
+```{r varkernelslicerange, message=FALSE, warning=FALSE, fig.dim = c(12, 4)}
+slice_2000<-uncertainty::varslice_resample(in_var = dairy_households$y$pc_milk_yield,
+                                 out_var = dairy_households$y$CO2eq_per_milk, 
+                                 expectedin_var=2000,
+                           n = 1000,
+                           n_samples = 1000,
+                           out_var_sampling = 1000)
+slice_3000<-uncertainty::varslice_resample(in_var = dairy_households$y$pc_milk_yield,
+                                 out_var = dairy_households$y$CO2eq_per_milk, 
+                                 expectedin_var=3000,
+                           n = 1000,
+                           n_samples = 1000,
+                           out_var_sampling = 1000) 
+
+one_slice<-ggplot(data=data.frame(CO2eq_per_milk=slice_2000$resampled), aes(CO2eq_per_milk)) +
+geom_histogram(aes(y=..density..), colour="black", fill="white")+
+ geom_density(alpha=.2, fill="#FF6666") +
+  ylab("Relative probability") +
+    xlab(expression(Emissions~intensity~at~2000~kg~milk~per~capita~(kg~CO[2]*'-eq'~kg^-1))) + theme_bw() + ggtitle("a) Slice through the emissions intensity distribution")
+
+slices<-rbind(data.frame(Values=slice_2000$resampled, Level="2000 kg"), data.frame(Values=slice_3000$resampled, Level="3000 kg"))
+
+two_slices<-ggplot(data=slices, aes(Values, fill=Level)) +
+ geom_density(alpha=.2) +
+  ylab("Relative probability") +
+    xlab(expression(Emissions~intensity~at~specific~milk~yield~per~capita~(kg~CO[2]*'-eq'~kg^-1))) + labs(fill='Productivity level') + theme_bw() + ggtitle("b) Two slices at different productivity levels")
+
+one_slice + two_slices
+
+ggsave("figures/Fig_4_slices.png",width=13,height=6)
+
+```
+
+By resampling from these distributions, we can determine the likelihood that a value of one of these distributions is greater than one of the other. We can systematically expand this to include more comparisons, in this case at intervals of 100 kg milk yield per capita.
+
+
+```{r, fig.dim = c(8, 4)}
+
+milk_yields_to_sample<-seq(100,10000,100)
+milk_yields_to_sample<-milk_yields_to_sample[which(milk_yields_to_sample<max(dairy_households$y$pc_milk_yield))]
+milk_yields_to_sample<-milk_yields_to_sample[which(milk_yields_to_sample>min(dairy_households$y$pc_milk_yield))]
+slices<-list()
+
+# slice through the distribution at every 100 L milk yield per cow
+
+for(i in 1:length(milk_yields_to_sample))
+{slices[[i]]<-
+  varslice_resample(dairy_households$y$pc_milk_yield,
+                      dairy_households$y$CO2eq_per_milk,
+                      expectedin_var = milk_yields_to_sample[i],
+                      n_samples = 100000,
+  out_var_sampling = 1000)$resample
+ }
+
+decreased_emissions_probability <-
+  data.frame(Base_yield = NA,new_yield=NA,probability=NA)
+
+for (i in 1:(length(milk_yields_to_sample) - 1))
+{
+  for (j in (i + 1):length(milk_yields_to_sample))
+    {decreased_emissions_probability[nrow(decreased_emissions_probability)+1,"Base_yield"]<-milk_yields_to_sample[i]
+     decreased_emissions_probability$new_yield[nrow(decreased_emissions_probability)]<-milk_yields_to_sample[j]
+     decreased_emissions_probability$probability[nrow(decreased_emissions_probability)] <-
+      sum(slices[[i]] > slices[[j]]) / length(slices[[i]])
+  
+}
+}
+
+decreased_emissions_probability<-decreased_emissions_probability[which(!is.na(decreased_emissions_probability$Base_yield)),]
+
+
+ggplot(data = decreased_emissions_probability, aes(Base_yield, new_yield, z =
+                                                      probability)) + geom_contour_filled() +
+  ggtitle("Probability of lower emissions intensity on higher-productivity farm") + 
+  labs(y=expression(Milk~yield~of~'higher-productivity'~farm~(kg~head^{-1}~year^{-1})),
+       x=expression(Milk~yield~of~'lower-productivity'~farm~(kg~head^{-1}~year^{-1})),
+       fill="Probability of \nlower emissions \nintensity") +
+  stat_contour(breaks = c(0.9),col="black") + theme_bw()
+  
+ggsave("figures/Fig_5_probability_of_lower_emissions_intensity.png", width=7,height=5)
+
+```
+
+
+Now a description of the 5 interventions
+
+Further figures to include:
+
+- Fig. 6: Scatter plot that shows the impact of all interventions on per capita milk yield and emissions intensity
+- Fig. 7: Scatter plot of all interventions against the backdrop of all samples drawn in second MC simulation (endline)
+- Fig. 8: Intervention households shown on probability surface (Fig. 5)
+- Fig. 9: Structural analysis - which household types have a chance of being detected
+- Fig. 10: Errors (Type I and Type 2) - would be good to combine all interventions in one figure (might get crowded)
+
+
