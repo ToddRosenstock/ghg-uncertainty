@@ -1981,7 +1981,7 @@ for (i in 1:nrow(x_balance_intervention))
     {x_balance_intervention$milk_yield_5[i]<-x_balance_intervention$milk_yield_5[i]+0.75
      x_balance_intervention$milk_yield_6[i]<-x_balance_intervention$milk_yield_6[i]+0.75
      x_balance_intervention$feed_prod_CO2[i]<-x_balance_intervention$feed_prod_CO2[i]-(328.5 * 
-                    sum(x_Calliandra_intervention[i,paste0("N_animal_type_",1:12)]))
+                    sum(x_balance_intervention[i,paste0("N_animal_type_",1:12)]))
   }
 }
 # run model for modified x file
