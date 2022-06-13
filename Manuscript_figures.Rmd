@@ -651,7 +651,7 @@ class(GHG_simulation_scenarios)<-"mcSimulation"
 Before we explore the results for the full population of farms, let's first look at one example. The following figure shows the greenhouse gas emissions, per farm and per head of cattle, for farm #5, which holds 12 head of cattle.
 
 
-```{r, warning=FALSE, message=FALSE,fig.dim = c(8, 4), fig.cap = "Total farm emissions and emissions intensity for farm number 5 from the farm survey, based on the outputs of a Monte Carlo simulation. The blue bar indicates a point estimate based on the default values recommended by the IPCC"}
+```{r, warning=FALSE, message=FALSE,fig.dim = c(8, 4), fig.cap = "***Figure 1.*** *Estimated total emissions from livestock (a) and emissions intensity of milk production (b) for a smallholder dairy farm in Kenya. Plausible estimates of both metrics are generated through Monte Carlo simulation, based on 1000 runs of a greenhouse gas emissions model, with uncertainty introduced by specifying inputs as probability distributions. The blue line indicates a precise estimate based on precise results from a farm survey and default parameters recommended by various guidance documents.*"}
 
 scenarios<-read.csv("data/farm_scenarios.csv", fileEncoding = "UTF-8-BOM")
 farm_5<-scenarios[,c(1,2,7)]
@@ -701,7 +701,7 @@ ggsave("figures/Fig_1_emissions_from_farm_5.png",width=9,height=5)
 
 Now we look at the overall population.
 
-```{r, warning=FALSE, message=FALSE, fig.dim = c(8, 4), fig.cap = "Total greenhouse gas emissions per farm and emissions intensity across all farms in the farm survey, based on the outputs of a Monte Carlo simulation."}
+```{r, warning=FALSE, message=FALSE, fig.dim = c(8, 4), fig.cap = "***Figure 2.*** *Total greenhouse gas emissions from livestock (a) and emissions intensity of milk production (b) across 4140 simulated livestock-keeping households in Kenya (informed by data collected on 414 farms). Plausible estimates of both metrics are generated through Monte Carlo simulation, based on 1000 runs of a greenhouse gas emissions model, with uncertainty introduced by specifying inputs as probability distributions.*"}
 
 
 all_farms_total<-ggplot(data=GHG_simulation_scenarios$y, aes(on_farm)) +
@@ -721,16 +721,69 @@ all_farms_total+all_farms_intensity
 ggsave("figures/Fig_2_emissions_from_all_farms.png",width=9,height=5)
 ```
 
-We're interested in the suitability of total per capita milk production per year as an indicator of the greenhouse gas emissions intensity of milk production.
+The 
 
-Here's the relationship between these two variables. We exclude farms with a per capita milk yield of <500 kg per year, since such farms can't be considered dairy farms and they would create outliers in many analysis.
+```{r, warning=FALSE, message=FALSE, fig.dim = c(8, 4), fig.cap = "***Figure S1.*** *Greenhouse gas emissions from livestock per head of cattle across 4140 simulated livestock-keeping households in Kenya (informed by data collected on 414 farms). Plausible estimates are generated through Monte Carlo simulation, based on 1000 runs of a greenhouse gas emissions model, with uncertainty introduced by specifying inputs as probability distributions.*"}
+all_farms_per_capita<-ggplot(data=GHG_simulation_scenarios$y, aes(pc_on_farm)) +
+geom_histogram(aes(y=..density..), colour="black", fill="white")+
+ geom_density(alpha=.2, fill="#FF6666") +
+  ylab("Relative probability") + theme_bw() +
+    xlab(expression(Total~greenhouse~gas~emissions~per~capita~(kg~CO[2]*'-eq'~kg^-1))) + ggtitle("Emissions per capita")
 
-```{r, warning=FALSE, message=FALSE, fig.dim = c(8, 6), fig.cap="Relationship between milk yield per capita and emissions intensity of milk production for farms in Kenya, based on a Monte Carlo simulation. Outputs are shown as a scatter plot (left) and a density surface (right)."}
+all_farms_per_capita
+
+ggsave("figures/Fig_S1_emissions_from_all_farms_per_capita.png",width=9,height=5)
+
+
+```
+
+We can now look at summary statistics of total and per capita emissions from cattle across livestock-keeping smallholder farms in Kenya. To exclude farms that do not appear to be specializing in livestock, some of which feature extremely high (up to infinity in cases where no milk is produced) emissions intensity, we also look at summary statistics across only the farms with per capita milk yields of >500 kg of milk.
+
+
+```{r}
+
 normal_milk_yield<-which(GHG_simulation_scenarios$y$pc_milk_yield>500)
 
 dairy_households<-GHG_simulation_scenarios
 dairy_households$x<-dairy_households$x[normal_milk_yield,]
 dairy_households$y<-dairy_households$y[normal_milk_yield,]
+
+emissions_summary<-rbind(data.frame("Emissions per farm"=round(quantile(GHG_simulation_scenarios$y$on_farm,
+                                                                  c(0,0.05,0.5,0.95,1))/1000,1),
+                                    "Emissions per capita"=round(quantile(GHG_simulation_scenarios$y$pc_on_farm,
+                                                                    c(0,0.05,0.5,0.95,1))/1000,1),
+                                    "Emissions intensity"=round(quantile(GHG_simulation_scenarios$y$CO2eq_per_milk,
+                                                                   c(0,0.05,0.5,0.95,1)),1)),
+                         data.frame("Emissions per farm"=round(quantile(dairy_households$y$on_farm,
+                                                                  c(0,0.05,0.5,0.95,1))/1000,1),
+                                    "Emissions per capita"=round(quantile(dairy_households$y$pc_on_farm,
+                                                                    c(0,0.05,0.5,0.95,1))/1000,1),
+                                    "Emissions intensity"=round(quantile(dairy_households$y$CO2eq_per_milk,
+                                                                   c(0,0.05,0.5,0.95,1)),1)))
+emissions_summary$Quantile<-c("Minimum","5% quantile", "Median", "95% quantile", "Maximum",
+                              "Minimum","5% quantile", "Median", "95% quantile", "Maximum")
+rownames(emissions_summary)<-NULL
+
+kable(emissions_summary[,c(4,1,2,3)], booktabs = TRUE,
+      col.names = c("Distribution attribute",
+                    paste0("CO","$_2$","-eq farm","$^{-1}$"),
+                    paste0("CO","$_2$","-eq head","$^{-1}$"),
+                    paste0("CO","$_2$","-eq kg","$^{-1}$")),
+      caption = "<p style='color:black'><i><b>Table S1.</b> Summary statistics of simulated greenhouse gas emissions from cattle across a population of cattle-keeping smallholder farms in Kenya</i></p>") %>% pack_rows(
+  index = c("Emissions per farm" = 5, "Emissions per dairy-focused farm" = 5), background="lightgray") %>%
+column_spec(2:4, width = "5cm") %>% row_spec(0, align = "c") %>% 
+  add_header_above(c(" " = 1, "Emissions per farm" = 1, "Emissions per capita" = 1, "Emissions intensity" = 1))
+
+
+```
+
+\
+
+We're interested in the suitability of total per capita milk production per year as an indicator of the greenhouse gas emissions intensity of milk production.
+
+Here's the relationship between these two variables, for farms with per-capita milk yields of >500 kg per year.
+
+```{r, warning=FALSE, message=FALSE, fig.dim = c(8, 6), fig.cap="***Figure 3.***  *Relationship between milk yield per capita (x-axis) and emissions intensity of milk production for livestock-keeping smallholder households in Kenya, expressed as a population-level scatter plot (a) and an interpolated probability density surface (b). The vertical lines in (b) illustrate slices through the density surface at productivity levels of 2000 (red) and 3000 (blue) kg milk head^-1^ year^-1^ (the corresponding distributions are shown in Fig. 4b).*"}
 
 plot1 <- ggplot(dairy_households$y, aes(x = pc_milk_yield, y = CO2eq_per_milk)) + 
   geom_point(shape = 20, color = "blue", size = 2) + 
@@ -792,7 +845,7 @@ ggsave("figures/Fig_3_scatter_and_surface_per_head_milk_emissions_intensity.png"
 
 According to these distributions, the emissions intensity at a particular per capita milk yield can be described by a slice through the probability surface.
 
-```{r varkernelslicerange, message=FALSE, warning=FALSE, fig.dim = c(12, 4), fig.cap="Probability distributions of greenhouse gas emissions intensity at specific levels of milk production per capita. Slices through the emissions intensity density surface are shown for a production level of 2000 kg milk per capita and year (left) and as a comparison between production levels of 2000 and 3000 kg milk per capita and year (right)."}
+```{r varkernelslicerange, message=FALSE, warning=FALSE, fig.dim = c(12, 4), fig.cap="***Figure 4.*** *Greenhouse gas emissions intensity of milk production at specific levels of per-capita milk production among livestock-keeping smallholder farms in Kenya. Distributions are shown for (a) a production level of 2000 kg milk head^-1^ year^-1^, including a histogram of the random samples the distribution is based on, and (b) production levels of 2000 and 3000 kg milk head^-1^ year^-1^.*"}
 slice_2000<-uncertainty::varslice_resample(in_var = dairy_households$y$pc_milk_yield,
                                  out_var = dairy_households$y$CO2eq_per_milk, 
                                  expectedin_var=2000,
@@ -828,7 +881,7 @@ ggsave("figures/Fig_4_slices.png",width=13,height=6)
 By resampling from these distributions, we can determine the likelihood that a value of one of these distributions is greater than one of the other. We can systematically expand this to include more comparisons, in this case at intervals of 100 kg milk yield per capita.
 
 
-```{r, fig.dim = c(8, 4), fig.cap="Probability that farms that differ in per capita milk production also differ in greenhouse gas emissions intensity. The surface, which is based on the outputs of a Monte Carlo simulation, expresses the probability that a farm with higher milk productivity (y-axis) has a lower emissions intensity than a farm with lower milk productivity (x-axis)."}
+```{r, fig.dim = c(8, 4), fig.cap="***Figure 5.*** *Probability of a particular farm B featuring lower emissions intensity of milk production than another farm A, based on observed per-capita milk production levels. Estimates are derived from pairwise comparisons of slices through a population-wide generalization surface of the relationship between per-capita milk production and emissions intensity. This generalization was generated through Monte Carlo simulation, based on scenarios representing observed production settings on 414 livestock-keeping smallholder farms in Kenya.*"}
 
 milk_yields_to_sample<-seq(100,10000,100)
 milk_yields_to_sample<-milk_yields_to_sample[which(milk_yields_to_sample<max(dairy_households$y$pc_milk_yield))]
@@ -880,16 +933,55 @@ ggsave("figures/Fig_5_probability_of_lower_emissions_intensity.png", width=7,hei
 
 Now a description of the 5 interventions
 
-```{r defining_interventions}
+```{r, warning=FALSE, fig.dim = c(8, 4), fig.cap="***Figure S2.*** *Observed distributions of milk yields for all cattle breeds encountered among dairy cows in a survey of livestock-keeping smallholder farms in Kenya.*"}
 # breed intervention
 
 cows<-Kenyaherds[which(Kenyaherds$animal_type %in% 4:6),]
+cowcount<-data.frame(table(cows$breed))
 
-ggplot(cows, aes(factor(breed),milk_yield)) +
+breed_yield_plot<-ggplot(cows, aes(factor(breed),milk_yield)) +
   geom_violin(draw_quantiles=c(0.5),fill="light green") +
-  xlab("Breed") + ylab("Milk yield (kg per day)") + theme_bw()
+  xlab("Breed") + ylab(expression(Milk~yield~(kg~cow^{-1}~day^{-1}))) +
+  geom_boxplot(width=0.1,fill="forestgreen") +
+  theme_bw() +
+  coord_flip() +
+  scale_x_discrete(labels=c("Holstein Friesian (pure/improved)",
+                            "Ayrshire (pure/improved)",
+                            "Jersey (pure/improved)",
+                            "Guernsey (pure/improved)",
+                            "Cross-bred unknown",
+                            "Boran",
+                            "Local zebu")) +
+  geom_text(data=cowcount ,aes(x = Var1, y = -2, label=paste("n =",Freq)),size = 4)
 
-ggsave("figures/Fig_S1_breeds.png", width=7,height=5)
+breed_milk_summary<-data.frame(Breed=c("Holstein Friesian (pure/improved)",
+                            "Ayrshire (pure/improved)",
+                            "Jersey (pure/improved)",
+                            "Guernsey (pure/improved)",
+                            "Cross-bred unknown",
+                            "Boran",
+                            "Local zebu"),
+                            cow_number=cowcount$Freq,
+                            milk_yield=round(ggplot_build(breed_yield_plot)$data[[2]]$middle,1),
+                            intervention_factor= round(ggplot_build(breed_yield_plot)$data[[2]]$middle/
+                             ggplot_build(breed_yield_plot)$data[[2]]$middle[1],2))
+breed_milk_summary$intervention_factor[which(breed_milk_summary$Breed=="Boran")]<-1
+
+breed_yield_plot
+
+ggsave("figures/Fig_S2_breeds.png", width=9,height=4)
+
+```
+```{r}
+kable(breed_milk_summary, col.names = c("Breed", "Number of dairy cows", "Daily milk yield (kg)", "Intervention factor"),
+      caption = "<p style='color:black'><i><b>Table S2.</b> Mean milk yield across all dairy cow breeds encountered during a farm survey in Kenya</i></p>") %>%
+column_spec(2:4, width = "5cm")
+
+```
+
+\
+
+```{r}
 
 milk_summary<-cbind(aggregate(cows$milk_yield, by=list(cows$breed), FUN=median),table(cows$breed))
 milk_summary<-milk_summary[,c(1,4,2)]
