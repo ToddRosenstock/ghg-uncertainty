@@ -1213,30 +1213,35 @@ class(balance_res)<-"mcSimulation"
 
 
 
-```{r, fig.dim = c(8, 8), fig.cap="Intervention impact on per capita milk production and greenhouse gas emissions intensity."}
+```{r, fig.dim = c(8, 8), fig.cap="***Figure S2.*** *Intervention impact on per capita milk production and greenhouse gas emissions intensity.*"}
 
 # make data.frame with all intervention results
 
 interventions<-rbind(cbind(breed_res$y[breed_adopters,],
                            intervention="breed",
                            pc_milk_baseline=GHG_simulation_scenarios$y$pc_milk_yield[breed_adopters],
-                           CO2_intensity_baseline=GHG_simulation_scenarios$y$CO2eq_per_milk[breed_adopters]),
+                           CO2_intensity_baseline=GHG_simulation_scenarios$y$CO2eq_per_milk[breed_adopters],
+                           Farm=breed_res$x$Scenario[breed_adopters]),
                      cbind(nobull_res$y[nobull_adopters,],
                            intervention="nobull",
                            pc_milk_baseline=GHG_simulation_scenarios$y$pc_milk_yield[nobull_adopters],
-                           CO2_intensity_baseline=GHG_simulation_scenarios$y$CO2eq_per_milk[nobull_adopters]),
+                           CO2_intensity_baseline=GHG_simulation_scenarios$y$CO2eq_per_milk[nobull_adopters],
+                           Farm=nobull_res$x$Scenario[nobull_adopters]),
                      cbind(lessReplace_res$y[lessReplace_adopters,],
                            intervention="lessReplace",
                            pc_milk_baseline=GHG_simulation_scenarios$y$pc_milk_yield[lessReplace_adopters],
-                           CO2_intensity_baseline=GHG_simulation_scenarios$y$CO2eq_per_milk[lessReplace_adopters]),
+                           CO2_intensity_baseline=GHG_simulation_scenarios$y$CO2eq_per_milk[lessReplace_adopters],
+                           Farm=lessReplace_res$x$Scenario[lessReplace_adopters]),
                      cbind(Calliandra_res$y[Calliandra_adopters,],
                            intervention="Calliandra",
                            pc_milk_baseline=GHG_simulation_scenarios$y$pc_milk_yield[Calliandra_adopters],
-                           CO2_intensity_baseline=GHG_simulation_scenarios$y$CO2eq_per_milk[Calliandra_adopters]),
+                           CO2_intensity_baseline=GHG_simulation_scenarios$y$CO2eq_per_milk[Calliandra_adopters],
+                           Farm=Calliandra_res$x$Scenario[Calliandra_adopters]),
                      cbind(balance_res$y[balance_adopters,],
                            intervention="balance",
                            pc_milk_baseline=GHG_simulation_scenarios$y$pc_milk_yield[balance_adopters],
-                           CO2_intensity_baseline=GHG_simulation_scenarios$y$CO2eq_per_milk[balance_adopters]))
+                           CO2_intensity_baseline=GHG_simulation_scenarios$y$CO2eq_per_milk[balance_adopters],
+                           Farm=balance_res$x$Scenario[balance_adopters]))
 
 
 interventions[,"milk_change"]<-interventions$pc_milk_yield-interventions$pc_milk_baseline
@@ -1285,7 +1290,7 @@ ggsave("figures/Fig_6a_intervention_impacts.png", width=9,height=6)
 
 ```
 
-```{r, fig.dim = c(8, 8), fig.cap="Intervention impact on relative per capita milk production and relative greenhouse gas emissions intensity, compared to a counterfactual farm with similar properties that does not apply the respective intervention."}
+```{r, fig.dim = c(8, 8), fig.cap="***Figure 6.*** *Intervention impacts on relative per capita milk production and relative greenhouse gas emissions intensity, compared to a counterfactual farm with similar properties that does not implement the respective intervention.*"}
 
 interventions_scatter_relative<-ggplot(data=interventions_normal_milk,
                         aes(x=milk_change_relative,y=emissions_intensity_change_relative)) +
@@ -1311,6 +1316,250 @@ interventions_scatter_relative
 ggsave("figures/Fig_6_intervention_impacts_relative.png", width=9,height=6)
 
 ```
+
+The herd structure interventions showed potential for causing major changes in milk yields and emissions intensity on particular farms. Plotting these impacts against the initial sets of relevant herd attributes serves to illustrate which farms are particularly responsive to these interventions (Fig. S3).
+
+
+```{r, fig.dim = c(8, 4), fig.cap="***Figure S3.*** *Influence of the breed composition of farm-scale dairy cow populations on changes in milk yield and emissions intensity of milk production in response to a breed upgrade intervention*."}
+
+interventions_diagnostics<-interventions
+
+farm_structures<-data.frame(Farm_no=unique(Kenyaherds$QQNO))
+
+for(f in farm_structures$Farm_no)
+  {samp<-Kenyaherds[which(Kenyaherds$QQNO==f),]
+   cows<-samp[which(samp$animal_type %in% 4:6),]
+   farm_structures[which(farm_structures$Farm_no==f),"Farm"]<-paste0("Farm_",f)
+   farm_structures[which(farm_structures$Farm_no==f),"breed_1"]<-length(which(cows$breed==1))/nrow(cows)
+   farm_structures[which(farm_structures$Farm_no==f),"breed_2"]<-length(which(cows$breed==2))/nrow(cows)
+   farm_structures[which(farm_structures$Farm_no==f),"breed_3"]<-length(which(cows$breed==3))/nrow(cows)
+   farm_structures[which(farm_structures$Farm_no==f),"breed_4"]<-length(which(cows$breed==4))/nrow(cows)
+   farm_structures[which(farm_structures$Farm_no==f),"breed_5"]<-length(which(cows$breed==5))/nrow(cows)
+   farm_structures[which(farm_structures$Farm_no==f),"breed_6"]<-length(which(cows$breed==6))/nrow(cows)
+   farm_structures[which(farm_structures$Farm_no==f),"breed_7"]<-length(which(cows$breed==7))/nrow(cows)
+   farm_structures[which(farm_structures$Farm_no==f),"breed_8"]<-length(which(cows$breed==8))/nrow(cows)
+   farm_structures[which(farm_structures$Farm_no==f),"unproductive_bulls"]<-
+     length(which(samp$animal_type==1))/nrow(samp)
+   farm_structures[which(farm_structures$Farm_no==f),"replacement_males"]<-
+     length(which(samp$animal_type==3))/nrow(samp)
+
+}
+  
+intervention_structures<-merge(interventions_diagnostics,farm_structures)
+intervention_structures[,"not_unproductive_bulls"]<-1-intervention_structures$unproductive_bulls
+intervention_structures[,"not_replacement_males"]<-1-intervention_structures$replacement_males
+
+
+melted_breed<-melt(intervention_structures[,c("Farm",
+                                              "intervention",
+                                              "milk_change_relative",
+                                              "emissions_intensity_change_relative",
+                                              paste0("breed_",1:8),
+                                              "unproductive_bulls",
+                                              "replacement_males")],
+                   id.vars=c("Farm",
+                             "intervention",
+                             "milk_change_relative",
+                             "emissions_intensity_change_relative",
+                             "unproductive_bulls",
+                             "replacement_males"))
+melted_breed<-melted_breed[which(!is.na(melted_breed$value)),]
+
+#melted$Confidence_level_rounded<-round(melted$Confidence_level,2)*100
+
+colnames(melted_breed)[which(colnames(melted_breed)=="value")]<-"breed_share"
+colnames(melted_breed)[which(colnames(melted_breed)=="variable")]<-"breed"
+
+metric_melt_breed<-melt(melted_breed,id.vars=c("Farm","intervention",
+                                "unproductive_bulls","replacement_males","breed","breed_share"))
+metric_melt_breed$value<-round(metric_melt_breed$value)
+colnames(metric_melt_breed)[which(colnames(metric_melt_breed)=="value")]<-"change"
+colnames(metric_melt_breed)[which(colnames(metric_melt_breed)=="variable")]<-"metric"
+
+breedcol<-palette.colors(n = 8, palette = "Okabe-Ito", alpha=1, recycle = FALSE)
+
+metrics <- c("Milk yield per capita", "Emissions intensity of milk production")
+names(metrics) <- c("milk_change_relative","emissions_intensity_change_relative")
+
+
+breed_diagnostic<-
+  ggplot(metric_melt_breed[which(metric_melt_breed$intervention=="breed"),], aes(group=breed, fill=breed, y=breed_share, x=change)) + 
+    geom_bar(position="fill", stat="identity") +
+  scale_y_continuous(labels = scales::percent) + coord_flip() +
+  labs(y="Cumulative share of breed in herd",
+       x="Relative change in outcome metric (%)",
+       fill="Breed of \ndairy cows") + scale_fill_manual(values= c("breed_1" = breedcol[1],
+                                                                   "breed_2" = breedcol[2],
+                                                                   "breed_3" = breedcol[3],
+                                                                   "breed_4" = breedcol[4],
+                                                                   "breed_5" = breedcol[5],
+                                                                   "breed_6" = breedcol[6],
+                                                                   "breed_7" = breedcol[7],
+                                                                   "breed_8" = breedcol[8]),
+                                               labels = c("Holstein Friesian (pure/improved)",
+                                                          "Ayrshire (pure/improved)",
+                                                          "Jersey (pure/improved)",
+                                                          "Guernsey (pure/improved)",
+                                                          "Cross-bred unknown",
+                                                          "Sahiwal",
+                                                          "Boran",
+                                                          "Local zebu")) +
+  theme_bw() + facet_wrap(~metric, 
+  labeller = labeller(metric = metrics))
+
+breed_diagnostic
+
+ggsave("figures/Fig_S3_breed_diagnostics.png",width=8,height=5)
+
+```
+
+```{r, fig.dim = c(8, 4), fig.cap="***Figure S4.*** *Influence of the percentage of unproductive bulls in a cattle herd on changes in milk yield and emissions intensity of milk production in response to a 'retiring unproductive bulls' intervention*."}
+
+melted_nobull<-melt(intervention_structures[which(intervention_structures$intervention=="nobull"),
+                                            c("Farm",
+                                              "milk_change_relative",
+                                              "emissions_intensity_change_relative",
+                                              "unproductive_bulls",
+                                              "not_unproductive_bulls")],
+                   id.vars=c("Farm",
+                             "milk_change_relative",
+                             "emissions_intensity_change_relative"))
+
+colnames(melted_nobull)[which(colnames(melted_nobull)=="value")]<-"percentage"
+colnames(melted_nobull)[which(colnames(melted_nobull)=="variable")]<-"animal_type"
+
+metric_melt_nobull<-melt(melted_nobull,
+                         id.vars=c("Farm",
+                                   "animal_type",
+                                   "percentage"))
+metric_melt_nobull$value<-round(metric_melt_nobull$value)
+colnames(metric_melt_nobull)[which(colnames(metric_melt_nobull)=="value")]<-"change"
+colnames(metric_melt_nobull)[which(colnames(metric_melt_nobull)=="variable")]<-"metric"
+
+metrics <- c("Milk yield per capita", "Emissions intensity of milk production")
+names(metrics) <- c("milk_change_relative","emissions_intensity_change_relative")
+
+metric_melt_nobull<-metric_melt_nobull[which(!is.na(metric_melt_nobull$change)),]
+
+metric_melt_nobull$percentage<-round(metric_melt_nobull$percentage,2)
+
+nobull_diagnostic<-
+  ggplot(metric_melt_nobull, aes(group=animal_type, fill=animal_type, y=percentage, x=change)) + 
+    geom_bar(position="fill", stat="identity") +
+  scale_y_continuous(labels = scales::percent) + coord_flip() +
+  labs(y="Cumulative share of breed in herd",
+       x="Relative change in outcome metric (%)",
+       fill="Animal type") + scale_fill_manual(values= c("unproductive_bulls" = "burlywood",
+                                                         "not_unproductive_bulls" = "darkslategrey"),
+                                               labels = c("Unproductive bulls",
+                                                          "Other animals")) +
+  theme_bw() + facet_wrap(~metric, 
+  labeller = labeller(metric = metrics))
+
+nobull_diagnostic
+
+ggsave("figures/Fig_S4_nobull_diagnostics.png",width=8,height=5)
+
+```
+
+
+
+```{r, fig.dim = c(8, 4), fig.cap="***Figure S5.*** *Influence of the percentage of replacement males in a cattle herd on changes in milk yield and emissions intensity of milk production in response to a 'fewer replacement males' intervention*."}
+
+melted_lessReplace<-melt(intervention_structures[which(intervention_structures$intervention=="lessReplace"),
+                                            c("Farm",
+                                              "milk_change_relative",
+                                              "emissions_intensity_change_relative",
+                                              "replacement_males",
+                                              "not_replacement_males")],
+                   id.vars=c("Farm",
+                             "milk_change_relative",
+                             "emissions_intensity_change_relative"))
+
+colnames(melted_lessReplace)[which(colnames(melted_lessReplace)=="value")]<-"percentage"
+colnames(melted_lessReplace)[which(colnames(melted_lessReplace)=="variable")]<-"animal_type"
+
+metric_melt_lessReplace<-melt(melted_lessReplace,
+                         id.vars=c("Farm",
+                                   "animal_type",
+                                   "percentage"))
+metric_melt_lessReplace$value<-round(metric_melt_lessReplace$value)
+colnames(metric_melt_lessReplace)[which(colnames(metric_melt_lessReplace)=="value")]<-"change"
+colnames(metric_melt_lessReplace)[which(colnames(metric_melt_lessReplace)=="variable")]<-"metric"
+
+metrics <- c("Milk yield per capita", "Emissions intensity of milk production")
+names(metrics) <- c("milk_change_relative","emissions_intensity_change_relative")
+
+metric_melt_lessReplace<-metric_melt_lessReplace[which(!is.na(metric_melt_lessReplace$change)),]
+
+metric_melt_lessReplace$percentage<-round(metric_melt_lessReplace$percentage,2)
+
+lessReplace_diagnostic<-
+  ggplot(metric_melt_lessReplace, aes(group=animal_type, fill=animal_type, y=percentage, x=change)) + 
+    geom_bar(position="fill", stat="identity") +
+  scale_y_continuous(labels = scales::percent) + coord_flip() +
+  labs(y="Cumulative share of breed in herd",
+       x="Relative change in outcome metric (%)",
+       fill="Animal type") + scale_fill_manual(values= c("replacement_males" = "burlywood",
+                                                         "not_replacement_males" = "darkslategrey"),
+                                               labels = c("Replacement males",
+                                                          "Other animals")) +
+  theme_bw() + facet_wrap(~metric, 
+  labeller = labeller(metric = metrics))
+
+lessReplace_diagnostic
+
+ggsave("figures/Fig_S5_lessReplace_diagnostics.png",width=8,height=5)
+
+```
+
+Summary statistics of interventions for the counterfactual simulation
+
+
+```{r}
+
+ints<-c("breed","nobull","lessReplace","Calliandra","balance")
+
+interventions_summary_milk<-data.frame(Intervention=c("Breed upgrade",
+                                                 "Retiring unproductive bulls",
+                                                 "Fewer replacement males",
+                                                 "Calliandra feed",
+                                                 "Balanced diet"))
+interventions_summary_emissions<-interventions_summary_milk
+
+for(i in 1:length(ints))
+  {interventions_summary_milk[i,c("Weakest effect",
+                                  "5% quantile",
+                                  "Median effect",
+                                  "95% quantile",
+                                  "Strongest effect")]<-
+    round(quantile(intervention_structures[which(intervention_structures$intervention==ints[i]),
+                                           "milk_change_relative"],c(0,0.05,0.5,0.95,1),
+                   na.rm=TRUE),1)
+  interventions_summary_emissions[i,c("Weakest effect",
+                                      "5% quantile",
+                                      "Median effect",
+                                      "95% quantile",
+                                      "Strongest effect")]<-
+    round(quantile(intervention_structures[which(intervention_structures$intervention==ints[i]),
+                                           "emissions_intensity_change_relative"],c(1,0.95,0.5,0.05,0),
+                   na.rm=TRUE),1)}
+  
+intervention_summary<-rbind(interventions_summary_milk,interventions_summary_emissions)
+
+kable(intervention_summary, booktabs = TRUE,digits=0,
+     # col.names = c("Intervention",
+       #             paste0("CO","$_2$","-eq farm","$^{-1}$"),
+        #            paste0("CO","$_2$","-eq head","$^{-1}$"),
+         #           paste0("CO","$_2$","-eq kg","$^{-1}$")),
+      caption = "<p style='color:black'><i><b>Table S3.</b> Summary statistics of the simulated impact of farm-scale interventions aimed at reducing greenhouse gas emissions from cattle on cattle-keeping smallholder farms in Kenya. Impacts are evaluated against a true counterfactual baseline, in which all farms are identical except for the simulated impacts of the interventions.  </i></p>") %>%
+  pack_rows(index = c("Impact on milk yield per capita (%)" = 5, "Impact on emissions intensity (%)" = 5), background="lightgray") %>%
+column_spec(2:6, width = "3cm")
+
+```
+
+\
+
 
 These are noticeable changes, but can they be detected against the random variation that all farms experience? We'll now take another Monte Carlo sample, apply the same interventions to the same farms and evaluate the results again.
 
@@ -1419,7 +1668,7 @@ balance_end<-load_temperature_scenarios("results","End_Balance_intervention")
 class(balance_end)<-"mcSimulation"
 ```
 
-```{r, fig.dim = c(8, 8), fig.cap="Intervention impacts on milk production per capita and greenhouse gas emissions intensity, in comparison to random changes between two evaluation times. The gray dots illustrate random changes that occurred on farms that made no management changes, whereas the colored dots show changes on farms that implemented the respective interventions."}
+```{r, fig.dim = c(8, 8), fig.cap="***Figure S6.*** *Intervention impacts on milk production per capita and greenhouse gas emissions intensity, in comparison to random changes between two evaluation times. The gray dots illustrate random changes that occurred on farms that made no management changes, whereas the colored dots show changes on farms that implemented the respective interventions.*"}
 
 # make data.frame with all intervention results
 
@@ -1502,7 +1751,7 @@ ggsave("figures/Fig_7a_intervention_impacts_endline.png", width=9,height=6)
 
 ```
 
-```{r, fig.dim = c(8, 8), fig.cap="Relative intervention impacts on milk production per capita and greenhouse gas emissions intensity, in comparison to random changes between two evaluation times. The gray dots illustrate random changes that occurred on farms that made no management changes, whereas the colored dots show changes on farms that implemented the respective interventions."}
+```{r, fig.dim = c(8, 8), fig.cap="***Figure 7.*** *Relative intervention impacts on milk production per capita and greenhouse gas emissions intensity, in comparison to random changes between two evaluation times. The gray dots illustrate random changes that occurred on farms that made no management changes, whereas the colored dots show changes on farms that implemented the respective interventions.*"}
 
 interventions_scatter_relative_end<-ggplot(data=normal_plot,
                         aes(x=milk_change_relative,y=emissions_intensity_change_relative)) +
@@ -1531,7 +1780,71 @@ ggsave("figures/Fig_7_intervention_impacts_endline_relative.png", width=9,height
 
 ```
 
-```{r, fig.dim = c(8, 4), fig.cap="Intervention impacts on milk yield and greenhouse gas emissions intensity at an endline sampling point vs. the intial samping time. The colored background surface indicates the probability that increases in milk productivity are associated with decreasing emissions intensity."}
+Summary statistics of interventions for the realistic-endline simulation
+
+
+```{r}
+
+ints<-c("breed","nobull","lessReplace","Calliandra","balance")
+
+interventions_end_summary_milk<-data.frame(Intervention=c("Breed upgrade",
+                                                 "Retiring unproductive bulls",
+                                                 "Fewer replacement males",
+                                                 "Calliandra feed",
+                                                 "Balanced diet",
+                                                 "No intervention"))
+interventions_end_summary_emissions<-interventions_end_summary_milk
+
+for(i in 1:length(ints))
+  {interventions_end_summary_milk[i,c("Weakest effect",
+                                  "5% quantile",
+                                  "Median effect",
+                                  "95% quantile",
+                                  "Strongest effect")]<-
+    round(quantile(interventions_normal_milk_end[which(interventions_normal_milk_end$intervention==ints[i]),
+                                           "milk_change_relative"],c(0,0.05,0.5,0.95,1),
+                                      na.rm=TRUE),1)
+interventions_end_summary_emissions[i,c("Weakest effect",
+                                      "5% quantile",
+                                      "Median effect",
+                                      "95% quantile",
+                                      "Strongest effect")]<-
+    round(quantile(interventions_normal_milk_end[which(interventions_normal_milk_end$intervention==ints[i]),
+                                           "emissions_intensity_change_relative"],c(1,0.95,0.5,0.05,0),
+                   na.rm=TRUE),1)}
+
+interventions_end_summary_milk[6,c("Weakest effect",
+                                      "5% quantile",
+                                      "Median effect",
+                                      "95% quantile",
+                                      "Strongest effect")]<-
+  round(quantile(normal_normal_milk_end[,"milk_change_relative"],
+                 c(0,0.05,0.5,0.95,1),
+                 na.rm=TRUE),1)
+interventions_end_summary_emissions[6,c("Weakest effect",
+                                      "5% quantile",
+                                      "Median effect",
+                                      "95% quantile",
+                                      "Strongest effect")]<-
+  round(quantile(normal_normal_milk_end[,"emissions_intensity_change_relative"],
+                 c(1,0.95,0.5,0.05,0),
+                 na.rm=TRUE),1)
+  
+intervention_end_summary<-rbind(interventions_end_summary_milk,interventions_end_summary_emissions)
+
+kable(intervention_end_summary, booktabs = TRUE,digits=0,
+      caption = "<p style='color:black'><i><b>Table S4.</b> Summary statistics of the simulated impact of farm-scale interventions aimed at reducing greenhouse gas emissions from cattle on cattle-keeping smallholder farms in Kenya. Results are based on comparison of a baseline scenario, where no farm was assumed to have implemented the interventions and an endline scenarios, where some farms adopted the mitigation measures. At both baseline and endline, variation in outcomes expected to result from random effects was simulated using Monte Carlo simulation (10 runs per farm, for 414 farms).</i></p>") %>%
+  pack_rows(index = c("Impact on milk yield per capita (%)" = 6, "Impact on emissions intensity (%)" = 6), background="lightgray") %>%
+column_spec(2:6, width = "3cm")
+
+```
+
+\
+
+
+
+
+```{r, fig.dim = c(8, 4), fig.cap="***Figure 8. *** *Intervention impacts on milk yield and greenhouse gas emissions intensity at an endline sampling point vs. the initial sampling time. The colored background surface indicates the probability that increases in milk productivity are associated with decreasing emissions intensity.*"}
 
 interventions_plot<-interventions_normal_milk_end
 none_plot<-cbind(normal_normal_milk_end,intervention="none")
@@ -1544,7 +1857,7 @@ interventions_probability<-ggplot(data = decreased_emissions_probability, aes(Ba
        x=expression(Milk~yield~at~baseline~(kg~head^{-1}~year^{-1})),
        fill="Probability of \nlower emissions \nintensity") +
   stat_contour(aes(z=probability),breaks = c(0.9),col="black") + theme_bw() +
-  geom_point(data=int_none_plot,aes(x=pc_milk_baseline,y=pc_milk_yield), size=0.8) +
+  geom_point(data=int_none_plot,aes(x=pc_milk_baseline,y=pc_milk_yield), size=0.8, color="coral1") +
   ylim(c(0,NA)) + xlim(c(0,NA)) +
   facet_wrap(~factor(intervention,
                      levels=c("breed","nobull","lessReplace","Calliandra","balance","none"),
@@ -1557,7 +1870,10 @@ ggsave("figures/Fig_8_probability_of_lower_emissions_intensity_interventions.png
 ```
 
 
-```{r, fig.dim = c(4, 6), fig.cap="Probability of Type I and Type II error incurred by choosing specific levels of confidence that emissions intensity changes have actually occurred. Type I errors indicate the probability of failing to recognize households that implemented interventions, whereas the Type II error represents the percentage of households that did not make any changes, but are nevertheless rewarded due to random effects."}
+
+
+
+```{r, fig.dim = c(4, 6), fig.cap="***Figure 9.*** *Probability of Type I and Type II errors incurred by choosing specific levels of confidence that emissions intensity changes have actually occurred. Type I errors indicate the probability of failing to recognize households that implemented interventions, whereas the Type II error represents the percentage of households that did not make any changes, but are nevertheless rewarded due to random effects.*"}
 
 # get closest probability value
 
@@ -1605,7 +1921,7 @@ ggsave("figures/Fig_9_erorr_types.png", width=5,height=6)
 
 and now for the sensitivity analysis
 
-```{r, fig.dim = c(8, 5), fig.cap="Strength of the relationship of Monte Carlo model input variables with the emissions intensity of milk production, as indicated by the Variable-Importance-Score of a Partial Least Squares regression. "}
+```{r, fig.dim = c(8, 5), fig.cap="***Figure 10.*** *Strength of the relationship of Monte Carlo model input variables with the emissions intensity of milk production, as indicated by the Variable-Importance-Score of a Partial Least Squares regression.*"}
 
 pls_GHG<-dairy_households
 pls_GHG$x<-pls_GHG$x[,which(!colnames(pls_GHG$x)=="Scenario")]
@@ -1618,10 +1934,5 @@ plot_pls(pls_out,input_table=legend_table)
 ggsave("figures/Fig_10_PLS_dairy_households.png", width=8,height=5)
 ```
 
-Further figures to include:
-
-- Fig. 11: Structural analysis - which household types have a chance of being detected
-maybe this is more of a supplementary figure
-- Fig. 10: Sensitivity analysis
-
+# References
 
