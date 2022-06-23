@@ -1,5 +1,13 @@
 ---
-title: "Accounting for uncertainty in simulating greenhouse gas emissions from dairy cattle in Kenya"
+title: |
+  <center> Uncertainty limits the use of simple </center>
+  <center> indicators to evaluate agricultural emission reductions </center>
+  <center> – </center>
+  <center> evidence from Kenyan smallholder dairy production </center>
+  <br>
+  <center><i> - supplementary materials - </i></center>
+  <br>
+  
 author: "Eike Luedeling, Cory Whitney, Andreas Wilkes, Todd Rosenstock"
 bibliography:
  - references/packages.bib
@@ -13,11 +21,15 @@ output:
     code_folding: hide
 ---
 
+# Introduction
+
+This document contains supplementary materials for the article "Uncertainty limits the use of simple indicators to evaluate carbon footprints – a case study of smallholder dairy production in Kenya". Besides supplementary illustrations that add nuance to the presentation of results provided in the main article, this document also includes reproducible code to run all analyses and produce all figures contained in the main article. These figures are therefore also repeated here. To improve legibility of the document, we have hidden all code. Clicking the gray `Code` buttons on the right will make the code appear (or disappear again). All input data is presented in scrollable tables, and they can also be downloaded by clicking the `Copy` (to clipboard), `CSV` or `Excel` buttons above the respective tables.
+
+The code below contains some calls of the functions `save_temperature_scenarios` and `load_temperature_scenarios`, which are contained in the `chillR` package and were originally designed to process temperature data. We use them here to save and load the results of time-consuming data processing steps that include the generation of random numbers. These steps serve two purposes: 1) to save time when producing this document (we suppressed evaluation of the respective code chunks); 2) to ensure that the simulation outputs are identical between the results presented in the main article and these supplementary materials.
+
 # Setting up
 
-Note that the code for all operations is hidden, so that it doesn't clutter the document. You can make it appear by clicking the code button on the right.
-
-We first need to install and load all required packages.
+We first need to install and load all required packages. We also need to set some options needed to produce this document, which is generated with the rmarkdown package.
 
 ```{r setup, warning=FALSE, include=FALSE}
 
@@ -60,6 +72,8 @@ options(DT.options = list(scrollY="300px",scrollX="300px", pageLength = 100, aut
 ```
 
 ```{r, warning=FALSE, eval=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
 devtools::install_github("CWWhitney/uncertainty")
 library(DiagrammeR)
 library(decisionSupport)
@@ -74,13 +88,15 @@ library(raster)
 library(reshape2)
 library(patchwork)
 library(DT)
+options(scipen=999)
+options(DT.options = list(scrollY="300px",scrollX="300px", pageLength = 100, autoWidth = TRUE))
 ```
 
-## Load emission calculation function
+# Implementing the emission calculation function
 
-Greenhouse gas emissions from livestock are calculated according to Chapter 10 of the *2006 IPCC Guidelines for National Greenhouse Gas Inventories* [@dong_ipcc_2006] (Volume 4 - Agriculture, Forestry and Other Land Use). The document can be found on [the IPCC website](https://www.ipcc-nggip.iges.or.jp/public/2006gl/pdf/4_Volume4/V4_10_Ch10_Livestock.pdf). The chapter is part of the book *Good Practice Guidance and Uncertainty Management in National Greenhouse Gas Inventories* [@ipcc_good_2021], also on the [the IPCC website](https://www.ipcc-nggip.iges.or.jp/public/gp/english/). Many variables are based on the work done in *Variation in the carbon footprint of milk production on smallholder dairy farms in central Kenya* [@wilkes_variation_2020] and in *Methods and guidance to support MRV of livestock emissions* [@wilkes_methods_2019]. We also draw on recommendations provided in Chapter 10 of Volume 4 of the *2019 Refinement to the 2006 IPCC Guidelines for National Greenhouse Gas Inventories* [@ipcc_2019], which is also accessible via [the IPCC website](https://www.ipcc-nggip.iges.or.jp/public/2019rf/vol4.html).
+Greenhouse gas emissions from livestock are calculated according to Chapter 10 of the *2006 IPCC Guidelines for National Greenhouse Gas Inventories* [@dong_ipcc_2006] (Volume 4 - Agriculture, Forestry and Other Land Use). The document can be found on [the IPCC website](https://www.ipcc-nggip.iges.or.jp/public/2006gl/pdf/4_Volume4/V4_10_Ch10_Livestock.pdf). The chapter is part of the book *Good Practice Guidance and Uncertainty Management in National Greenhouse Gas Inventories* [@ipcc_good_2021], which is also on the [the IPCC website](https://www.ipcc-nggip.iges.or.jp/public/gp/english/). Many variables are based on the work done in *Variation in the carbon footprint of milk production on smallholder dairy farms in central Kenya* [@wilkes_variation_2020] and in *Methods and guidance to support MRV of livestock emissions* [@wilkes_methods_2019]. We also draw on recommendations provided in Chapter 10 of Volume 4 of the *2019 Refinement to the 2006 IPCC Guidelines for National Greenhouse Gas Inventories* [@ipcc_2019], which is also accessible via [the IPCC website](https://www.ipcc-nggip.iges.or.jp/public/2019rf/vol4.html).
 
-The equations provided in these documents, in particular in the 2006 guideline document [@dong_ipcc_2006] were converted into an R function called `ghg_emissions`, which is defined here (hit the `Code` button on the right).
+The equations provided in these documents, in particular in the 2006 guideline document [@dong_ipcc_2006] were converted into an R function called `ghg_emissions`, which is defined here.
 
 ```{r ghg_emissions_function}
 # Generate the GHG emissions function 
@@ -361,13 +377,17 @@ ghg_emissions<-function(x, varnames){
 This equation takes a wide range of inputs. Many of these are usually not known precisely, yet the classic IPCC equation does not account for potential errors and uncertainties. Here, we express this uncertainty by defining distributions for each variable. The following table (Table S1) shows all the variables, as well as examples of distributions that may describe their quantities. Distributions are defined according to the distribution shape, as well as upper and lower bounds of 90% confidence intervals. We use the following distribution shapes:
 
 * const - constants (upper and lower bounds are the same)
-* posnorm - positive normal distribution; this is a normal distribution that is truncated at 0.
+* posnorm - positive normal distribution; this is a normal distribution that is truncated at 0
+* tnorm_0_1 - a normal distribution that is truncated at 0 and 1; this is useful for drawing random numbers that represent probabilities (where values <0 and >1 are impossible).
 
-***Table S1*** *Model input parameters for the Monte Carlo simulation, including the variable names used in the greenhouse gas emissions equation, a descriptive label, lower and upper bounds of 90% confidence intervals for the values, and the shape of the probability distribution that is used to describe the data. The IPCC_default column shows values used for producing (spuriously) the precise scenario. Note that some values are overwritten when producing farm-scale scenarios. Data can be downloaded in csv or Excel format or copied to the clipboard by pressing the respective buttons.*
+<br>
+
+***Table S1*** *Model input parameters for the Monte Carlo simulation, including the variable names used in the greenhouse gas emissions equation, a descriptive label, lower and upper bounds of 90% confidence intervals for the values, and the shape of the probability distribution that is used to describe the data. The IPCC_default column shows values used for producing the (spuriously) precise scenario described below. Note that some values are overwritten when producing farm-scale scenarios. Data can be downloaded in csv or Excel format or copied to the clipboard by hitting the respective buttons.*
 
 ```{r}
 
-input_parameters<-read.csv("data/livestock_ghg_input_table.csv")[,c(7,2,3,5,6,8)]
+input_table <- "data/livestock_ghg_input_table.csv"
+input_parameters<-read.csv(input_table)[,c(7,2,3,5,6,8)]
 input_parameters<-input_parameters[which(!is.na(input_parameters$lower)),]
 
 input_parameters %>%
@@ -382,24 +402,11 @@ input_parameters %>%
 ```
 
 
-The decisionSupport package [@R-decisionSupport], which we use to run the simulations, also accommodates other distribution types, but we did not consider these appropriate here. The positive normal distribution (and other distributions such as normal or lognormal distributions) are defined based on the 5% and 95% quantiles. Note that it isn't always possible to fit a positive normal distribution based on such specifications, especially if the 5% quantile is set so close to zero that the remaining 5% of the data do not **fit** in the space between zero and the lower bound. In such cases, decisionSupport [@R-decisionSupport] returns a warning message, but it still does its best to generate the requested distribution. It is worth being on the lookout for the respective warning messages and try to adjust the bounds of the distribution to **possible** values.
-
-
-```{r load_data, include=FALSE}
-
-input_table <- "data/livestock_ghg_input_table.csv"
-
-options(knitr.kable.NA = '', encoding = "Windows-1252")
- read.csv(input_table)[,c(1:2,4,7,5:6)]   %>%
-    kableExtra::kbl(digits = 2)  %>%
-    kableExtra::kable_classic_2(full_width = F) %>% 
- scroll_box(height = "300px")
-
-```
+The decisionSupport package [@R-decisionSupport], which we use to run the simulations, also accommodates other distribution types, but we did not consider these appropriate here. The positive normal distribution (and other distributions such as normal or lognormal distributions) are defined based on their 5% and 95% quantiles. Note that it isn't always possible to fit a positive normal distribution, or a normal distribution truncated at 0 and 1, based on such specifications, especially if the 5% or 95% quantiles are set so close to the truncation points that the remaining 5% of the data do not *fit* in the space between these points and the specified lower or upper bound. Strictly speaking, a normal distribution always includes a certain chance of values beyond any truncation point, but it is often reasonable to exclude values in the low-probability tail ends of such a distribution). In cases where decisionSupport [@R-decisionSupport] struggles to fit the specified distribution, it returns a warning message, but it still does its best to generate the requested distribution. It is worth being on the lookout for the respective warning messages and try to adjust the bounds of the distributions to *possible* values.
 
 # Monte Carlo simulation
 
-With the model equation and the input table defined above, we can run a Monte Carlo simulation that returns a probability distribution for the greenhouse gas emissions resulting from the particular herd that is specified in the input table. We use the functions provided by the decisionSupport package [@R-decisionSupport] in the R programming language [@R-base].
+With the model equation and the input table defined above, we can run a Monte Carlo simulation that returns a probability distribution for the greenhouse gas emissions resulting from the particular herd that is specified in the input table. We use the functions provided by the decisionSupport package [@R-decisionSupport] for the R programming language [@R-base].
 
 ```{r, warning=FALSE,eval=FALSE}
 input_table <- "data/livestock_ghg_input_table.csv"
@@ -423,18 +430,34 @@ We define subgroups based on the populations of households described by a househ
 
 ## Household-based scenarios
 
-The information for the household is extracted from a spreadsheet that contains all the survey responses [@wilkes_variation_2020; @wilkes_methods_2019].
+The information for the household is extracted from a spreadsheet that contains all the survey responses [@wilkes_variation_2020; @wilkes_methods_2019], which is provided in Table S2. 
+
+<br>
+
+***Table S2*** *Results of the farm survey by Wilkes and colleagues [@wilkes_variation_2020; @wilkes_methods_2019], which were used to develop farm-scale scenarios for probabilistic simulations. Data can be downloaded in csv or Excel format or copied to the clipboard by hitting the respective buttons.*
+
+
+```{r}
+# import the data from the survey and ensure that the .csv encoding can be read by R
+Kenyaherds<-read.table("data/Kenya_baseline_individual_cow_wNotes.csv", sep = ",",
+                       fileEncoding = "UTF-8-BOM", header=TRUE)
+
+Kenyaherds %>%
+  datatable(extensions = 'Buttons',
+            options = list(dom = 'Blfrtip',
+                           buttons = c('copy', 'csv', 'excel'),
+                           lengthMenu = list(c(10,25,50,-1),
+                                             c(10,25,50,"All")),
+                           list(scrollX = "300px"),
+                           autoWidth = TRUE),
+            rownames=FALSE)
+```
 
 ### Probabilistic scenarios
 
 Extracting all relevant information from the survey results spreadsheet is a slightly complex task, which is accomplished by the following code. The code includes specification of lower and upper bounds of probability distributions for most of the variables. We keep the herd composition constant, but all variables that in all likelihood weren't determined with high precision and accuracy are equipped with such uncertainty estimates. Estimates of the uncertainty for model input variables were extracted from the IPCC documents, or, if no such indications were available, based on our expert judgement.
 
 ```{r}
-# import the data from the survey and ensure that the .csv encoding can be read by R
-
-Kenyaherds<-read.table("data/Kenya_baseline_individual_cow_wNotes.csv", sep = ",",
-                       fileEncoding = "UTF-8-BOM", header=TRUE)
-
 # count the number of animals for each type
 
 animals<-table(Kenyaherds[,c("QQNO","animal_type")])
@@ -539,7 +562,11 @@ write.csv(scenarios,"data/farm_scenarios.csv",row.names = FALSE)
 
 ```
 
-***Table S2*** *Model input parameters for producing farm-scale scenarios for the Monte Carlo simulation, listing all variables that need to be updated. Data can be downloaded in csv or Excel format or copied to the clipboard by pressing the respective buttons.*
+The probabilistic scenarios that were generated for each farm are presented in Table S3 below.
+
+<br>
+
+***Table S3*** *Model input parameters for producing probabilistic farm-scale scenarios for the Monte Carlo simulation, listing all variables that need to be updated. Data can be downloaded in csv or Excel format or copied to the clipboard by hitting the respective buttons.*
 
 ```{r}
 
@@ -555,7 +582,6 @@ scenario_parameters %>%
             rownames=FALSE)
 ```
 
-This is the resulting file (only the first 3 farms are shown, and only the first 20 rows):
 
 The first few rows in this table adjust the herd composition parameters, so that the scenario herd corresponds to the herd of the specific household. Other parameters including the milk yield per cow are also adjusted.
 
@@ -651,13 +677,36 @@ write.csv(precise_scenarios,"data/farm_scenarios_precise.csv",row.names = FALSE)
 
 ```
 
+The precise scenarios that were generated for each farm are presented in Table S4 below.
+
+<br>
+
+***Table S4*** *Model input parameters for producing precise farm-scale scenarios for the Monte Carlo simulation, listing all variables that need to be updated. All values in this scenario are constants, so that no randomness is introduced into the calculations. Data can be downloaded in csv or Excel format or copied to the clipboard by hitting the respective buttons.*
+
+```{r}
+
+precise_parameters<-read.csv("data/farm_scenarios_precise.csv")
+
+precise_parameters %>%
+  datatable(extensions = 'Buttons',
+            options = list(dom = 'Blfrtip',
+                           buttons = c('copy', 'csv', 'excel'),
+                           lengthMenu = list(c(10,25,50,-1),
+                                             c(10,25,50,"All")),
+                           list(scrollX = "300px")),
+            rownames=FALSE)
+```
+
+
+
+
 ## Running the simulation
 
 Now we can run the Monte Carlo simulation with these scenarios.
 
 The basic parameters for the simulations are shown in Table S1. Note that some of these parameters are overwritten when producing farm-scale scenarios.
 
-Table S2 contains the scenario data derived from results of the farm survey. In running the Monte Carlo with the `scenario_mc` function, the initial values for all variables listed in this table (Table S1) are overwritten by those shown here (in Table S2) to generate farm-specific scenarios.
+Table S3 contains the scenario data derived from results of the farm survey. In running the Monte Carlo with the `scenario_mc` function, the initial values for all variables listed in this table (Table S1) are overwritten by those shown here (in Table S3) to generate farm-specific scenarios.
 
 
 ```{r monte_carlo_simulation, warning=FALSE, eval=FALSE}
@@ -730,7 +779,7 @@ ggsave("figures/Fig_1_emissions_from_farm_5.png",width=9,height=5)
 
 ```
 
-Now we look at the overall population.
+Figure 2 below shows total emissions and emission intensity for the overall population of all farms, with Figure S1 illustrating the distribution of emissions per head of cattle.
 
 ```{r, warning=FALSE, message=FALSE, fig.dim = c(8, 4), fig.cap = "***Figure 2.*** *Total greenhouse gas emissions from livestock (a) and emission intensity of milk production (b) across 4140 simulated livestock-keeping households in Kenya (informed by data collected on 414 farms). Plausible estimates of both metrics are generated through Monte Carlo simulation, based on 1000 runs of a greenhouse gas emissions model, with uncertainty introduced by specifying inputs as probability distributions.*"}
 
@@ -799,7 +848,7 @@ kable(emissions_summary[,c(4,1,2,3)], booktabs = TRUE,
                     paste0("CO","$_2$","-eq farm","$^{-1}$"),
                     paste0("CO","$_2$","-eq head","$^{-1}$"),
                     paste0("CO","$_2$","-eq kg","$^{-1}$")),
-      caption = "<p style='color:black'><i><b>Table S3.</b> Summary statistics of simulated greenhouse gas emissions from cattle across a population of cattle-keeping smallholder farms in Kenya</i></p>") %>% pack_rows(
+      caption = "<p style='color:black'><i><b>Table S5.</b> Summary statistics of simulated greenhouse gas emissions from cattle across a population of cattle-keeping smallholder farms in Kenya</i></p>") %>% pack_rows(
   index = c("Emissions per farm" = 5, "Emissions per dairy-focused farm" = 5), background="lightgray") %>%
 column_spec(2:4, width = "5cm") %>% row_spec(0, align = "c") %>% 
   add_header_above(c(" " = 1, "Emissions per farm" = 1, "Emissions per head" = 1, "Emission intensity" = 1))
@@ -811,7 +860,7 @@ column_spec(2:4, width = "5cm") %>% row_spec(0, align = "c") %>%
 
 We're interested in the suitability of total per head milk production per year as an indicator of the greenhouse gas emission intensity of milk production.
 
-Here's the relationship between these two variables, for farms with per-head milk yields of >500 kg per year.
+Figure 3 shows the relationship between these two variables, for farms with per-head milk yields of >500 kg per year.
 
 ```{r, warning=FALSE, message=FALSE, fig.dim = c(8, 6), fig.cap="***Figure 3.***  *Relationship between milk yield per head (x-axis) and emission intensity of milk production for livestock-keeping smallholder households in Kenya, expressed as a population-level scatter plot (a) and an interpolated probability density surface (b). The vertical lines in (b) illustrate slices through the density surface at productivity levels of 2000 (red) and 3000 (blue) kg milk head^-1^ year^-1^ (the corresponding distributions are shown in Fig. 4b).*"}
 
@@ -874,9 +923,10 @@ ggsave("figures/Fig_3_scatter_and_surface_per_head_milk_emission_intensity.png",
 
 ```
 
-Extracting the LOESS regression from the plot and empirically determining minimum milk yield that would be outside the confidence interval
+We'll add a cursory analysis below of the impact of simply using the LOESS regression line in Fig. 3a, plus its confidence interval, for an assessment of emission intensity. To evaluate this, we need to extract the respective information from the plot. The result is shown in Fig. S2. 
 
-```{r, warning=FALSE}
+
+```{r, warning=FALSE, message=FALSE}
 
 prediction_data<-ggplot_build(plot1)$data[[2]]
 
@@ -890,7 +940,7 @@ for(i in 1:nrow(prediction_data))
 
 ```
 
-According to these distributions, the emission intensity at a particular per head milk yield can be described by a slice through the probability surface.
+According to these distributions, the emission intensity at a particular per head milk yield can be described by a slice through the probability surface. We can extract such slices using the `varslice_resample` function from the `uncertainty` package. Note that this function doesn't (yet) have the capability for truly random sampling of probabilities along this slice. Instead, it extracts probabilities at 1000 regularly spaced points along the slice (in this case 1000). Random samples are then drawn from the population of sampling values, with the extracted probabilities specifying the odds for the randomization. The empirical nature of this process does not compromise the analysis in a meaningful way, yet we mention this constraint here for full disclosure.
 
 ```{r varkernelslicerange, message=FALSE, warning=FALSE, fig.dim = c(12, 4), fig.cap="***Figure 4.*** *Greenhouse gas emission intensity of milk production at specific levels of per-head milk production among livestock-keeping smallholder farms in Kenya. Distributions are shown for (a) a production level of 2000 kg milk head^-1^ year^-1^, including a histogram of the random samples the distribution is based on, and (b) production levels of 2000 and 3000 kg milk head^-1^ year^-1^.*"}
 slice_2000<-uncertainty::varslice_resample(in_var = dairy_households$y$pc_milk_yield,
@@ -925,10 +975,12 @@ ggsave("figures/Fig_4_slices.png",width=13,height=6)
 
 ```
 
-By resampling from these distributions, we can determine the likelihood that a value of one of these distributions is greater than one of the other. We can systematically expand this to include more comparisons, in this case at intervals of 100 kg milk yield per head.
+By resampling from these distributions, we can determine the likelihood that a value of one of these distributions is greater than one of the other. This simply requires a lot of pairwise comparisons between the values of the two distributions, with the percentage of comparisons that result in a particular outcome (A greater, equal or less than B) indicating the respective probability.
+
+We can systematically expand this logic to include more comparisons that span the range of values contained in the dataset. In this case, we sample the overall probability distribution (Fig. 3b) at intervals of 100 kg milk yield per head. The results can be plotted as a three-dimensional surface illustrating the relationship between two farm-scale estimates of milk yield per head and the probability with which the difference between the values allows judgement on one of the farms having a lower emission intensity than the other (Fig. 5).
 
 
-```{r, fig.dim = c(8, 4), fig.cap="***Figure 5.*** *Probability of a particular farm B featuring lower emission intensity of milk production than another farm A, based on observed per-head milk production levels. Estimates are derived from pairwise comparisons of slices through a population-wide generalization surface of the relationship between per-head milk production and emission intensity. This generalization was generated through Monte Carlo simulation, based on scenarios representing observed production settings on 414 livestock-keeping smallholder farms in Kenya.*"}
+```{r, fig.dim = c(8, 4), message=FALSE, fig.cap="***Figure 5.*** *Probability of a particular farm B featuring lower emission intensity of milk production than another farm A, based on observed per-head milk production levels. Estimates are derived from pairwise comparisons of slices through a population-wide generalization surface of the relationship between per-head milk production and emission intensity. This generalization was generated through Monte Carlo simulation, based on scenarios representing observed production settings on 414 livestock-keeping smallholder farms in Kenya.*"}
 
 milk_yields_to_sample<-seq(100,10000,100)
 milk_yields_to_sample<-milk_yields_to_sample[which(milk_yields_to_sample<max(dairy_households$y$pc_milk_yield))]
@@ -980,7 +1032,10 @@ ggsave("figures/Fig_5_probability_of_lower_emission_intensity.png", width=7,heig
 
 ```
 
-```{r, warning=FALSE, fig.dim = c(8, 4), fig.cap="***Figure S2.*** *Probability of a particular farm B featuring lower emission intensity of milk production than another farm A, based on observed per-head milk production levels (see caption to Fig. 5 for more details). The red line indicates a confidence threshold that is based on the 95% confidence interval of the LOESS regression line shown in Fig. 3a. Using this threshold for predicting changes in emission intensity based on milk yield data would likely lead to a lot of inaccurate classifications.*"}
+For illustrative purposes, we can plot the confidence implied by using the LOESS regression shown in Fig. 3a, including its 90% confidence interval, for deciding on whether emission reductions have occurred (Fig. S2).
+
+
+```{r, warning=FALSE, fig.dim = c(8, 4), message=FALSE,  fig.cap="***Figure S2.*** *Probability of a particular farm B featuring lower emission intensity of milk production than another farm A, based on observed per-head milk production levels (see caption to Fig. 5 for more details). The red line indicates a confidence threshold that is based on the 95% confidence interval of the LOESS regression line shown in Fig. 3a. Using this threshold for predicting changes in emission intensity based on milk yield data would likely lead to a lot of inaccurate classifications.*"}
 
 ggplot(data = decreased_emissions_probability, aes(Base_yield, new_yield)) + geom_contour_filled(aes(z =
                                                       probability)) +
@@ -998,11 +1053,19 @@ ggsave("figures/Fig_S2_probability_of_lower_emission_intensity.png", width=7,hei
 
 ```
 
+The regression-based decision on which of two farms has lower emission intensity is located at an empirically derived probability level between approximately 50 and 60% This indicates that this classification threshold would constitute a strongly overconfident evaluation instrument, i.e. it would imply making inaccurate decisions on relative emissions between farms in a large number of cases.
 
+# Farm-scale interventions
 
+We simulated the impact of 5 farm-scale interventions:
 
+* Breed change - replacing dairy cows of low-productivity breeds with Holstein-Friesian cows
+* Retiring unproductive bulls - removing all bulls older than 36 months from the herds
+* Fewer replacement males - eliminating replacement males (i.e. uncastrated young males) on 23% of farms
+* Calliandra feed - supplementing animal feed with Calliandra leaves
+* Balanced diet - reducing the amount of concentrate fed to all cattle
 
-Now a description of the 5 interventions
+To support generation of the Breed change intervention, we compared milk yields across the array of dairy cow breeds that was encountered during the farm survey. Results of this comparison and the resulting intervention factors are shown in Fig. S3 and Tab. S6.
 
 ```{r, warning=FALSE, fig.dim = c(8, 4), fig.cap="***Figure S3.*** *Observed distributions of milk yields for all cattle breeds encountered among dairy cows in a survey of livestock-keeping smallholder farms in Kenya.*"}
 # breed intervention
@@ -1045,12 +1108,13 @@ ggsave("figures/Fig_S3_breeds.png", width=9,height=4)
 ```
 ```{r}
 kable(breed_milk_summary, col.names = c("Breed", "Number of dairy cows", "Daily milk yield (kg)", "Intervention factor"),
-      caption = "<p style='color:black'><i><b>Table S4.</b> Mean milk yield across all dairy cow breeds encountered during a farm survey in Kenya</i></p>") %>%
+      caption = "<p style='color:black'><i><b>Table S6.</b> Mean milk yield across all dairy cow breeds encountered during a farm survey in Kenya</i></p>") %>%
 column_spec(2:4, width = "5cm")
 
 ```
 
-\
+To simulate the impacts of these interventions, we first extracted the input table from the Monte Carlo simulation presented above. We then modified these inputs to simulate the changes that are expected on farms that adopt the proposed interventions.
+
 
 ```{r}
 
@@ -1219,7 +1283,7 @@ balance_adopters<-which(!x_balance_intervention$feed_prod_CO2==GHG_simulation_sc
 
 ```
 
-To run the interventions, we need a function to run the model with a specific set of x values.
+Intervention impacts were simulated by running the greenhouse gas emissions equation with the inputs specified in these modified simulation input tables. To do this, we created a function (`run_model`) that runs the model with a specific set of x values, without drawing new random numbers.
 
 ```{r}
 # single model-run function
@@ -1239,6 +1303,8 @@ run_model<-function(x_data,model)
   return(returnObject)
 }
 ```
+
+We now use this functions to simulate intervention outcomes for all farms. These are saved and loaded again (see reasoning for this in Section 1 above).
 
 
 ```{r, eval=FALSE}
@@ -1269,7 +1335,7 @@ save_temperature_scenarios(balance_res,"results","Balance_intervention")
 
 
 
-```{r, include=FALSE}
+```{r}
 breed_res<-load_temperature_scenarios("results","Breed_intervention")
 class(breed_res)<-"mcSimulation"
 nobull_res<-load_temperature_scenarios("results","Nobull_intervention")
@@ -1282,6 +1348,11 @@ balance_res<-load_temperature_scenarios("results","Balance_intervention")
 class(balance_res)<-"mcSimulation"
 ```
 
+# Impacts of farm-scale interventions
+
+## Impacts compared to a counterfactual scenario
+
+We now evaluate the outputs of the intervention impact simulations. For this, we first make a table that contains the outcomes of all interventions, subtract from this the outcomes of the counterfactual (i.e. the original simulation, without the interventions) and illustrate the results for each intervention (Fig. S4).
 
 
 ```{r, fig.dim = c(8, 8), fig.cap="***Figure S4.*** *Intervention impact on per head milk production and greenhouse gas emission intensity.*"}
@@ -1361,6 +1432,9 @@ ggsave("figures/Fig_S4_intervention_impacts.png", width=9,height=6)
 
 ```
 
+Since the importance of these impacts is difficult to appreciate in this format, we also calculated the relative changes that resulted from the interventions (Fig. 6).
+
+
 ```{r, fig.dim = c(8, 8), fig.cap="***Figure 6.*** *Intervention impacts on relative per head milk production and relative greenhouse gas emission intensity, compared to a counterfactual farm with similar properties that does not implement the respective intervention.*"}
 
 interventions_scatter_relative<-ggplot(data=interventions_normal_milk,
@@ -1388,7 +1462,11 @@ ggsave("figures/Fig_6_intervention_impacts_relative.png", width=9,height=6)
 
 ```
 
-The herd structure interventions showed potential for causing major changes in milk yields and emission intensity on particular farms. Plotting these impacts against the initial sets of relevant herd attributes serves to illustrate which farms are particularly responsive to these interventions (Fig. S3).
+## Characteristics of responsive farms
+
+Intervention impacts differed strongly between farms, particularly for the Breed change and herd structure (Retire unproductive males, and Fewer replacement males) interventions. We therefore evaluated the response of milk yield per head and emission intensity to particular farm characteristics that were targeted by the interventions.
+
+For the Breed Change intervention, the obvious farm characteristic of interest is the breed composition of the dairy cows in the herd (Fig. S5).
 
 
 ```{r, fig.dim = c(8, 4), fig.cap="***Figure S5.*** *Influence of the breed composition of farm-scale dairy cow populations on changes in milk yield and emission intensity of milk production in response to a breed change intervention*."}
@@ -1484,6 +1562,8 @@ ggsave("figures/Fig_S5_breed_diagnostics.png",width=8,height=5)
 
 ```
 
+The Retire unproductive bulls intervention was obviously particularly effective on farms where a large percentage of animals fell within this animal type category (Fig. S6).
+
 ```{r, fig.dim = c(8, 4), fig.cap="***Figure S6.*** *Influence of the percentage of unproductive bulls in a cattle herd on changes in milk yield and emission intensity of milk production in response to a 'retiring unproductive bulls' intervention*."}
 
 melted_nobull<-melt(intervention_structures[which(intervention_structures$intervention=="nobull"),
@@ -1533,6 +1613,7 @@ ggsave("figures/Fig_S6_nobull_diagnostics.png",width=8,height=5)
 
 ```
 
+Success of the Fewer replacement males intervention depended primarily on the percentage of replacement males in the herd (Fig. S7).
 
 
 ```{r, fig.dim = c(8, 4), fig.cap="***Figure S7.*** *Influence of the percentage of replacement males in a cattle herd on changes in milk yield and emission intensity of milk production in response to a 'fewer replacement males' intervention*."}
@@ -1584,7 +1665,7 @@ ggsave("figures/Fig_S7_lessReplace_diagnostics.png",width=8,height=5)
 
 ```
 
-Summary statistics of interventions for the counterfactual simulation
+Table S7 shows a summary of the impact of interventions on the milk yield per head and emission intensity across the whole population of farms, compared to the counterfactual simulation.
 
 
 ```{r}
@@ -1623,16 +1704,16 @@ kable(intervention_summary, booktabs = TRUE,digits=0,
        #             paste0("CO","$_2$","-eq farm","$^{-1}$"),
         #            paste0("CO","$_2$","-eq head","$^{-1}$"),
          #           paste0("CO","$_2$","-eq kg","$^{-1}$")),
-      caption = "<p style='color:black'><i><b>Table S5.</b> Summary statistics of the simulated impact of farm-scale interventions aimed at reducing greenhouse gas emissions from cattle on cattle-keeping smallholder farms in Kenya. Impacts are evaluated against a true counterfactual baseline, in which all farms are identical except for the simulated impacts of the interventions.  </i></p>") %>%
+      caption = "<p style='color:black'><i><b>Table S7.</b> Summary statistics of the simulated impact of farm-scale interventions aimed at reducing greenhouse gas emissions from cattle on cattle-keeping smallholder farms in Kenya. Impacts are evaluated against a true counterfactual baseline, in which all farms are identical except for the simulated impacts of the interventions.  </i></p>") %>%
   pack_rows(index = c("Impact on milk yield per head (%)" = 5, "Impact on emission intensity (%)" = 5), background="lightgray") %>%
 column_spec(2:6, width = "3cm")
 
 ```
 
-\
+## Intervention impacts in the face of random variation
 
 
-These are noticeable changes, but can they be detected against the random variation that all farms experience? We'll now take another Monte Carlo sample, apply the same interventions to the same farms and evaluate the results again.
+Comparison of intervention impacts against a counterfactual scenario indicated that all interventions may generate noticeable changes. In a more realistic setting that is affected by random effects, however, impacts may be less clearly discernible. We evaluate such a setting by running another Monte Carlo simulation and applying the same interventions to the same farms. The code for this is largely identical to what was already shown above.
 
 ```{r, eval=FALSE}
 
@@ -1649,7 +1730,7 @@ save_temperature_scenarios(GHG_simulation_scenarios_time2,"results","Endline_no_
 
 ```
 
-```{r, include=FALSE}
+```{r}
 
 GHG_simulation_scenarios_time2<-load_temperature_scenarios("results","Endline_no_intervention")
 class(GHG_simulation_scenarios_time2)<-"mcSimulation"
@@ -1730,7 +1811,7 @@ balance_end$call<-"multi-scenario call"
 save_temperature_scenarios(balance_end,"results","End_Balance_intervention")
 ```
 
-```{r, include=FALSE}
+```{r}
 breed_end<-load_temperature_scenarios("results","End_Breed_intervention")
 class(breed_end)<-"mcSimulation"
 nobull_end<-load_temperature_scenarios("results","End_Nobull_intervention")
@@ -1742,6 +1823,9 @@ class(Calliandra_end)<-"mcSimulation"
 balance_end<-load_temperature_scenarios("results","End_Balance_intervention")
 class(balance_end)<-"mcSimulation"
 ```
+
+As shown in Figure S8, and in relative terms in Figure 7, intervention impacts are much less clearly visible when both scenarios used in the comparison are subjected to random noise. The illustrations show considerable overlap between the point cloud representing non-adopters (gray) and those representing adopters of the various interventions.
+
 
 ```{r, fig.dim = c(8, 8), fig.cap="***Figure S8.*** *Intervention impacts on milk production per head and greenhouse gas emission intensity, in comparison to random changes between two evaluation times. The gray dots illustrate random changes that occurred on farms that made no management changes, whereas the colored dots show changes on farms that implemented the respective interventions.*"}
 
@@ -1855,7 +1939,7 @@ ggsave("figures/Fig_7_intervention_impacts_endline_relative.png", width=9,height
 
 ```
 
-Summary statistics of interventions for the realistic-endline simulation
+The summary statistics of the intervention impacts still indicate that interventions had certain impacts, but these impacts are now much more difficult to see. In the case of the feed interventions, outcomes for the innovation-adopting farms are difficult to distinguish from those of non-adopting farms (Table S8).
 
 
 ```{r}
@@ -1908,18 +1992,20 @@ interventions_end_summary_emissions[6,c("Weakest effect",
 intervention_end_summary<-rbind(interventions_end_summary_milk,interventions_end_summary_emissions)
 
 kable(intervention_end_summary, booktabs = TRUE,digits=0,
-      caption = "<p style='color:black'><i><b>Table S6.</b> Summary statistics of the simulated impact of farm-scale interventions aimed at reducing greenhouse gas emissions from cattle on cattle-keeping smallholder farms in Kenya. Results are based on comparison of a baseline scenario, where no farm was assumed to have implemented the interventions and an endline scenarios, where some farms adopted the mitigation measures. At both baseline and endline, variation in outcomes expected to result from random effects was simulated using Monte Carlo simulation (10 runs per farm, for 414 farms).</i></p>") %>%
+      caption = "<p style='color:black'><i><b>Table S8.</b> Summary statistics of the simulated impact of farm-scale interventions aimed at reducing greenhouse gas emissions from cattle on cattle-keeping smallholder farms in Kenya. Results are based on comparison of a baseline scenario, where no farm was assumed to have implemented the interventions and an endline scenarios, where some farms adopted the mitigation measures. At both baseline and endline, variation in outcomes expected to result from random effects was simulated using Monte Carlo simulation (10 runs per farm, for 414 farms).</i></p>") %>%
   pack_rows(index = c("Impact on milk yield per head (%)" = 6, "Impact on emission intensity (%)" = 6), background="lightgray") %>%
 column_spec(2:6, width = "3cm")
 
 ```
 
-\
+# Detectability of intervention impacts
+
+## Probability of correctly associating milk yield changes with emission intensity changes
+
+The difficulty of detecting intervention impacts against the backdrop of real-world variability can be illustrated by plotting the differences between the outcomes of a baseline scenarios (Monte Carlo simulation without interventions) and an endline scenario (second Monte Carlo simulation with interventions) against the three-dimensional difference probability surface (Fig. 8). The point cloud shows only the adopting farms Strikingly, most farms are located near the identity line, and far away from areas of the plot that would be associated with a high probability that emission reductions have occurred.
 
 
-
-
-```{r, fig.dim = c(8, 4), fig.cap="***Figure 8. *** *Intervention impacts on milk yield and greenhouse gas emission intensity at an endline sampling point vs. the initial sampling time. The colored background surface indicates the probability that increases in milk productivity are associated with decreasing emission intensity.*"}
+```{r, fig.dim = c(8, 4), message=FALSE, warning=FALSE, fig.cap="***Figure 8. *** *Intervention impacts on milk yield and greenhouse gas emission intensity at an endline sampling point vs. the initial sampling time. The colored background surface indicates the probability that increases in milk productivity are associated with decreasing emission intensity.*"}
 
 interventions_plot<-interventions_normal_milk_end
 none_plot<-cbind(normal_normal_milk_end,intervention="none")
@@ -1947,11 +2033,12 @@ ggsave("figures/Fig_8_probability_of_lower_emission_intensity_interventions.png"
 
 ```
 
+## Classification errors
+
+The difficulty of confidently associating changes in milk yield per head with emission intensity changes implies that the use of such an indicator would lead to considerable classification errors. By extracting the respective probability from the probability surface for all farms, we can systematically evalute the size of Type I and Type II errors that would result from the choice of particular levels of *required confidence* in an emissions reduction scheme.
 
 
-
-
-```{r, fig.dim = c(4, 6), fig.cap="***Figure 9.*** *Probability of Type I and Type II errors incurred by choosing specific levels of confidence that emission intensity changes have actually occurred. Type I errors indicate the probability of failing to recognize households that implemented interventions, whereas the Type II error represents the percentage of households that did not make any changes, but are nevertheless rewarded due to random effects.*"}
+```{r, fig.dim = c(4, 6), warning=FALSE, message=FALSE, fig.cap="***Figure 9.*** *Probability of Type I and Type II errors incurred by choosing specific levels of confidence that emission intensity changes have actually occurred. Type I errors indicate the probability of failing to recognize households that implemented interventions, whereas the Type II error represents the percentage of households that did not make any changes, but are nevertheless rewarded due to random effects.*"}
 
 # get closest probability value
 
@@ -1997,7 +2084,10 @@ ggsave("figures/Fig_9_erorr_types.png", width=5,height=6)
 
 ```
 
-and now for the sensitivity analysis
+# Important uncertainties
+
+Among all the uncertain variables used as inputs to the emissions model, some are likely to be more influential than others. We evaluated the impact of variation in each input variable on variation of the emission intensity of milk production. To achieve this, we implemented a Partial Least Squares regression (Fig. 10).
+
 
 ```{r, fig.dim = c(8, 5), fig.cap="***Figure 10.*** *Strength of the relationship of Monte Carlo model input variables with the emission intensity of milk production, as indicated by the Variable-Importance-Score of a Partial Least Squares regression.*"}
 
@@ -2012,10 +2102,14 @@ plot_pls(pls_out,input_table=legend_table)
 ggsave("figures/Fig_10_PLS_dairy_households.png", width=8,height=5)
 ```
 
+This analysis revealed that milk yields of the various dairy cow types, the digestible energy content of animal feed and several other variables showed important correlations with the outcome metric.
+
 
 # Narrowing key uncertainties
 
-The sensitivity analysis indicated that uncertainty about milk yields is a key driver of output variation, with unfavorable implications for using this metric as an indicator of emission intensity. Published evidence suggests that, with some additional effort, this uncertainty can be reduced to a measurement error of approximately 15%. We can explore the impact of such measures on the suitability of milk yield per head as an indicator of emission intensity.
+The sensitivity analysis indicated that uncertainty about milk yields is a key driver of output variation, with unfavorable implications for using this metric as an indicator of emission intensity. Published evidence suggests that, with some additional effort, this uncertainty can be reduced to a measurement error of approximately 15%. We now explore the impact of such measures on the suitability of milk yield per head as an indicator of emission intensity.
+
+We'll first look a the implications of this added precision on milk yields on the change-detection probability surface (Fig. S9).
 
 ```{r, eval=FALSE}
 scen_upd<-scenarios
@@ -2130,7 +2224,7 @@ ggsave("figures/Fig_S9_updated_probability_of_lower_emission_intensity.png", wid
 
 ```
 
-We need to implement the same interventions as for the initial simulation.
+To evaluate the impact of added precision on milk yields on intervention outcomes, we need to implement the same interventions as for the initial simulation.
 
 ```{r}
 ## Produce endline breed scenario
@@ -2205,7 +2299,7 @@ balance_end_update$call<-"multi-scenario call"
 save_temperature_scenarios(balance_end_update,"results","End_update_Balance_intervention")
 ```
 
-```{r, include=FALSE}
+```{r}
 breed_end_update<-load_temperature_scenarios("results","End_update_Breed_intervention")
 class(breed_end_update)<-"mcSimulation"
 nobull_end_update<-load_temperature_scenarios("results","End_update_Nobull_intervention")
@@ -2313,6 +2407,7 @@ ggsave("figures/Fig_S10_intervention_impacts_endline.png", width=9,height=12)
 
 ```
 
+We can now compare the implications of added precision on the farm's location on the change-detection probability surface (Fig. S11).
 
 ```{r, fig.dim = c(8, 8), fig.cap="***Figure S11. *** *Intervention impacts on milk yield and greenhouse gas emission intensity at an endline sampling point vs. the initial sampling time, comparing initial uncertainty with improved measurements of milk yields (assuming a reduction of measurement errors to 15%). The colored background surface indicates the probability that increases in milk productivity are associated with decreasing emission intensity.*"}
 
@@ -2352,6 +2447,8 @@ interventions_probability_update
 ggsave("figures/Fig_S11_probability_of_lower_emission_intensity_interventions.png", width=7,height=12)
 
 ```
+
+The distribution has narrowed somewhat compared to the original simulation. We can now evaluate the implications of this on our ability to select a required confidence level for distinguishing adopters from non-adopters (Fig. S12).
 
 
 ```{r, fig.dim = c(8, 12), fig.cap="***Figure S12.*** *Probability of Type I and Type II errors incurred by choosing specific levels of confidence that emission intensity changes have actually occurred, comparing initial uncertainty with improved measurements of milk yields (assuming a reduction of measurement errors to 15%). Type I errors indicate the probability of failing to recognize households that implemented interventions, whereas the Type II error represents the percentage of households that did not make any changes, but are nevertheless rewarded due to random effects.*"}
@@ -2422,7 +2519,7 @@ ggsave("figures/Fig_S12_erorr_types.png", width=7,height=12)
 ```
 
 
-Comparing the errors is easier in a line plot.
+Comparing the errors is easier in a line graph that directly convenes all the error probabilities in one plot.
 
 ```{r, fig.dim = c(8, 8), fig.cap="***Figure 11.*** *Probability of Type I and Type II errors incurred by choosing specific levels of confidence that emission intensity changes have actually occurred, comparing initial uncertainty with improved measurements of milk yields (assuming a reduction of measurement errors to 15%). Type I errors indicate the probability of failing to recognize households that implemented interventions, whereas the Type II error represents the percentage of households that did not make any changes, but are nevertheless rewarded due to random effects.*"}
 
@@ -2443,27 +2540,27 @@ ggsave("figures/Fig_11_erorr_types.png", width=7,height=7)
 
 ```
 
+Even though the error probabilities have dropped somewhat, we still see a considerable risk of wrong classifications. Another PLS regression analysis provides insights on what next precision-enhancement steps would be useful in gaining clarity which farms have taken steps to reduce their emission intensity.
 
 
-new sensitivity analysis
-
-```{r, fig.dim = c(12, 4), fig.cap="***Figure S13.*** *Strength of the relationship of Monte Carlo model input variables with the emission intensity of milk production, as indicated by the Variable-Importance-Score of a Partial Least Squares regression. This analysis is based on a*"}
+```{r, fig.dim = c(10, 10), fig.cap="***Figure S13.*** *Strength of the relationship of Monte Carlo model input variables with the emission intensity of milk production, as indicated by the Variable-Importance-Score of a Partial Least Squares regression, for the initial uncertainty scenario (a) and a scenario where error estimates for milk yield measurement have been reduced to 15% (b). This analysis is based on the outputs of Monte Carlo simulations with 4140 runs, with scenarios based on farm characteristics oberved on smallholder livestock farms in Kenya.*"}
 
 pls_GHG<-dairy_households
 pls_GHG$x<-pls_GHG$x[,which(!colnames(pls_GHG$x)=="Scenario")]
 pls_out<-plsr.mcSimulation(object=pls_GHG, resultName = "CO2eq_per_milk")
 legend_table<-read.csv("data/legend.csv", fileEncoding = "UTF-8-BOM")
-PLS_initial<-plot_pls(pls_out,input_table=legend_table) + ggtitle("Initial uncertainty")
+PLS_initial<-plot_pls(pls_out,input_table=legend_table) + ggtitle("a) Initial uncertainty")
 
 pls_GHG_update<-dairy_households_update
 pls_GHG_update$x<-pls_GHG_update$x[,which(!colnames(pls_GHG_update$x)=="Scenario")]
 pls_out_update<-plsr.mcSimulation(object=pls_GHG_update, resultName = "CO2eq_per_milk")
 
-PLS_update<-plot_pls(pls_out_update,input_table=legend_table) + ggtitle("Precise milk yields")
+PLS_update<-plot_pls(pls_out_update,input_table=legend_table) + ggtitle("b) Precise milk yields")
 
-PLS_initial + PLS_update
+PLS_initial + PLS_update + plot_layout(ncol = 1, guides='collect') &
+  theme(legend.position='bottom')
 
-ggsave("figures/Fig_S13_PLS_dairy_households_update.png", width=12,height=4)
+ggsave("figures/Fig_S13_PLS_dairy_households_update.png", width=10,height=10)
 ```
 
 
