@@ -781,7 +781,7 @@ ggsave("figures/Fig_1_emissions_from_farm_5.png",width=9,height=5)
 
 Figure 2 below shows total emissions and emission intensity for the overall population of all farms, with Figure S1 illustrating the distribution of emissions per head of cattle.
 
-```{r, warning=FALSE, message=FALSE, fig.dim = c(8, 4), fig.cap = "***Figure 2.*** *Total greenhouse gas emissions from livestock (a) and emission intensity of milk production (b) across 4140 simulated livestock-keeping households in Kenya (informed by data collected on 414 farms). Plausible estimates of both metrics are generated through Monte Carlo simulation, based on 1000 runs of a greenhouse gas emissions model, with uncertainty introduced by specifying inputs as probability distributions.*"}
+```{r, warning=FALSE, message=FALSE, fig.dim = c(8, 4), fig.cap = "***Figure 2.*** *Total greenhouse gas emissions from livest3ck (a) and emission intensity of milk production (b) across 4140 simulated livestock-keeping households in Kenya (informed by data collected on 414 farms, including 383 milk-producing farms). Plausible estimates of both metrics are generated through Monte Carlo simulation, with uncertainty introduced by specifying inputs as probability distributions.*"}
 
 
 all_farms_total<-ggplot(data=GHG_simulation_scenarios$y, aes(on_farm)) +
@@ -862,7 +862,7 @@ We're interested in the suitability of total per head milk production per year a
 
 Figure 3 shows the relationship between these two variables, for farms with per-head milk yields of >500 kg per year.
 
-```{r, warning=FALSE, message=FALSE, fig.dim = c(8, 6), fig.cap="***Figure 3.***  *Relationship between milk yield per head (x-axis) and emission intensity of milk production for livestock-keeping smallholder households in Kenya, expressed as a population-level scatter plot (a) and an interpolated probability density surface (b). The vertical lines in (b) illustrate slices through the density surface at productivity levels of 2000 (red) and 3000 (blue) kg milk head^-1^ year^-1^ (the corresponding distributions are shown in Fig. 4b).*"}
+```{r, warning=FALSE, message=FALSE, fig.dim = c(8, 6), fig.cap="***Figure 3.***  *Relationship between milk yield per head (x-axis) and emission intensity of milk production for livestock-keeping smallholder households in Kenya, expressed as a population-level scatter plot (a) and an interpolated probability density surface (b). The vertical lines in (b) highlight slices through the density surface at productivity levels of 2000 (red) and 3000 (blue) kg milk head^-1^ year^-1^. These productivity levels are used to illustrate the slicing methodology in Fig. 4b.*"}
 
 plot1 <- ggplot(dairy_households$y, aes(x = pc_milk_yield, y = CO2eq_per_milk)) + 
   geom_point(shape = 20, color = "blue", size = 2) + 
@@ -2069,15 +2069,16 @@ for(i in 1:nrow(confidence_level_analysis))
 
 confidence_level_analysis$confidence<-confidence_level_analysis$confidence*100
 confidence_plot<-melt(confidence_level_analysis,id.vars = "confidence")
-confidence_plot$variable <- factor(confidence_plot$variable, levels = c("breed", "nobull", "lessReplace", "Calliandra", "balance", "Type1error"),
-                  labels = c("Type II error - failure to reward 'Breed change' adopters",
-                             "Type II error - failure to reward 'Retire unproductive bulls' adopters",
-                             "Type II error - failure to reward 'Fewer replacement males' adopters",
-                             "Type II error - failure to reward 'Calliandra feed' adopters",
-                             "Type II error - failure to reward 'Balanced diet' adopters",
-                             "Type I error - rewarding non-adopters"))
+confidence_plot_fig<-confidence_plot
+confidence_plot_fig$variable <- factor(confidence_plot_fig$variable, levels = c("breed", "nobull", "lessReplace", "Calliandra", "balance", "Type1error"),
+                  labels = c("Type II error - 'Breed change'",
+                             "Type II error - 'Unproductive bulls'",
+                             "Type II error - 'Replacement males'",
+                             "Type II error - 'Calliandra feed'",
+                             "Type II error - 'Balanced diet'",
+                             "Type I error"))
 
-ggplot(confidence_plot, aes(x=confidence,y=value)) + geom_bar(stat="identity", fill="darkolivegreen") + facet_wrap(~ variable,nrow=6) + theme_bw() +
+ggplot(confidence_plot_fig, aes(x=confidence,y=value)) + geom_bar(stat="identity", fill="darkolivegreen") + facet_wrap(~ variable,nrow=6) + theme_bw() +
   labs(y="Error probability (%)", x="Required confidence that emission reductions have occurred (%)")
 
 ggsave("figures/Fig_9_erorr_types.png", width=5,height=6)
@@ -2089,7 +2090,7 @@ ggsave("figures/Fig_9_erorr_types.png", width=5,height=6)
 Among all the uncertain variables used as inputs to the emissions model, some are likely to be more influential than others. We evaluated the impact of variation in each input variable on variation of the emission intensity of milk production. To achieve this, we implemented a Partial Least Squares regression (Fig. 10).
 
 
-```{r, fig.dim = c(8, 5), fig.cap="***Figure 10.*** *Strength of the relationship of Monte Carlo model input variables with the emission intensity of milk production, as indicated by the Variable-Importance-Score of a Partial Least Squares regression.*"}
+```{r, fig.dim = c(8, 5), fig.cap="***Figure 10.*** *Strength of the relationship of Monte Carlo model input variables with the emission intensity of milk production, as indicated by the Variable-Importance-in-the-Projection (VIP) score of a Partial Least Squares regression. We show only variables with VIP >0.8, a threshold that is often used for considering variables important.*"}
 
 pls_GHG<-dairy_households
 pls_GHG$x<-pls_GHG$x[,which(!colnames(pls_GHG$x)=="Scenario")]
@@ -2098,7 +2099,7 @@ pls_out<-plsr.mcSimulation(object=pls_GHG, resultName = "CO2eq_per_milk")
 
 legend_table<-read.csv("data/legend.csv", fileEncoding = "UTF-8-BOM")
 
-plot_pls(pls_out,input_table=legend_table)
+plot_pls(pls_out,input_table=legend_table, cut_off_line = 0.8)
 ggsave("figures/Fig_10_PLS_dairy_households.png", width=8,height=5)
 ```
 
@@ -2482,25 +2483,17 @@ for(i in 1:nrow(confidence_level_analysis_update))
 
 confidence_level_analysis_update$confidence<-confidence_level_analysis_update$confidence*100
 confidence_plot_update<-melt(confidence_level_analysis_update,id.vars = "confidence")
-confidence_plot_update$variable <- factor(confidence_plot_update$variable, levels = c("breed", "nobull", "lessReplace", "Calliandra", "balance", "Type1error"),
-                  labels = c("Type II error - failure to reward 'Breed change' adopters",
-                             "Type II error - failure to reward 'Retire unproductive bulls' adopters",
-                             "Type II error - failure to reward 'Fewer replacement males' adopters",
-                             "Type II error - failure to reward 'Calliandra feed' adopters",
-                             "Type II error - failure to reward 'Balanced diet' adopters",
-                             "Type I error - rewarding non-adopters"))
-
 
 confidence_plot_update[,"version"]<-"Precise milk yields"
 confidence_plot[,"version"]<-"Initial uncertainty"
 confidence_plot_stuff<-rbind(confidence_plot,confidence_plot_update)
 confidence_plot_stuff$variable <- factor(confidence_plot_stuff$variable,
-                                         levels = c("Type II error - failure to reward 'Breed change' adopters",
-                             "Type II error - failure to reward 'Retire unproductive bulls' adopters",
-                             "Type II error - failure to reward 'Fewer replacement males' adopters",
-                             "Type II error - failure to reward 'Calliandra feed' adopters",
-                             "Type II error - failure to reward 'Balanced diet' adopters",
-                             "Type I error - rewarding non-adopters"),
+                                         levels = c("breed",
+                                                    "nobull",
+                                                    "lessReplace",
+                                                    "Calliandra",
+                                                    "balance",
+                                                    "Type1error"),
                   labels = c("Type II - 'Breed change'",
                              "Type II - 'Unproductive bulls'",
                              "Type II - 'Replacement males'",
@@ -2533,7 +2526,7 @@ ggplot(confidence_plot_stuff, aes(x=confidence,y=value, color=variable)) + geom_
                               "Type II - 'Calliandra feed'" = intervention_colors[4],
                               "Type II - 'Balanced diet'" = intervention_colors[6],
                               "Type I" = "blue"),
-                    labels = c("Breed change", "No bulls", "Fewer males", "Calliandra feed", "Balanced diet", "Type I error")) + theme_bw() 
+                    labels = c("Type II error - Breed change", "Type II error - No bulls", "Type II error - Fewer males", "Type II error - Calliandra feed", "Type II error - Balanced diet", "Type I error")) + theme_bw() 
 
 ggsave("figures/Fig_11_erorr_types.png", width=7,height=7)
 
@@ -2543,19 +2536,19 @@ ggsave("figures/Fig_11_erorr_types.png", width=7,height=7)
 Even though the error probabilities have dropped somewhat, we still see a considerable risk of wrong classifications. Another PLS regression analysis provides insights on what next precision-enhancement steps would be useful in gaining clarity which farms have taken steps to reduce their emission intensity.
 
 
-```{r, fig.dim = c(10, 10), fig.cap="***Figure S13.*** *Strength of the relationship of Monte Carlo model input variables with the emission intensity of milk production, as indicated by the Variable-Importance-Score of a Partial Least Squares regression, for the initial uncertainty scenario (a) and a scenario where error estimates for milk yield measurement have been reduced to 15% (b). This analysis is based on the outputs of Monte Carlo simulations with 4140 runs, with scenarios based on farm characteristics oberved on smallholder livestock farms in Kenya.*"}
+```{r, fig.dim = c(10, 10), fig.cap="***Figure S13.*** *Strength of the relationship of Monte Carlo model input variables with the emission intensity of milk production, as indicated by the Variable-Importance-Score of a Partial Least Squares regression, for the initial uncertainty scenario (a) and a scenario where error estimates for milk yield measurement have been reduced to 15% (b). This analysis is based on the outputs of Monte Carlo simulations with 4140 runs, with scenarios based on farm characteristics oberved on smallholder livestock farms in Kenya. We show only variables with VIP >0.8, a threshold that is often used for considering variables important.*"}
 
 pls_GHG<-dairy_households
 pls_GHG$x<-pls_GHG$x[,which(!colnames(pls_GHG$x)=="Scenario")]
 pls_out<-plsr.mcSimulation(object=pls_GHG, resultName = "CO2eq_per_milk")
 legend_table<-read.csv("data/legend.csv", fileEncoding = "UTF-8-BOM")
-PLS_initial<-plot_pls(pls_out,input_table=legend_table) + ggtitle("a) Initial uncertainty")
+PLS_initial<-plot_pls(pls_out,input_table=legend_table,cut_off_line = 0.8) + ggtitle("a) Initial uncertainty")
 
 pls_GHG_update<-dairy_households_update
 pls_GHG_update$x<-pls_GHG_update$x[,which(!colnames(pls_GHG_update$x)=="Scenario")]
 pls_out_update<-plsr.mcSimulation(object=pls_GHG_update, resultName = "CO2eq_per_milk")
 
-PLS_update<-plot_pls(pls_out_update,input_table=legend_table) + ggtitle("b) Precise milk yields")
+PLS_update<-plot_pls(pls_out_update,input_table=legend_table,cut_off_line = 0.8) + ggtitle("b) Precise milk yields")
 
 PLS_initial + PLS_update + plot_layout(ncol = 1, guides='collect') &
   theme(legend.position='bottom')
