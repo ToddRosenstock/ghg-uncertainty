@@ -2038,7 +2038,7 @@ ggsave("figures/Fig_8_probability_of_lower_emission_intensity_interventions.png"
 The difficulty of confidently associating changes in milk yield per head with emission intensity changes implies that the use of such an indicator would lead to considerable classification errors. By extracting the respective probability from the probability surface for all farms, we can systematically evalute the size of Type I and Type II errors that would result from the choice of particular levels of *required confidence* in an emissions reduction scheme.
 
 
-```{r, fig.dim = c(4, 6), warning=FALSE, message=FALSE, fig.cap="***Figure 9.*** *Probability of Type I and Type II errors incurred by choosing specific levels of confidence that emission intensity changes have actually occurred. Type I errors indicate the probability of failing to recognize households that implemented interventions, whereas the Type II error represents the percentage of households that did not make any changes, but are nevertheless rewarded due to random effects.*"}
+```{r, fig.dim = c(4, 6), warning=FALSE, message=FALSE, fig.cap="***Figure 9.*** *Probability of Type I and Type II errors incurred by choosing specific levels of confidence that emission intensity changes have actually occurred. Type I errors indicate the probability of recognizing households for reducing emissions, even though they did not adopt an innovation, whereas the Type II error represents the percentage of households that made changes, but are not recognized for these.*"}
 
 # get closest probability value
 
@@ -2052,7 +2052,7 @@ for(i in 1:nrow(int_none_plot))
 confidence_level_analysis<-data.frame(confidence=seq(0.25,1,0.01))
 
 for(i in 1:nrow(confidence_level_analysis))
-{# compute Type 1 errors for all interventions
+{# compute Type 2 errors for all interventions
   for(ints in c("breed", "nobull", "lessReplace", "Calliandra", "balance"))
     confidence_level_analysis[i,ints]<-
       length(which(int_none_plot$intervention==ints &
@@ -2060,7 +2060,7 @@ for(i in 1:nrow(confidence_level_analysis))
                      confidence_level_analysis$confidence[i])) /
       length(which(int_none_plot$intervention==ints)) * 100
   
-  confidence_level_analysis$Type2error[i]<-
+  confidence_level_analysis$Type1error[i]<-
     length(which(int_none_plot$intervention=="none" &
                    int_none_plot$confidence_level>confidence_level_analysis$confidence[i])) /
     length(which(int_none_plot$intervention=="none")) * 100
@@ -2069,13 +2069,13 @@ for(i in 1:nrow(confidence_level_analysis))
 
 confidence_level_analysis$confidence<-confidence_level_analysis$confidence*100
 confidence_plot<-melt(confidence_level_analysis,id.vars = "confidence")
-confidence_plot$variable <- factor(confidence_plot$variable, levels = c("breed", "nobull", "lessReplace", "Calliandra", "balance", "Type2error"),
-                  labels = c("Type I error - failure to reward 'Breed change' adopters",
-                             "Type I error - failure to reward 'Retire unproductive bulls' adopters",
-                             "Type I error - failure to reward 'Fewer replacement males' adopters",
-                             "Type I error - failure to reward 'Calliandra feed' adopters",
-                             "Type I error - failure to reward 'Balanced diet' adopters",
-                             "Type II error - rewarding non-adopters"))
+confidence_plot$variable <- factor(confidence_plot$variable, levels = c("breed", "nobull", "lessReplace", "Calliandra", "balance", "Type1error"),
+                  labels = c("Type II error - failure to reward 'Breed change' adopters",
+                             "Type II error - failure to reward 'Retire unproductive bulls' adopters",
+                             "Type II error - failure to reward 'Fewer replacement males' adopters",
+                             "Type II error - failure to reward 'Calliandra feed' adopters",
+                             "Type II error - failure to reward 'Balanced diet' adopters",
+                             "Type I error - rewarding non-adopters"))
 
 ggplot(confidence_plot, aes(x=confidence,y=value)) + geom_bar(stat="identity", fill="darkolivegreen") + facet_wrap(~ variable,nrow=6) + theme_bw() +
   labs(y="Error probability (%)", x="Required confidence that emission reductions have occurred (%)")
@@ -2451,7 +2451,7 @@ ggsave("figures/Fig_S11_probability_of_lower_emission_intensity_interventions.pn
 The distribution has narrowed somewhat compared to the original simulation. We can now evaluate the implications of this on our ability to select a required confidence level for distinguishing adopters from non-adopters (Fig. S12).
 
 
-```{r, fig.dim = c(8, 12), fig.cap="***Figure S12.*** *Probability of Type I and Type II errors incurred by choosing specific levels of confidence that emission intensity changes have actually occurred, comparing initial uncertainty with improved measurements of milk yields (assuming a reduction of measurement errors to 15%). Type I errors indicate the probability of failing to recognize households that implemented interventions, whereas the Type II error represents the percentage of households that did not make any changes, but are nevertheless rewarded due to random effects.*"}
+```{r, fig.dim = c(8, 12), fig.cap="***Figure S12.*** *Probability of Type I and Type II errors incurred by choosing specific levels of confidence that emission intensity changes have actually occurred, comparing initial uncertainty with improved measurements of milk yields (assuming a reduction of measurement errors to 15%). Type I errors indicate the probability of recognizing households for reducing emissions, even though they did not adopt an innovation, whereas the Type II error represents the percentage of households that made changes, but are not recognized for these.*"}
 
 # get closest probability value
 
@@ -2465,7 +2465,7 @@ for(i in 1:nrow(int_none_plot_update))
 confidence_level_analysis_update<-data.frame(confidence=seq(0.25,1,0.01))
 
 for(i in 1:nrow(confidence_level_analysis_update))
-{# compute Type 1 errors for all interventions
+{# compute Type 2 errors for all interventions
   for(ints in c("breed", "nobull", "lessReplace", "Calliandra", "balance"))
     confidence_level_analysis_update[i,ints]<-
       length(which(int_none_plot_update$intervention==ints &
@@ -2473,7 +2473,7 @@ for(i in 1:nrow(confidence_level_analysis_update))
                      confidence_level_analysis_update$confidence[i])) /
       length(which(int_none_plot_update$intervention==ints)) * 100
   
-  confidence_level_analysis_update$Type2error[i]<-
+  confidence_level_analysis_update$Type1error[i]<-
     length(which(int_none_plot_update$intervention=="none" &
                    int_none_plot_update$confidence_level>confidence_level_analysis_update$confidence[i])) /
     length(which(int_none_plot_update$intervention=="none")) * 100
@@ -2482,31 +2482,31 @@ for(i in 1:nrow(confidence_level_analysis_update))
 
 confidence_level_analysis_update$confidence<-confidence_level_analysis_update$confidence*100
 confidence_plot_update<-melt(confidence_level_analysis_update,id.vars = "confidence")
-confidence_plot_update$variable <- factor(confidence_plot_update$variable, levels = c("breed", "nobull", "lessReplace", "Calliandra", "balance", "Type2error"),
-                  labels = c("Type I error - failure to reward 'Breed change' adopters",
-                             "Type I error - failure to reward 'Retire unproductive bulls' adopters",
-                             "Type I error - failure to reward 'Fewer replacement males' adopters",
-                             "Type I error - failure to reward 'Calliandra feed' adopters",
-                             "Type I error - failure to reward 'Balanced diet' adopters",
-                             "Type II error - rewarding non-adopters"))
+confidence_plot_update$variable <- factor(confidence_plot_update$variable, levels = c("breed", "nobull", "lessReplace", "Calliandra", "balance", "Type1error"),
+                  labels = c("Type II error - failure to reward 'Breed change' adopters",
+                             "Type II error - failure to reward 'Retire unproductive bulls' adopters",
+                             "Type II error - failure to reward 'Fewer replacement males' adopters",
+                             "Type II error - failure to reward 'Calliandra feed' adopters",
+                             "Type II error - failure to reward 'Balanced diet' adopters",
+                             "Type I error - rewarding non-adopters"))
 
 
 confidence_plot_update[,"version"]<-"Precise milk yields"
 confidence_plot[,"version"]<-"Initial uncertainty"
 confidence_plot_stuff<-rbind(confidence_plot,confidence_plot_update)
 confidence_plot_stuff$variable <- factor(confidence_plot_stuff$variable,
-                                         levels = c("Type I error - failure to reward 'Breed change' adopters",
-                             "Type I error - failure to reward 'Retire unproductive bulls' adopters",
-                             "Type I error - failure to reward 'Fewer replacement males' adopters",
-                             "Type I error - failure to reward 'Calliandra feed' adopters",
-                             "Type I error - failure to reward 'Balanced diet' adopters",
-                             "Type II error - rewarding non-adopters"),
-                  labels = c("Type I - 'Breed change'",
-                             "Type I - 'Unproductive bulls'",
-                             "Type I - 'Replacement males'",
-                             "Type I - 'Calliandra feed'",
-                             "Type I - 'Balanced diet'",
-                             "Type II"))
+                                         levels = c("Type II error - failure to reward 'Breed change' adopters",
+                             "Type II error - failure to reward 'Retire unproductive bulls' adopters",
+                             "Type II error - failure to reward 'Fewer replacement males' adopters",
+                             "Type II error - failure to reward 'Calliandra feed' adopters",
+                             "Type II error - failure to reward 'Balanced diet' adopters",
+                             "Type I error - rewarding non-adopters"),
+                  labels = c("Type II - 'Breed change'",
+                             "Type II - 'Unproductive bulls'",
+                             "Type II - 'Replacement males'",
+                             "Type II - 'Calliandra feed'",
+                             "Type II - 'Balanced diet'",
+                             "Type I"))
 
 
 ggplot(confidence_plot_stuff, aes(x=confidence,y=value)) + geom_bar(stat="identity", fill="darkolivegreen") + theme_bw() +
@@ -2521,19 +2521,19 @@ ggsave("figures/Fig_S12_erorr_types.png", width=7,height=12)
 
 Comparing the errors is easier in a line graph that directly convenes all the error probabilities in one plot.
 
-```{r, fig.dim = c(8, 8), fig.cap="***Figure 11.*** *Probability of Type I and Type II errors incurred by choosing specific levels of confidence that emission intensity changes have actually occurred, comparing initial uncertainty with improved measurements of milk yields (assuming a reduction of measurement errors to 15%). Type I errors indicate the probability of failing to recognize households that implemented interventions, whereas the Type II error represents the percentage of households that did not make any changes, but are nevertheless rewarded due to random effects.*"}
+```{r, fig.dim = c(8, 8), fig.cap="***Figure 11.*** *Probability of Type I and Type II errors incurred by choosing specific levels of confidence that emission intensity changes have actually occurred, comparing initial uncertainty with improved measurements of milk yields (assuming a reduction of measurement errors to 15%). Type I errors indicate the probability of recognizing households for reducing emissions, even though they did not adopt an innovation, whereas the Type II error represents the percentage of households that made changes, but are not recognized for these.*"}
 
 ggplot(confidence_plot_stuff, aes(x=confidence,y=value, color=variable)) + geom_smooth(stat="identity", fill="darkolivegreen") +
   labs(y="Error probability (%)", x="Required confidence that emission reductions have occurred (%)",
        color="Classification errors") +
   facet_wrap(~version,nrow=2) +
-  scale_color_manual(values= c("Type I - 'Breed change'" = intervention_colors[1],
-                              "Type I - 'Unproductive bulls'" = intervention_colors[2],
-                              "Type I - 'Replacement males'" = intervention_colors[3],
-                              "Type I - 'Calliandra feed'" = intervention_colors[4],
-                              "Type I - 'Balanced diet'" = intervention_colors[6],
-                              "Type II" = "blue"),
-                    labels = c("Breed change", "No bulls", "Fewer males", "Calliandra feed", "Balanced diet", "Type II error")) + theme_bw() 
+  scale_color_manual(values= c("Type II - 'Breed change'" = intervention_colors[1],
+                              "Type II - 'Unproductive bulls'" = intervention_colors[2],
+                              "Type II - 'Replacement males'" = intervention_colors[3],
+                              "Type II - 'Calliandra feed'" = intervention_colors[4],
+                              "Type II - 'Balanced diet'" = intervention_colors[6],
+                              "Type I" = "blue"),
+                    labels = c("Breed change", "No bulls", "Fewer males", "Calliandra feed", "Balanced diet", "Type I error")) + theme_bw() 
 
 ggsave("figures/Fig_11_erorr_types.png", width=7,height=7)
 
