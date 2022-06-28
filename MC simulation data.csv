@@ -1,0 +1,5 @@
+Description,lower,median,upper,distribution,variable
+Sampling depth (m),30,,30,const,sampling_depth
+Soil organic carbon concentration  (g C kg-1),0.454,,0.54,posnorm,soil_organic_cab_conc
+Bulk density (kg m-3),1.482,,1.536,posnorm,bulk_density
+Mass proportion of rock fragment content (%),2.653,,3.374,posnorm,prop_rock_frag_cont
