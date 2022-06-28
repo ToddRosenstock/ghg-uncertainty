@@ -1,0 +1,124 @@
+﻿label,variable
+Feeding system (1 Stall - 2 Pasture - 3 Grazing large area),feeding_system
+Activity coefficient Ca - Stall feeding,Ca_stall
+Activity coefficient Ca -Pasture feeding,Ca_pasture
+Activity coefficient Ca - Grazing large area,Ca_large_grazing
+Number of 'intact' mature bulls (>36 months) (animal type 1),N_animal_type_1
+Number of mature castrates (>36 months) (animal type 2),N_animal_type_2
+Number of males 12-36 months (animal type 3),N_animal_type_3
+Number of lactating cows (animal type 4),N_animal_type_4
+Number of lactating cows (animal type 5),N_animal_type_5
+Number of lactating cows (animal type 6),N_animal_type_6
+Number of weaned young females <=12 (animal type 7),N_animal_type_7
+Number of weaned young males <=12 (animal type 8),N_animal_type_8
+Number of females 12-36 months (animal type 9),N_animal_type_9
+Number of pre-weaned female calves (animal type 10),N_animal_type_10
+Number of pre-weaned male calves (animal type 10),N_animal_type_11
+Number of first-time pregnant cows (animal type 12),N_animal_type_12
+Sex-specific coefficient - intact males,C_intact_males
+Sex-specific coefficient - castrates,C_castrates
+Sex-specific coefficient - females,C_females
+"Maintenance coefficient (Cfi) (non-lactating cows, steers
+and juveniles)",maintenance_coefficient_Cfi_other
+Maintenance coefficient (Cfi) (lactating cows),maintenance_coefficient_Cfi_lact_cow
+Maintenance coefficient (Cfi) (bulls),maintenance_coefficient_Cfi_bulls
+Mature body weight females,mature_weight_MW_female
+Mature body weight males,mature_weight_MW_male
+Mean live weight of animal type 1,live_weight_LW_1
+Mean live weight of animal type 2,live_weight_LW_2
+Mean live weight of animal type 3,live_weight_LW_3
+Mean live weight of animal type 4,live_weight_LW_4
+Mean live weight of animal type 5,live_weight_LW_5
+Mean live weight of animal type 6,live_weight_LW_6
+Mean live weight of animal type 7,live_weight_LW_7
+Mean live weight of animal type 8,live_weight_LW_8
+Mean live weight of animal type 9,live_weight_LW_9
+Mean live weight of animal type 10,live_weight_LW_10
+Mean live weight of animal type 11,live_weight_LW_11
+Mean live weight of animal type 12,live_weight_LW_12
+Average daily weight gain (kg/day) of animal type 1,weight_gain_WG_1
+Average daily weight gain (kg/day) of animal type 2,weight_gain_WG_2
+Average daily weight gain (kg/day) of animal type 3,weight_gain_WG_3
+Average daily weight gain (kg/day) of animal type 4,weight_gain_WG_4
+Average daily weight gain (kg/day) of animal type 5,weight_gain_WG_5
+Average daily weight gain (kg/day) of animal type 6,weight_gain_WG_6
+Average daily weight gain (kg/day) of animal type 7,weight_gain_WG_7
+Average daily weight gain (kg/day) of animal type 8,weight_gain_WG_8
+Average daily weight gain (kg/day) of animal type 9,weight_gain_WG_9
+Average daily weight gain (kg/day) of animal type 10,weight_gain_WG_10
+Average daily weight gain (kg/day) of animal type 11,weight_gain_WG_11
+Average daily weight gain (kg/day) of animal type 12,weight_gain_WG_12
+Average milk yield (kg/day) of animal type 4,milk_yield_4
+Average milk yield (kg/day) of animal type 5,milk_yield_5
+Average milk yield (kg/day) of animal type 6,milk_yield_6
+Milk fat (%),milk_fat
+Maximum pregnancy coefficient Cp (scaled to year),Cp_0
+Pregnancy coefficient for animal type 4 (share of full coefficient),Cp_rate_4
+Pregnancy coefficient for animal type 5 (share of full coefficient),Cp_rate_5
+Pregnancy coefficient for animal type 6 (share of full coefficient),Cp_rate_6
+Feed production emissions,feed_prod_CO2
+Feed transport emissions,feed_trans_CO2
+Digestible energy expressed as a percentage of gross energy (DE),DE_perc
+Percent crude protein in diet,perc_crude_protein_diet
+Methane conversion rate (0-1),Y_m
+emission factor for N2O emissions from nitrogen leaching and runoff (kg N2O-N/kg N leached and runoff),EF5
+emission factor for N2O emissions from atmospheric deposition of nitrogen on soils and water surfaces,EF4
+urinary energy expressed as fraction of Gross Energy intake,urinary_energy
+the ash content of manure calculated as a fraction of the dry matter feed intake,ash_content
+Maximum methane producing capacity of the manure (animal type 1),Bo_animaltype_1
+Maximum methane producing capacity of the manure (animal type 2),Bo_animaltype_2
+Maximum methane producing capacity of the manure (animal type 3),Bo_animaltype_3
+Maximum methane producing capacity of the manure (animal type 4),Bo_animaltype_4
+Maximum methane producing capacity of the manure (animal type 5),Bo_animaltype_5
+Maximum methane producing capacity of the manure (animal type 6),Bo_animaltype_6
+Maximum methane producing capacity of the manure (animal type 7),Bo_animaltype_7
+Maximum methane producing capacity of the manure (animal type 8),Bo_animaltype_8
+Maximum methane producing capacity of the manure (animal type 9),Bo_animaltype_9
+Maximum methane producing capacity of the manure (animal type 10),Bo_animaltype_10
+Maximum methane producing capacity of the manure (animal type 11),Bo_animaltype_11
+Maximum methane producing capacity of the manure (animal type 12),Bo_animaltype_12
+Methane conversion factor (MCF) - pasture,MCFpasture
+Methane conversion factor (MCF) - spreading,MCFspread
+Methane conversion factor (MCF) - drylot,MCFdrylot
+Methane conversion factor (MCF) - solid storage,MCFsolidstore
+Methane conversion factor (MCF) - composted,MCFcomposted
+Methane conversion factor (MCF) - liquid,MCFliquid
+Methane conversion factor (MCF) - biogas,MCFbiogas
+Methane conversion factor (MCF) - burning,MCFburn
+Methane conversion factor (MCF) - sold,MCFsold
+Share of manure management (pasture),mms_pasture
+Share of manure management (spread),mms_spread
+Share of manure management (dry lot),mms_drylot
+Share of manure management (solid storage),mms_solidstore
+Share of manure management (composted),mms_composted
+Share of manure management (liquid),mms_liquid
+Share of manure management (biogas),mms_biogas
+Share of manure management (burned),mms_burn
+Share of manure management (burned),mms_sold
+Manure nitrogen direct emission coefficient (pasture),mndec_pasture
+Manure nitrogen direct emission coefficient (spread),mndec_spread
+Manure nitrogen direct emission coefficient (dry lot),mndec_drylot
+Manure nitrogen direct emission coefficient (solid storage),mndec_solidstore
+Manure nitrogen direct emission coefficient (composted),mndec_composted
+Manure nitrogen direct emission coefficient (liquid),mndec_liquid
+Manure nitrogen direct emission coefficient (biogas),mndec_biogas
+Manure nitrogen direct emission coefficient (burned),mndec_burn
+Manure nitrogen direct emission coefficient (sold),mndec_sold
+Manure nitrogen volatilization emission coefficient (pasture),mnvc_pasture
+Manure nitrogen volatilization emission coefficient (spread),mnvc_spread
+Manure nitrogen volatilization emission coefficient (dry lot),mnvc_drylot
+Manure nitrogen volatilization emission coefficient (solid storage),mnvc_solidstore
+Manure nitrogen volatilization emission coefficient (composted),mnvc_composted
+Manure N vol emission coefficient (liquid),mnvc_liquid
+Manure nitrogen volatilization emission coefficient (biogas),mnvc_biogas
+Manure nitrogen volatilization emission coefficient (burned),mnvc_burn
+Manure nitrogen volatilization emission coefficient (sold),mnvc_sold
+Fraction of managed manure nitrogen losses … (pasture),frac_leach_pasture
+Fraction of managed manure nitrogen losses … (spread),frac_leach_spread
+Fraction of managed manure nitrogen losses … (dry lot),frac_leach_drylot
+Fraction of managed manure nitrogen losses … (solid storage),frac_leach_solidstore
+Fraction of managed manure nitrogen losses … (composted),frac_leach_composted
+Fraction of managed manure nitrogen losses … (liquid),frac_leach_liquid
+Fraction of managed manure nitrogen losses … (biogas),frac_leach_biogas
+Fraction of managed manure nitrogen losses … (burned),frac_leach_burn
+Fraction of managed manure nitrogen losses … (sold),frac_leach_sold
